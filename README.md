@@ -2,84 +2,45 @@
 
 RideSync is a Flutter-based group project for ride booking and management.
 
+## Overview
+
+RideSync is designed to support ride booking, trip coordination, and user management in a simple cross-platform Flutter application.
+
 ## Tech Stack
 
 - Flutter
 - Dart
 - Provider
 
+## Project Workflow
+
+Use this branch flow for updates:
+
+1. Create a new branch from `develop`
+2. Commit and push your changes to that branch
+3. Open a pull request into `develop`
+4. After testing, merge `develop` into `main`
+
+Branch flow:
+
+- `feature/...` -> `develop`
+- `develop` -> `main`
+
+## Branch Examples
+
+- `feature/readme-update`
+- `feature/project-update`
+- `feature/ui-fixes`
+
 ## Getting Started
-
-### Prerequisites
-
-- Flutter SDK
-- Dart SDK
-- Android Studio or VS Code
-- GitHub Desktop or Git
-
-### Run the project
 
 ```bash
 flutter pub get
-flutter run --dart-define=API_BASE_URL=http://localhost:3000
+flutter run
 ```
 
-### Environment configuration
+## Notes
 
-Use `--dart-define` for non-sensitive configuration values such as the API base URL.
-
-Example:
-
-```bash
-flutter run --dart-define=API_BASE_URL=https://dev-api.example.com
-flutter build apk --dart-define=API_BASE_URL=https://api.example.com
-```
-
-Do not store private API keys, database passwords, or backend secrets in the Flutter app.
-
-## Branch Strategy
-
-- `main`: stable, release-ready code
-- `develop`: shared integration branch for the team
-- `feature/*`: feature development branches
-- `bugfix/*`: normal bug fix branches
-- `hotfix/*`: urgent production fixes
-
-## Team Workflow
-
-1. Pull the latest `develop` branch.
-2. Create a new branch from `develop`.
-3. Use a branch name such as `feature/login-ui`.
-4. Make changes and test them locally.
-5. Commit and push your branch.
-6. Open a pull request into `develop`.
-7. Get at least one review before merging.
-8. Merge `develop` into `main` only when the build is stable.
-
-## Team Rules
-
-- Do not push directly to `main`.
-- Do not code directly on `develop`.
-- Always create a separate branch for your task.
-- Always open a pull request before merging.
-- Pull the latest changes before starting new work.
-- Use clear commit messages.
-
-## Commit Message Examples
-
-- `add login form validation`
-- `create home screen layout`
-- `fix profile image picker bug`
-- `connect booking page to provider`
-
-## Repository Settings
-
-- Visibility: Private
-- Default branch: `develop`
-- Protected branches: `main`, `develop`
-- Pull request approvals required: 1
-- Merge strategy: Squash and merge
-
-## Contributors
-
-- Project leader and team members can be listed here.
+- Do not push daily work directly to `main`
+- Use `develop` as the main working branch
+- Use separate feature branches for updates
