@@ -1,0 +1,122 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.metadata
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Node / local tooling
+node_modules/
+
+# Android local and generated files
+android/.gradle/
+android/.kotlin/
+android/local.properties
+android/build_log.txt
+
+# Firebase config files
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+# --- Professional Redaction & Security Hardening ---
+# Hard-Ignore AI Agent Metadata & Temporary Restoration Artifacts
+.agents/
+.gemini/
+(old)/
+masterpiece-*/
+scripts/
+
+# Zero API Exposure: Environment & Security Keys
+.env
+*.env
+*.jks
+*.keystore
+*.p12
+*.secret
+google-services.json
+GoogleService-Info.plist
+serviceAccountKey.json
+scripts/serviceAccountKey.json
+
+# ---------------------------------------------------
+
+# Repo Internal Debris (Build & Metadata Artifacts)
+# Hard-Ignore generated files in root that clutter the "Changes" tab
+.filecache
+.lock
+app.dill
+dart_build.d
+dart_build.stamp
+dart_build_result.json
+Dart_SDK.xml
+debug_android_application.stamp
+dependencies.dependencies_hash_file.json
+devtools_options.yaml
+flutter_assets.d
+gen_dart_plugin_registrant.stamp
+gen_localizations.stamp
+hook.dependencies_hash_file.json
+hook.dill
+hook.dill.d
+input.json
+install_code_assets.d
+install_code_assets.stamp
+kernel_snapshot_program.d
+kernel_snapshot_program.stamp
+main_dart.xml
+modules.xml
+native_assets.json
+output.json
+outputs.json
+settings.json
+stderr.txt
+stdout.txt
+vsce-debug.log
+workspace.xml
+KotlinJavaRuntime.xml
+build_log.txt
+gradle.properties
+gradlew
+gradlew.bat
+local.properties
+build.gradle.kts
