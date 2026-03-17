@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../models/user_model.dart';
 import '../../core/constants.dart';
 import '../../widgets/custom_button.dart';
 
-// Login screen with Social Login and Forgot Password options
+// Login screen with Role-based routing
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final auth = Provider.of<AuthProvider>(context);
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
@@ -39,7 +43,9 @@ class LoginScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Sign in to continue your journey',
+                auth.currentRole == UserRole.operator
+                    ? 'Sign in to manage your bus fleet'
+                    : 'Sign in to continue your journey',
                 style: TextStyle(
                   color: isDark ? Colors.white70 : AppColors.textLight,
                 ),
@@ -68,9 +74,15 @@ class LoginScreen extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               CustomButton(
-                label: 'Sign In',
+                label: auth.currentRole == UserRole.operator ? 'Operator Sign In' : 'Sign In',
                 onPressed: () {
-                  Navigator.pushReplacementNamed(context, '/main');
+                  if (auth.currentRole == UserRole.operator) {
+                    auth.loginAsOperator('marcus@ridesync.com', 'password');
+                    Navigator.pushReplacementNamed(context, '/operator-main');
+                  } else {
+                    auth.loginAsPassenger('sarah@ridesync.com', 'password');
+                    Navigator.pushReplacementNamed(context, '/main');
+                  }
                 },
               ),
               const SizedBox(height: 24),
@@ -104,7 +116,7 @@ class LoginScreen extends StatelessWidget {
                     onPressed: () =>
                         Navigator.pushNamed(context, '/role-selection'),
                     child: Text(
-                      'Create new account',
+                      'Change role',
                       style: TextStyle(
                         color: isDark ? AppColors.primaryOrange : null,
                       ),

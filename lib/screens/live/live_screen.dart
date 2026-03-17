@@ -3,10 +3,14 @@ import '../placeholder_screen.dart';
 
 // Real-time tracking map screen
 class LiveScreen extends StatelessWidget {
-  const LiveScreen({super.key});
+  final VoidCallback? onBack;
+  const LiveScreen({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return const PlaceholderScreen(title: 'Live Tracking');
+    return PlaceholderScreen(
+      title: 'Live Tracking',
+      onBack: onBack,
+    );
   }
 }

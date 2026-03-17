@@ -22,9 +22,11 @@ class _PassengerSignupScreenState extends State<PassengerSignupScreen> {
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       appBar: AppBar(
-        title: const Text('Commuter Account'),
-        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-        foregroundColor: isDark ? Colors.white : Colors.black,
+        title: const Text('Passenger Account'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        foregroundColor: isDark ? Colors.white : AppColors.primaryNavy,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppStyles.padding),
@@ -54,7 +56,7 @@ class _PassengerSignupScreenState extends State<PassengerSignupScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Join RideSync and start commuting smarter',
+                'Join RideSync and start traveling smarter',
                 style: TextStyle(
                   color: isDark ? Colors.white70 : AppColors.textLight,
                 ),
@@ -78,15 +80,15 @@ class _PassengerSignupScreenState extends State<PassengerSignupScreen> {
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     // Simulate login for new user
-                    Provider.of<AuthProvider>(
+                    final auth = Provider.of<AuthProvider>(
                       context,
                       listen: false,
-                    ).loginTest();
+                    );
+                    auth.loginAsPassenger('sarah@ridesync.com', 'password');
                     Navigator.pushNamedAndRemoveUntil(
                       context,
                       '/main',
                       (route) => false,
-                      arguments: {'index': 4},
                     );
                   }
                 },

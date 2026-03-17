@@ -1,9 +1,11 @@
+enum UserRole { passenger, operator, guest }
+
 // Data blueprints for Passenger and Operator details
 class UserModel {
   final String id;
   final String name;
   final String email;
-  final String role; // 'Commuter' or 'Operator'
+  final String role; // 'Passenger' or 'Operator'
   final int joinYear;
   final int totalRides;
   final double rating;

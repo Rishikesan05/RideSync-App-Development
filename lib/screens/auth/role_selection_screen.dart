@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants.dart';
 import '../../providers/auth_provider.dart';
+import '../../models/user_model.dart';
 
-// Role selection between Commuter and Bus Operator
+// Upgraded Role selection with Passenger, Bus Operator, and Guest modes
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
 
@@ -14,53 +15,88 @@ class RoleSelectionScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       appBar: AppBar(
-        title: const Text('Choose Your Role'),
-        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-        foregroundColor: isDark ? Colors.white : Colors.black,
+        title: const Text('Join RideSync'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        foregroundColor: isDark ? Colors.white : AppColors.primaryNavy,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(AppStyles.padding),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
-              'Are you an Operator or a User?',
+              'Choose Your Experience',
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black,
+                color: isDark ? Colors.white : AppColors.textDark,
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 12),
+            Text(
+              'Select the role that fits you best to get started with intelligent commuting.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: isDark ? Colors.white70 : AppColors.textLight,
+              ),
+            ),
+            const SizedBox(height: 48),
+
+            // Passenger Card
             _roleCard(
               context,
-              'Commuter',
-              'Book rides and track buses in real-time',
-              Icons.directions_walk,
+              'Passenger',
+              'Book comfortable rides and track your bus in real-time.',
+              Icons.person_pin_circle_outlined,
               isDark,
+              AppColors.primaryOrange,
               () {
-                Provider.of<AuthProvider>(
-                  context,
-                  listen: false,
-                ).setRole('Commuter');
-                Navigator.pushNamed(context, '/passenger-signup');
+                final auth = Provider.of<AuthProvider>(context, listen: false);
+                auth.selectRole(UserRole.passenger);
+                Navigator.pushNamed(context, '/passenger-auth-choice');
               },
             ),
-            const SizedBox(height: 20),
+
+            const SizedBox(height: 24),
+
+            // Bus Operator Card
             _roleCard(
               context,
               'Bus Operator',
-              'Manage your fleet and optimize routes',
-              Icons.directions_bus,
+              'Manage your fleet, optimize schedules, and track earnings.',
+              Icons.directions_bus_filled_outlined,
               isDark,
+              AppColors.primaryNavy,
               () {
-                Provider.of<AuthProvider>(
-                  context,
-                  listen: false,
-                ).setRole('Operator');
-                Navigator.pushNamed(context, '/driver-registration');
+                final auth = Provider.of<AuthProvider>(context, listen: false);
+                auth.selectRole(UserRole.operator);
+                Navigator.pushNamed(context, '/operator-auth-choice');
               },
             ),
+
+            const SizedBox(height: 24),
+
+            // Guest Card
+            _roleCard(
+              context,
+              'Guest Entry',
+              'Explore routes and schedules without an account.',
+              Icons.visibility_outlined,
+              isDark,
+              Colors.grey,
+              () {
+                final auth = Provider.of<AuthProvider>(context, listen: false);
+                auth.continueAsGuest();
+                Navigator.pushNamedAndRemoveUntil(
+                    context, '/main', (route) => false);
+              },
+            ),
+
+            const SizedBox(height: 40),
           ],
         ),
       ),
@@ -73,40 +109,43 @@ class RoleSelectionScreen extends StatelessWidget {
     String subtitle,
     IconData icon,
     bool isDark,
+    Color accentColor,
     VoidCallback onTap,
   ) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(24),
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isDark
-                ? Colors.white12
-                : AppColors.primaryNavy.withValues(alpha: 0.1),
+                ? Colors.white.withValues(alpha: 0.1)
+                : AppColors.primaryNavy.withValues(alpha: 0.05),
+            width: 1,
           ),
-          borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            if (!isDark)
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
           ],
         ),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: isDark
-                  ? Colors.white10
-                  : AppColors.primaryNavy.withValues(alpha: 0.1),
+            Container(
+              height: 64,
+              width: 64,
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(18),
+              ),
               child: Icon(
                 icon,
-                color: isDark ? Colors.white : AppColors.primaryNavy,
+                color: accentColor,
                 size: 32,
               ),
             ),
@@ -120,13 +159,14 @@ class RoleSelectionScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black,
+                      color: isDark ? Colors.white : AppColors.textDark,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
                     style: TextStyle(
+                      fontSize: 13,
                       color: isDark ? Colors.white70 : AppColors.textLight,
                     ),
                   ),
@@ -134,9 +174,9 @@ class RoleSelectionScreen extends StatelessWidget {
               ),
             ),
             Icon(
-              Icons.arrow_forward_ios,
+              Icons.arrow_forward_ios_rounded,
               size: 16,
-              color: isDark ? Colors.white70 : AppColors.textLight,
+              color: isDark ? Colors.white30 : Colors.black26,
             ),
           ],
         ),

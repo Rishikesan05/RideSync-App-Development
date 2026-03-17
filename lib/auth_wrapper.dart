@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
-import 'main.dart';
-import 'screens/auth/login_screen.dart';
+import 'models/user_model.dart';
+import 'main.dart'; // For PassengerNavigationHub
+import 'screens/operator/operator_navigation_hub.dart';
+import 'screens/auth/role_selection_screen.dart';
 
-// Logic to redirect based on Login status and User Role
+// Logic to redirect based on Login status, Guest mode, and User Role
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
@@ -12,12 +14,20 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
 
-    // If authenticated, show main dashboard navigation
-    if (authProvider.isAuthenticated) {
-      return const MainNavigationHub();
-    } else {
-      // Otherwise, redirect to login screen
-      return const LoginScreen();
+    // 1. Check for Guest Mode
+    if (authProvider.isGuest) {
+      return const PassengerNavigationHub();
     }
+
+    // 2. Check for Authenticated Users
+    if (authProvider.isAuthenticated) {
+      if (authProvider.currentRole == UserRole.operator) {
+        return const BusOperatorNavigationHub();
+      }
+      return const PassengerNavigationHub();
+    }
+
+    // 3. Unauthenticated/Default: Show Role Selection
+    return const RoleSelectionScreen();
   }
 }

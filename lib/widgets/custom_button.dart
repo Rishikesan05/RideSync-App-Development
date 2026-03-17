@@ -6,6 +6,7 @@ class CustomButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
   final Color? color;
+  final Color? textColor;
   final bool isLoading;
   final IconData? icon;
 
@@ -14,6 +15,7 @@ class CustomButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.color,
+    this.textColor,
     this.isLoading = false,
     this.icon,
   });
@@ -30,14 +32,16 @@ class CustomButton extends StatelessWidget {
           backgroundColor:
               color ??
               (isDark ? const Color(0xFF1E293B) : AppColors.primaryNavy),
-          foregroundColor: Colors.white,
+          foregroundColor: textColor ?? Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 18),
           elevation: isDark ? 0 : 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppStyles.borderRadius),
-            side: isDark && color == null
-                ? const BorderSide(color: Colors.white12)
-                : BorderSide.none,
+            side: (color == Colors.white && !isDark) 
+                ? const BorderSide(color: AppColors.primaryNavy)
+                : (isDark && color == null)
+                    ? const BorderSide(color: Colors.white12)
+                    : BorderSide.none,
           ),
         ),
         child: isLoading

@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/constants.dart';
+import '../providers/auth_provider.dart';
+import '../models/user_model.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String title;
   final String message;
+  final VoidCallback? onBack;
+  final String? backRoute;
 
   const PlaceholderScreen({
     super.key,
     required this.title,
     this.message = 'We are working hard to bring this feature to you soon!',
+    this.onBack,
+    this.backRoute,
   });
 
   @override
@@ -19,6 +26,7 @@ class PlaceholderScreen extends StatelessWidget {
       backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       appBar: AppBar(
         title: Text(title),
+        automaticallyImplyLeading: false,
         backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
         foregroundColor: isDark ? Colors.white : Colors.black,
       ),
@@ -54,8 +62,21 @@ class PlaceholderScreen extends StatelessWidget {
               SizedBox(
                 width: 200,
                 child: ElevatedButton(
-                  onPressed: () =>
-                      Navigator.pushReplacementNamed(context, '/main'),
+                  onPressed: onBack ?? () {
+                    if (backRoute != null) {
+                      Navigator.pushReplacementNamed(context, backRoute!);
+                    } else {
+                      // Role-aware default navigation
+                      final auth = context.read<AuthProvider>();
+                      final role = auth.currentRole;
+                      
+                      if (role == UserRole.operator) {
+                        Navigator.pushReplacementNamed(context, '/operator-main');
+                      } else {
+                        Navigator.pushReplacementNamed(context, '/main');
+                      }
+                    }
+                  },
                   child: const Text('Back to Home'),
                 ),
               ),
