@@ -15,6 +15,9 @@ import 'screens/booking/booking_screen.dart';
 import 'screens/live/live_screen.dart';
 import 'screens/finder/finder_screen.dart';
 import 'screens/account/account_screen.dart';
+import 'screens/operator/operator_navigation_hub.dart';
+import 'screens/auth/passenger_auth_choice_screen.dart';
+import 'screens/auth/operator_auth_choice_screen.dart';
 import 'widgets/bottom_nav_bar.dart';
 
 // Entry point and Theme configuration for RideSync
@@ -50,9 +53,12 @@ class RideSyncApp extends StatelessWidget {
             '/splash': (context) => const SplashScreen(),
             '/login': (context) => const LoginScreen(),
             '/role-selection': (context) => const RoleSelectionScreen(),
-            '/main': (context) => const MainNavigationHub(),
+            '/main': (context) => const PassengerNavigationHub(),
+            '/operator-main': (context) => const BusOperatorNavigationHub(),
             '/driver-registration': (context) => const DriverRegistrationFlow(),
             '/passenger-signup': (context) => const PassengerSignupScreen(),
+            '/passenger-auth-choice': (context) => const PassengerAuthChoiceScreen(),
+            '/operator-auth-choice': (context) => const OperatorAuthChoiceScreen(),
           },
         );
       },
@@ -60,15 +66,15 @@ class RideSyncApp extends StatelessWidget {
   }
 }
 
-// Persistent Navigation Hub using a Bottom Navigation Bar
-class MainNavigationHub extends StatefulWidget {
-  const MainNavigationHub({super.key});
+// Persistent Navigation Hub for Passengers
+class PassengerNavigationHub extends StatefulWidget {
+  const PassengerNavigationHub({super.key});
 
   @override
-  State<MainNavigationHub> createState() => _MainNavigationHubState();
+  State<PassengerNavigationHub> createState() => _PassengerNavigationHubState();
 }
 
-class _MainNavigationHubState extends State<MainNavigationHub> {
+class _PassengerNavigationHubState extends State<PassengerNavigationHub> {
   int _currentIndex = 0;
   bool _initialized = false;
 
@@ -85,11 +91,11 @@ class _MainNavigationHubState extends State<MainNavigationHub> {
     }
   }
 
-  final List<Widget> _screens = [
+  late final List<Widget> _screens = [
     const HomeScreen(),
-    const BookingScreen(),
-    const LiveScreen(),
-    const FinderScreen(),
+    BookingScreen(onBack: () => setState(() => _currentIndex = 0)),
+    LiveScreen(onBack: () => setState(() => _currentIndex = 0)),
+    FinderScreen(onBack: () => setState(() => _currentIndex = 0)),
     const AccountScreen(),
   ];
 

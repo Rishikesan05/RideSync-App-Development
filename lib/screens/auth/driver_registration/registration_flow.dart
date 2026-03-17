@@ -3,7 +3,7 @@ import 'step1.dart';
 import 'step2.dart';
 import 'step3.dart';
 
-// 3-Step Driver Registration wizard
+// 3-Step Bus Operator Registration wizard
 class DriverRegistrationFlow extends StatefulWidget {
   const DriverRegistrationFlow({super.key});
 
@@ -18,7 +18,7 @@ class _DriverRegistrationFlowState extends State<DriverRegistrationFlow> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Driver Registration'),
+        title: const Text('Bus Operator Registration'),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(4),
           child: LinearProgressIndicator(

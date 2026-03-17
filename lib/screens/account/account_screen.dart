@@ -441,7 +441,10 @@ class AccountScreen extends StatelessWidget {
         label: 'Log Out',
         color: AppColors.primaryOrange,
         icon: Icons.logout,
-        onPressed: () => auth.logout(),
+        onPressed: () {
+          auth.logout();
+          Navigator.pushNamedAndRemoveUntil(context, '/splash', (route) => false);
+        },
       ),
     );
   }

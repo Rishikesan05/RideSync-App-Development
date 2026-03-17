@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import '../placeholder_screen.dart';
 
-// Seat selection and calendar screen
+// Seat selection and booking screen with Guest restriction
 class BookingScreen extends StatelessWidget {
-  const BookingScreen({super.key});
+  final VoidCallback? onBack;
+  const BookingScreen({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return const PlaceholderScreen(title: 'Booking');
+    return PlaceholderScreen(
+      title: 'Book Your Seat',
+      onBack: onBack,
+    );
   }
 }

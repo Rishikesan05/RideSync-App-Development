@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants.dart';
 import '../../../widgets/custom_button.dart';
 
-// Step 1: Personal Information & Identity for Driver Registration
+// Step 1: Personal Information & Identity for Bus Operator Registration
 class Step1 extends StatelessWidget {
   final VoidCallback onNext;
 

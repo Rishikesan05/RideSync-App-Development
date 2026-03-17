@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:signature/signature.dart';
+import 'package:provider/provider.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../core/constants.dart';
 import '../../../widgets/custom_button.dart';
 
@@ -127,15 +129,16 @@ class _Step3State extends State<Step3> {
         actions: [
           ElevatedButton(
             onPressed: () {
+              Provider.of<AuthProvider>(context, listen: false)
+                  .completeOperatorRegistration();
               Navigator.of(context).pop();
               Navigator.pushNamedAndRemoveUntil(
                 context,
-                '/main',
+                '/operator-main',
                 (route) => false,
-                arguments: {'index': 0},
               );
             },
-            child: const Text('OK, GO HOME'),
+            child: const Text('OK, ENTER DASHBOARD'),
           ),
         ],
       ),

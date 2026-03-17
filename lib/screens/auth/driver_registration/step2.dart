@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants.dart';
 import '../../../widgets/custom_button.dart';
 
-// Step 2: Official Certifications & Vehicle details for Driver Registration
+// Step 2: Official Certifications & Vehicle details for Bus Operator Registration
 class Step2 extends StatelessWidget {
   final VoidCallback onNext;
   final VoidCallback onBack;

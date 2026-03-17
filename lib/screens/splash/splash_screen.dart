@@ -64,10 +64,10 @@ class SplashScreen extends StatelessWidget {
               ),
               const Spacer(),
               CustomButton(
-                label: 'Get Started →',
+                label: 'Get Started ->',
                 color: AppColors.primaryOrange,
                 onPressed: () {
-                  Navigator.pushReplacementNamed(context, '/main');
+                  Navigator.pushReplacementNamed(context, '/role-selection');
                 },
               ),
               const SizedBox(height: 20),
