@@ -1,0 +1,28 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "ridesync-2003",
+          "appId": "1:559580096397:android:d0798a0111cab5c893ffc4",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "ridesync-2003",
+          "configurations": {
+            "android": "1:559580096397:android:d0798a0111cab5c893ffc4",
+            "ios": "1:559580096397:ios:55b0ba963620c50293ffc4",
+            "macos": "1:559580096397:ios:55b0ba963620c50293ffc4",
+            "web": "1:559580096397:web:dd2afa3eb793ce3793ffc4",
+            "windows": "1:559580096397:web:6c6e659b55cab42b93ffc4"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

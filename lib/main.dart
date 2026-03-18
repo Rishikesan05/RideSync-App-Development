@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'firebase_options.dart';
 import 'core/theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/registration_provider.dart';
@@ -13,6 +15,7 @@ import 'screens/auth/passenger_signup_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/booking/booking_screen.dart';
 import 'screens/live/live_screen.dart';
+import 'providers/finder_provider.dart';
 import 'screens/finder/finder_screen.dart';
 import 'screens/account/account_screen.dart';
 import 'screens/operator/operator_navigation_hub.dart';
@@ -21,7 +24,11 @@ import 'screens/auth/operator_auth_choice_screen.dart';
 import 'widgets/bottom_nav_bar.dart';
 
 // Entry point and Theme configuration for RideSync
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(
     MultiProvider(
       providers: [
@@ -29,6 +36,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => RegistrationProvider()),
         ChangeNotifierProvider(create: (_) => BookingProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => FinderProvider()),
       ],
       child: const RideSyncApp(),
     ),
@@ -95,7 +103,7 @@ class _PassengerNavigationHubState extends State<PassengerNavigationHub> {
     const HomeScreen(),
     BookingScreen(onBack: () => setState(() => _currentIndex = 0)),
     LiveScreen(onBack: () => setState(() => _currentIndex = 0)),
-    FinderScreen(onBack: () => setState(() => _currentIndex = 0)),
+    const RouteFinderScreen(),
     const AccountScreen(),
   ];
 

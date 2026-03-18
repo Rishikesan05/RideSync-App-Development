@@ -1,0 +1,222 @@
+[
+  {
+    "docId": "jaffna_colombo",
+    "originDistrictId": "jaffna",
+    "destinationDistrictId": "colombo",
+    "fastestFare": 2100,
+    "safestFare": 1800,
+    "economicFare": null,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "colombo_jaffna",
+    "originDistrictId": "colombo",
+    "destinationDistrictId": "jaffna",
+    "fastestFare": 2100,
+    "safestFare": 1800,
+    "economicFare": null,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "colombo_kandy",
+    "originDistrictId": "colombo",
+    "destinationDistrictId": "kandy",
+    "fastestFare": 900,
+    "safestFare": 800,
+    "economicFare": 700,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "kandy_colombo",
+    "originDistrictId": "kandy",
+    "destinationDistrictId": "colombo",
+    "fastestFare": 900,
+    "safestFare": 800,
+    "economicFare": 700,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "jaffna_vavuniya",
+    "originDistrictId": "jaffna",
+    "destinationDistrictId": "vavuniya",
+    "fastestFare": 950,
+    "safestFare": 850,
+    "economicFare": null,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "vavuniya_jaffna",
+    "originDistrictId": "vavuniya",
+    "destinationDistrictId": "jaffna",
+    "fastestFare": 950,
+    "safestFare": 850,
+    "economicFare": null,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "colombo_galle",
+    "originDistrictId": "colombo",
+    "destinationDistrictId": "galle",
+    "fastestFare": 850,
+    "safestFare": 750,
+    "economicFare": 650,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "galle_colombo",
+    "originDistrictId": "galle",
+    "destinationDistrictId": "colombo",
+    "fastestFare": 850,
+    "safestFare": 750,
+    "economicFare": 650,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "kandy_nuwara_eliya",
+    "originDistrictId": "kandy",
+    "destinationDistrictId": "nuwara_eliya",
+    "fastestFare": 700,
+    "safestFare": 620,
+    "economicFare": null,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "nuwara_eliya_kandy",
+    "originDistrictId": "nuwara_eliya",
+    "destinationDistrictId": "kandy",
+    "fastestFare": 700,
+    "safestFare": 620,
+    "economicFare": null,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "colombo_galle",
+    "originDistrictId": "colombo",
+    "destinationDistrictId": "galle",
+    "fastestFare": 850,
+    "safestFare": 750,
+    "economicFare": 650,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "galle_colombo",
+    "originDistrictId": "galle",
+    "destinationDistrictId": "colombo",
+    "fastestFare": 850,
+    "safestFare": 750,
+    "economicFare": 650,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "colombo_matara",
+    "originDistrictId": "colombo",
+    "destinationDistrictId": "matara",
+    "fastestFare": 1050,
+    "safestFare": 950,
+    "economicFare": 850,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "matara_colombo",
+    "originDistrictId": "matara",
+    "destinationDistrictId": "colombo",
+    "fastestFare": 1050,
+    "safestFare": 950,
+    "economicFare": 850,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "colombo_anuradhapura",
+    "originDistrictId": "colombo",
+    "destinationDistrictId": "anuradhapura",
+    "fastestFare": 1200,
+    "safestFare": 1100,
+    "economicFare": 900,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "anuradhapura_colombo",
+    "originDistrictId": "anuradhapura",
+    "destinationDistrictId": "colombo",
+    "fastestFare": 1200,
+    "safestFare": 1100,
+    "economicFare": 900,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "colombo_trincomalee",
+    "originDistrictId": "colombo",
+    "destinationDistrictId": "trincomalee",
+    "fastestFare": 1350,
+    "safestFare": 1200,
+    "economicFare": 1000,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "trincomalee_colombo",
+    "originDistrictId": "trincomalee",
+    "destinationDistrictId": "colombo",
+    "fastestFare": 1350,
+    "safestFare": 1200,
+    "economicFare": 1000,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "galle_matara",
+    "originDistrictId": "galle",
+    "destinationDistrictId": "matara",
+    "fastestFare": 450,
+    "safestFare": 400,
+    "economicFare": 300,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  },
+  {
+    "docId": "matara_galle",
+    "originDistrictId": "matara",
+    "destinationDistrictId": "galle",
+    "fastestFare": 450,
+    "safestFare": 400,
+    "economicFare": 300,
+    "currency": "LKR",
+    "sourceLabel": "SLTB fare table",
+    "active": true
+  }
+]

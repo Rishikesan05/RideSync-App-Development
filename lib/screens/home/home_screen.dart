@@ -78,7 +78,9 @@ class HomeScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  // TODO: Connect to AI Route Optimizer when available
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryOrange,
                   foregroundColor: Colors.white,
