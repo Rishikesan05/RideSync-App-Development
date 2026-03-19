@@ -182,7 +182,7 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
       myLocationEnabled: _myLocationEnabled,
       myLocationButtonEnabled: false,
       zoomControlsEnabled: false,
-      compassEnabled: true,
+      compassEnabled: false,
       mapType: MapType.normal,
       markers: _buildMarkers(finder),
       polylines: _buildPolylines(finder),
@@ -477,7 +477,9 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
           if (mounted) setState(() => _mapRotation = 0.0);
         },
         child: Container(
-          padding: const EdgeInsets.all(10),
+          width: 48,
+          height: 48,
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.8) : Colors.white.withValues(alpha: 0.8),
             shape: BoxShape.circle,
@@ -485,16 +487,29 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
               BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10)
             ],
           ),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-            child: Transform.rotate(
-              angle: -_mapRotation * (pi / 180),
-              child: const Icon(Icons.navigation, color: Colors.blueAccent, size: 24),
+          child: ClipOval(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+              child: Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                child: Transform.rotate(
+                angle: -_mapRotation * (pi / 180),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('N', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.redAccent, height: 1)),
+                    Icon(Icons.arrow_upward_rounded, color: isDark ? Colors.white70 : Colors.black54, size: 20),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildCompactInput(String hint, IconData icon, TextEditingController controller, FocusNode focus, Function(String) onChanged, bool isDark, {Color? iconColor}) {
