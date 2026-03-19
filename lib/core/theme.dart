@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'constants.dart';
+import 'package:ridesync/core/constants.dart';
 
 // Global Theme Data for the RideSync application
 class AppTheme {
@@ -94,3 +94,7 @@ class AppTheme {
     );
   }
 }
+
+
+
+
