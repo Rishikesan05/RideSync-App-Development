@@ -227,12 +227,12 @@ class RouteFinderService {
 
   double? _fareForType(RouteFare storedFare, RecommendationType type) {
     switch (type) {
-      case RecommendationType.fastest:
-        return storedFare.fastestFare;
-      case RecommendationType.safest:
-        return storedFare.safestFare;
-      case RecommendationType.economic:
-        return storedFare.economicFare;
+      case RecommendationType.express:
+        return storedFare.expressFare;
+      case RecommendationType.intercity:
+        return storedFare.intercityFare;
+      case RecommendationType.normal:
+        return storedFare.normalFare;
     }
   }
 
@@ -245,31 +245,17 @@ class RouteFinderService {
     final List<dynamic> sorted = List.from(routes);
     sorted.sort((a, b) => _parseDuration(a['duration']).compareTo(_parseDuration(b['duration'])));
 
-    // 1. FASTEST
-    processed.add(_convertToRecommendationV2(sorted[0], RecommendationType.fastest));
-
-    // 2. ECONOMIC
-    dynamic shortest = sorted.reduce((curr, next) {
-      final distA = (curr['distanceMeters'] as int?) ?? 0;
-      final distB = (next['distanceMeters'] as int?) ?? 0;
-      return distA < distB ? curr : next;
-    });
-
-    // Handle case where shortest is also fastest but we have alternatives
-    if (shortest == sorted[0] && sorted.length > 1) {
-      shortest = sorted[1];
-    }
-    processed.add(_convertToRecommendationV2(shortest, RecommendationType.economic));
-
-    // 3. SAFEST
-    dynamic safest;
     if (sorted.length >= 3) {
-      safest = sorted.firstWhere((r) => r != sorted[0] && r != shortest, orElse: () => sorted.last);
+      processed.add(_convertToRecommendationV2(sorted[0], RecommendationType.express));
+      processed.add(_convertToRecommendationV2(sorted[1], RecommendationType.intercity));
+      processed.add(_convertToRecommendationV2(sorted.last, RecommendationType.normal));
+    } else if (sorted.length == 2) {
+      processed.add(_convertToRecommendationV2(sorted[0], RecommendationType.express));
+      processed.add(_convertToRecommendationV2(sorted[1], RecommendationType.normal));
     } else {
-      // Fallback: If only 1-2 routes, we reuse one but update the label
-      safest = sorted.length > 1 ? sorted[1] : sorted[0];
+      // If only 1 route, it defaults to Normal as the baseline service
+      processed.add(_convertToRecommendationV2(sorted[0], RecommendationType.normal));
     }
-    processed.add(_convertToRecommendationV2(safest, RecommendationType.safest));
 
     return processed;
   }
@@ -281,14 +267,14 @@ class RouteFinderService {
 
     String reason = '';
     switch (type) {
-      case RecommendationType.fastest:
+      case RecommendationType.express:
         reason = 'Direct Express route via main highways with minimal stops.';
         break;
-      case RecommendationType.safest:
-        reason = 'Standard regional route through well-lit transport corridors.';
+      case RecommendationType.intercity:
+        reason = 'Intercity service on major trunk roads with limited stops.';
         break;
-      case RecommendationType.economic:
-        reason = 'Most affordable bus route with common public transport access.';
+      case RecommendationType.normal:
+        reason = 'Normal service stopping at all designated halts and towns.';
         break;
     }
 
@@ -303,7 +289,7 @@ class RouteFinderService {
       type: type,
       reason: reason,
       polylinePoints: polylinePoints,
-      isRecommended: type == RecommendationType.fastest,
+      isRecommended: type == RecommendationType.express,
     );
   }
 

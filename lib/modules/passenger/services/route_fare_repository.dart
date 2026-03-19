@@ -5,18 +5,18 @@ import 'package:ridesync/modules/passenger/data/route_models.dart';
 class RouteFare {
   final String originDistrictId;
   final String destinationDistrictId;
-  final double? fastestFare;
-  final double? safestFare;
-  final double? economicFare;
+  final double? expressFare;
+  final double? intercityFare;
+  final double? normalFare;
   final String currency;
   final String? sourceLabel;
 
   RouteFare({
     required this.originDistrictId,
     required this.destinationDistrictId,
-    required this.fastestFare,
-    required this.safestFare,
-    required this.economicFare,
+    required this.expressFare,
+    required this.intercityFare,
+    required this.normalFare,
     this.currency = 'LKR',
     this.sourceLabel,
   });
@@ -25,9 +25,9 @@ class RouteFare {
     return RouteFare(
       originDistrictId: data['originDistrictId'] ?? data['originId'] ?? '',
       destinationDistrictId: data['destinationDistrictId'] ?? data['destinationId'] ?? '',
-      fastestFare: (data['fastestFare'] as num?)?.toDouble(),
-      safestFare: (data['safestFare'] as num?)?.toDouble(),
-      economicFare: (data['economicFare'] as num?)?.toDouble(),
+      expressFare: (data['expressFare'] as num?)?.toDouble(),
+      intercityFare: (data['intercityFare'] as num?)?.toDouble(),
+      normalFare: (data['normalFare'] as num?)?.toDouble(),
       currency: data['currency'] ?? 'LKR',
       sourceLabel: data['sourceLabel'],
     );

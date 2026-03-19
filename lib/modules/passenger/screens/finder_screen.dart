@@ -731,9 +731,9 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            Text(route.duration, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : Colors.black87)),
+            Text('Est. ${route.duration}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : Colors.black87)),
             const SizedBox(height: 4),
-            Text('${route.distance} • ${route.currency} ${route.fare.toStringAsFixed(0)}', style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : AppColors.textLight)),
+            Text('${route.distance} • Est. ${route.currency} ${route.fare.toStringAsFixed(0)}', style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : AppColors.textLight)),
             if (route.hasStoredFare)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
@@ -798,17 +798,17 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
 
   Color _getTypeColor(RecommendationType type) {
     switch (type) {
-      case RecommendationType.fastest: return Colors.blue;
-      case RecommendationType.safest: return Colors.green;
-      case RecommendationType.economic: return Colors.orange;
+      case RecommendationType.express: return Colors.blue;
+      case RecommendationType.intercity: return Colors.green;
+      case RecommendationType.normal: return Colors.orange;
     }
   }
 
   IconData _getTypeIcon(RecommendationType type) {
     switch (type) {
-      case RecommendationType.fastest: return Icons.directions_bus;
-      case RecommendationType.safest: return Icons.map;
-      case RecommendationType.economic: return Icons.account_balance_wallet;
+      case RecommendationType.express: return Icons.electric_bolt;
+      case RecommendationType.intercity: return Icons.location_city;
+      case RecommendationType.normal: return Icons.directions_bus;
     }
   }
 
