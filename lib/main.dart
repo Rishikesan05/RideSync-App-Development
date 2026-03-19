@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
-import 'firebase_options.dart';
-import 'core/theme.dart';
-import 'providers/auth_provider.dart';
-import 'providers/registration_provider.dart';
-import 'providers/booking_provider.dart';
-import 'providers/settings_provider.dart';
-import 'screens/splash/splash_screen.dart';
-import 'screens/auth/login_screen.dart';
-import 'screens/auth/role_selection_screen.dart';
-import 'screens/auth/driver_registration/registration_flow.dart';
-import 'screens/auth/passenger_signup_screen.dart';
-import 'screens/home/home_screen.dart';
-import 'screens/booking/booking_screen.dart';
-import 'screens/live/live_screen.dart';
-import 'providers/finder_provider.dart';
-import 'screens/finder/finder_screen.dart';
-import 'screens/account/account_screen.dart';
-import 'screens/operator/operator_navigation_hub.dart';
-import 'screens/auth/passenger_auth_choice_screen.dart';
-import 'screens/auth/operator_auth_choice_screen.dart';
-import 'widgets/bottom_nav_bar.dart';
+import 'package:ridesync/core/firebase_options.dart';
+import 'package:ridesync/core/theme.dart';
+import 'package:ridesync/modules/auth/auth_provider.dart';
+import 'package:ridesync/modules/operator/providers/registration_provider.dart';
+import 'package:ridesync/modules/passenger/providers/booking_provider.dart';
+import 'package:ridesync/core/settings_provider.dart';
+import 'package:ridesync/modules/passenger/screens/splash_screen.dart';
+import 'package:ridesync/modules/auth/login_screen.dart';
+import 'package:ridesync/modules/auth/role_selection_screen.dart';
+import 'package:ridesync/modules/auth/driver_registration/registration_flow.dart';
+import 'package:ridesync/modules/auth/passenger_signup_screen.dart';
+import 'package:ridesync/modules/passenger/screens/home_screen.dart';
+import 'package:ridesync/modules/passenger/screens/booking_screen.dart';
+import 'package:ridesync/modules/passenger/screens/live_screen.dart';
+import 'package:ridesync/modules/passenger/providers/finder_provider.dart';
+import 'package:ridesync/modules/passenger/screens/finder_screen.dart';
+import 'package:ridesync/modules/passenger/screens/account_screen.dart';
+import 'package:ridesync/modules/operator/screens/operator_navigation_hub.dart';
+import 'package:ridesync/modules/auth/passenger_auth_choice_screen.dart';
+import 'package:ridesync/modules/auth/operator_auth_choice_screen.dart';
+import 'package:ridesync/core/widgets/bottom_nav_bar.dart';
 
 // Entry point and Theme configuration for RideSync
 Future<void> main() async {
@@ -122,3 +122,7 @@ class _PassengerNavigationHubState extends State<PassengerNavigationHub> {
     );
   }
 }
+
+
+
+
