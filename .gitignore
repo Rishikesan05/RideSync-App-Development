@@ -50,9 +50,17 @@ app.*.map.json
 *.jks
 *.keystore
 scripts/serviceAccountKey.json
+serviceAccountKey.json
 
-# Security: Sensitive configuration files
+# Node / local tooling
+node_modules/
+
+# Android local and generated files
+android/.gradle/
+android/.kotlin/
 android/local.properties
-lib/firebase_options.dart
+android/build_log.txt
+
+# Firebase config files
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
