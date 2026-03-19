@@ -227,9 +227,9 @@ class FinderProvider with ChangeNotifier {
       if (_routes.isEmpty) {
         _errorMessage = 'No fare data available for this district pair yet.';
       } else {
-        // Find Fastest as default if available
+        // Find Express as default if available
         _selectedRoute = _routes.firstWhere(
-          (r) => r.type == RecommendationType.fastest, 
+          (r) => r.type == RecommendationType.express, 
           orElse: () => _routes.first
         );
       }

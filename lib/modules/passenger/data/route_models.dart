@@ -1,6 +1,6 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-enum RecommendationType { fastest, safest, economic }
+enum RecommendationType { express, intercity, normal }
 
 class Place {
   final String id;
@@ -121,12 +121,12 @@ class RouteRecommendation {
 
   String get typeLabel {
     switch (type) {
-      case RecommendationType.fastest:
+      case RecommendationType.express:
         return 'Express';
-      case RecommendationType.safest:
-        return 'Regional';
-      case RecommendationType.economic:
-        return 'Standard';
+      case RecommendationType.intercity:
+        return 'Intercity';
+      case RecommendationType.normal:
+        return 'Normal Service';
     }
   }
 }
