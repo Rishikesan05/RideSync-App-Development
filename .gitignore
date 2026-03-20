@@ -49,7 +49,7 @@ app.*.map.json
 *.secret
 *.jks
 *.keystore
-scripts/serviceAccountKey.json
+scripts/
 serviceAccountKey.json
 
 # Node / local tooling

@@ -8,5 +8,5 @@ export 'screens/finder_screen.dart';
 export 'screens/home_screen.dart';
 export 'screens/live_screen.dart';
 export 'screens/splash_screen.dart';
-export 'services/route_fare_repository.dart';
+export 'repositories/route_fare_repository.dart';
 export 'services/route_finder_service.dart';

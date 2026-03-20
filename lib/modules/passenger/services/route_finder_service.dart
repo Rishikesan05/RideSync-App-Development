@@ -4,7 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:ridesync/modules/passenger/data/route_models.dart';
-import 'package:ridesync/modules/passenger/services/route_fare_repository.dart';
+import 'package:ridesync/modules/passenger/repositories/route_fare_repository.dart';
 
 class FareLookupException implements Exception {
   const FareLookupException(this.message);
