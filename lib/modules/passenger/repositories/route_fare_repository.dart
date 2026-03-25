@@ -137,6 +137,7 @@ class RouteFareRepository {
     normalized = normalized.replaceAll(RegExp(r'[^a-z0-9]'), '_');
     normalized = normalized.replaceAll(RegExp(r'_+'), '_');
     normalized = normalized.replaceAll(RegExp(r'^_+|_+$'), '');
+    debugPrint('RouteFareRepository: Normalized token for "$text" -> "$normalized"');
     return normalized;
   }
 
@@ -193,13 +194,17 @@ class RouteFareRepository {
         final doc = await _firestore.collection('route_fares').doc(docId).get();
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
-          if (data['active'] == true) {
+          final isActive = data['active'] == true;
+          debugPrint('RouteFareRepository: Found document "$docId", active=$isActive');
+          if (isActive) {
             return RouteFare.fromFirestore(data);
           }
+        } else {
+          debugPrint('RouteFareRepository: Document NOT FOUND: "$docId"');
         }
       }
     } catch (e) {
-      debugPrint('Error fetching stored fare: $e');
+      debugPrint('RouteFareRepository: FIREBASE ERROR: $e');
     }
     return null;
   }
