@@ -61,23 +61,31 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
         await Future.delayed(const Duration(milliseconds: 500));
       }
       
-      Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 5),
-        ),
-      );
-      
-      _mapController?.animateCamera(
-        CameraUpdate.newCameraPosition(
-          CameraPosition(
-            target: LatLng(position.latitude, position.longitude),
-            zoom: 15,
+      Position? position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 15),
           ),
-        ),
-      );
+        ).timeout(const Duration(seconds: 15));
+      } catch (e) {
+        debugPrint('Current position timeout, trying last known: $e');
+        position = await Geolocator.getLastKnownPosition();
+      }
+      
+      if (position != null) {
+        _mapController?.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: LatLng(position.latitude, position.longitude),
+              zoom: 15,
+            ),
+          ),
+        );
+      }
     } catch (e) {
-      debugPrint('Error getting current location: $e');
+      debugPrint('Error getting location: $e');
     }
   }
 
