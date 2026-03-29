@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:ridesync/modules/operator/providers/registration_provider.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/core/widgets/custom_button.dart';
 
-// Step 2: Official Certifications & Vehicle details for Bus Operator Registration
+/// Step 2: Bus/Company Details for Operator Registration
+/// Collects: Heavy vehicle license, year, bus route info
 class Step2 extends StatefulWidget {
   final VoidCallback onNext;
   final VoidCallback onBack;
@@ -17,9 +17,9 @@ class Step2 extends StatefulWidget {
 }
 
 class _Step2State extends State<Step2> {
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController hvController = TextEditingController();
   final TextEditingController yearController = TextEditingController();
-  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -29,23 +29,8 @@ class _Step2State extends State<Step2> {
     yearController.text = p.yearOfIssuance;
   }
 
-  Future<void> _pickImage(String field) async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      if (!mounted) return;
-      final p = Provider.of<RegistrationProvider>(context, listen: false);
-      setState(() {
-        if (field == 'medicalCertificate') p.medicalCertificate = image.path;
-        if (field == 'trainingCertificate') p.trainingCertificate = image.path;
-      });
-    }
-  }
-
   void _handleNext() {
-    if (hvController.text.isEmpty || yearController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all text fields')));
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
     Provider.of<RegistrationProvider>(context, listen: false).updateStep2(
       hv: hvController.text.trim(),
       year: yearController.text.trim(),
@@ -63,104 +48,192 @@ class _Step2State extends State<Step2> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final p = Provider.of<RegistrationProvider>(context);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppStyles.padding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Professional Credentials',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black),
-          ),
-          const SizedBox(height: 24),
-          _buildInfoBox(context, 'Ensure all uploaded certificates are valid and clearly visible for verification.'),
-          const SizedBox(height: 24),
-          _buildTextField(context, 'Heavy Vehicle License Number', Icons.badge_outlined, hvController),
-          const SizedBox(height: 16),
-          _buildTextField(context, 'Year of Issuance', Icons.calendar_today_outlined, yearController, isNumber: true),
-          const SizedBox(height: 32),
-          Text(
-            'Certificates',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black),
-          ),
-          const SizedBox(height: 16),
-          _buildUploadButton(context, 'Medical Fitness Certificate', p.medicalCertificate, () => _pickImage('medicalCertificate')),
-          _buildUploadButton(context, 'Official Training Certificate', p.trainingCertificate, () => _pickImage('trainingCertificate')),
-          const SizedBox(height: 48),
-          CustomButton(label: 'Enter Final Step', onPressed: _handleNext),
-          const SizedBox(height: 16),
-          TextButton(
-            onPressed: widget.onBack,
-            child: Center(
-              child: Text(
-                'Back to Personal Info',
-                style: TextStyle(color: isDark ? Colors.white70 : AppColors.textLight),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Step indicator
+            Row(
+              children: [
+                _stepDot(1, true),
+                _stepLine(isDark, true),
+                _stepDot(2, true),
+                _stepLine(isDark, false),
+                _stepDot(3, false),
+              ],
+            ),
+            const SizedBox(height: 28),
+            Text(
+              'Professional Credentials',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : AppColors.textDark,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 6),
+            Text(
+              'Enter your vehicle license details',
+              style: TextStyle(
+                color: isDark ? Colors.white54 : AppColors.textLight,
+              ),
+            ),
+            const SizedBox(height: 28),
 
-  Widget _buildTextField(BuildContext context, String label, IconData icon, TextEditingController c, {bool isNumber = false}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return TextField(
-      controller: c,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      style: TextStyle(color: isDark ? Colors.white : Colors.black),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.grey),
-        prefixIcon: Icon(icon, color: isDark ? Colors.white70 : Colors.grey),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryOrange)),
-      ),
-    );
-  }
+            // Info box
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : AppColors.primaryNavy.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white12
+                      : AppColors.primaryNavy.withValues(alpha: 0.1),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline,
+                      color: isDark ? Colors.white70 : AppColors.primaryNavy),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Ensure your license details are accurate for verification.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.white70 : AppColors.primaryNavy,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 28),
 
-  Widget _buildUploadButton(BuildContext context, String label, String value, VoidCallback onTap) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final hasFile = value.isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: OutlinedButton.icon(
-        onPressed: onTap,
-        icon: Icon(hasFile ? Icons.check_circle : Icons.cloud_upload_outlined, color: hasFile ? Colors.green : (isDark ? Colors.white : Colors.black87)),
-        label: Text(hasFile ? 'Uploaded: $label' : label),
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          side: BorderSide(color: hasFile ? Colors.green : (isDark ? Colors.white24 : Colors.grey.shade300)),
-          foregroundColor: hasFile ? Colors.green : (isDark ? Colors.white : Colors.black87),
+            _buildField(
+              isDark,
+              'Heavy Vehicle License Number',
+              Icons.badge_outlined,
+              hvController,
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) {
+                  return 'License number is required';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            _buildField(
+              isDark,
+              'Year of Issuance',
+              Icons.calendar_today_outlined,
+              yearController,
+              keyboardType: TextInputType.number,
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) return 'Year is required';
+                final year = int.tryParse(v.trim());
+                if (year == null || year < 1990 || year > 2026) {
+                  return 'Enter a valid year (1990-2026)';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 48),
+
+            CustomButton(label: 'Continue to Final Step', onPressed: _handleNext),
+            const SizedBox(height: 16),
+            Center(
+              child: TextButton(
+                onPressed: widget.onBack,
+                child: Text(
+                  '← Back to Personal Info',
+                  style: TextStyle(
+                    color: isDark ? Colors.white60 : AppColors.textLight,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoBox(BuildContext context, String text) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.primaryNavy.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? Colors.white12 : AppColors.primaryNavy.withValues(alpha: 0.1)),
+  Widget _buildField(
+    bool isDark,
+    String label,
+    IconData icon,
+    TextEditingController c, {
+    TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: c,
+      keyboardType: keyboardType,
+      validator: validator,
+      style: TextStyle(color: isDark ? Colors.white : Colors.black),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.grey),
+        prefixIcon: Icon(icon, color: isDark ? Colors.white70 : Colors.grey),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primaryOrange),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.error),
+        ),
       ),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline, color: isDark ? Colors.white70 : AppColors.primaryNavy),
-          const SizedBox(width: 12),
-          Expanded(child: Text(text, style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : AppColors.primaryNavy))),
-        ],
+    );
+  }
+
+  Widget _stepDot(int step, bool active) {
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: active ? AppColors.primaryOrange : Colors.transparent,
+        border: Border.all(
+          color: active ? AppColors.primaryOrange : Colors.grey,
+          width: 2,
+        ),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          '$step',
+          style: TextStyle(
+            color: active ? Colors.white : Colors.grey,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _stepLine(bool isDark, bool complete) {
+    return Expanded(
+      child: Container(
+        height: 2,
+        color: complete ? AppColors.primaryOrange : (isDark ? Colors.white12 : Colors.grey.shade300),
       ),
     );
   }
 }
-
-
-
-
-
