@@ -44,65 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Secret and environment variables
-.env
-*.secret
-*.jks
-*.keystore
-scripts/
-serviceAccountKey.json
-
-# Node / local tooling
-node_modules/
-
-# Android local and generated files
-android/.gradle/
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-/coverage/
-
-# Symbolication related
-app.*.symbols
-
-# Obfuscation related
-app.*.map.json
-
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
-
 # Node / local tooling
 node_modules/
 
@@ -114,12 +55,15 @@ android/build_log.txt
 
 # Firebase config files
 android/app/google-services.json
-ios/Runner/GoogleService# --- Professional Redaction & Security Hardening ---
+ios/Runner/GoogleService-Info.plist
+
+# --- Professional Redaction & Security Hardening ---
 # Hard-Ignore AI Agent Metadata & Temporary Restoration Artifacts
 .agents/
 .gemini/
 (old)/
 masterpiece-*/
+scripts/
 
 # Zero API Exposure: Environment & Security Keys
 .env
@@ -127,8 +71,11 @@ masterpiece-*/
 *.jks
 *.keystore
 *.p12
+*.secret
 google-services.json
 GoogleService-Info.plist
+serviceAccountKey.json
+scripts/serviceAccountKey.json
 
 # ---------------------------------------------------
 
@@ -171,3 +118,4 @@ gradle.properties
 gradlew
 gradlew.bat
 local.properties
+build.gradle.kts
