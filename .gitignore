@@ -166,3 +166,8 @@ stdout.txt
 vsce-debug.log
 workspace.xml
 KotlinJavaRuntime.xml
+build_log.txt
+gradle.properties
+gradlew
+gradlew.bat
+local.properties
