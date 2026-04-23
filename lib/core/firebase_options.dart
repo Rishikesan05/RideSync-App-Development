@@ -50,11 +50,11 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCjP2DeDeLBg9OdYj5CA9F2C0dhiskVPsk',
-    appId: '1:559580096397:android:d0798a0111cab5c893ffc4',
-    messagingSenderId: '559580096397',
-    projectId: 'ridesync-2003',
-    storageBucket: 'ridesync-2003.firebasestorage.app',
+    apiKey: 'AIzaSyB5GAfjDkFc_nZ8cu0Gn-aNjCCGfTJneIw',
+    appId: '1:955118165667:android:fabc2a1cf3c8dc0fa26916',
+    messagingSenderId: '955118165667',
+    projectId: 'ridesync-ultimate',
+    storageBucket: 'ridesync-ultimate.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

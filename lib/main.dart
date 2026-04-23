@@ -22,6 +22,7 @@ import 'package:ridesync/modules/operator/screens/operator_navigation_hub.dart';
 import 'package:ridesync/modules/auth/passenger_auth_choice_screen.dart';
 import 'package:ridesync/modules/auth/operator_auth_choice_screen.dart';
 import 'package:ridesync/modules/auth/phone_auth_screen.dart';
+import 'package:ridesync/modules/auth/forgot_password_screen.dart';
 import 'package:ridesync/core/widgets/bottom_nav_bar.dart';
 
 // Entry point and Theme configuration for RideSync
@@ -69,6 +70,7 @@ class RideSyncApp extends StatelessWidget {
             '/passenger-auth-choice': (context) => const PassengerAuthChoiceScreen(),
             '/operator-auth-choice': (context) => const OperatorAuthChoiceScreen(),
             '/phone-auth': (context) => const PhoneAuthScreen(),
+            '/forgot-password': (context) => const ForgotPasswordScreen(),
           },
         );
       },
