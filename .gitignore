@@ -120,3 +120,6 @@ gradlew
 gradlew.bat
 local.properties
 build.gradle.kts
+
+# Generated Flutter Android files
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
