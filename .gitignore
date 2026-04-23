@@ -18,9 +18,7 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
+# VS Code
 #.vscode/
 
 # Flutter/Dart/Pub related
@@ -40,7 +38,7 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# Android Studio artifacts
 /android/app/debug
 /android/app/profile
 /android/app/release
@@ -59,12 +57,10 @@ android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 
 # --- Professional Redaction & Security Hardening ---
-# Hard-Ignore AI Agent Metadata & Temporary Restoration Artifacts
-.agents/
+# Hard-Ignore Temporary Restoration Artifacts
 .gemini/
 (old)/
 masterpiece-*/
-scripts/
 
 # Zero API Exposure: Environment & Security Keys
 .env
@@ -81,7 +77,6 @@ scripts/serviceAccountKey.json
 # ---------------------------------------------------
 
 # Repo Internal Debris (Build & Metadata Artifacts)
-# Hard-Ignore generated files in root that clutter the "Changes" tab
 .filecache
 .lock
 app.dill
@@ -115,11 +110,6 @@ vsce-debug.log
 workspace.xml
 KotlinJavaRuntime.xml
 build_log.txt
-gradle.properties
-gradlew
-gradlew.bat
-local.properties
-build.gradle.kts
 
 # Generated Flutter Android files
 android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
