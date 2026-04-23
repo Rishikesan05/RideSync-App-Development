@@ -9,7 +9,10 @@ Standardized workflow for auditing repository health, classifying generated debr
     -   Stale root files (e.g., `package.json` in non-JS projects) -> Safe to delete.
 2.  **Platform Protection**:
     -   **CRITICAL**: NEVER delete `android/gradlew`, `android/gradlew.bat`, or the `android/gradle/` folder.
+    -   **CRITICAL**: ALWAYS track `android/build.gradle`, `android/gradle.properties`, and `android/app/build.gradle`.
+    -   **CRITICAL**: NEVER delete platform source code like `MainActivity.kt` or `AppDelegate.swift`.
     -   **CRITICAL**: NEVER delete `ios/Podfile` or `ios/Runner.xcodeproj`.
+
 3.  **Security Audit**:
     -   Check for `serviceAccountKey.json`, `.env`, or hardcoded API keys.
     -   Ensure `firebase_options.dart` is the only tracked config if necessary.
