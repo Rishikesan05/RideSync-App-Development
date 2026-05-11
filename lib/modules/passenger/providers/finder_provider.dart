@@ -89,6 +89,8 @@ class FinderProvider with ChangeNotifier {
         // Only set error if it seems like a real failure vs just no results yet
         _errorMessage = 'No places found for "$query"';
       }
+    } on RouteFinderApiException catch (e) {
+      _errorMessage = e.message;
     } catch (e) {
       _errorMessage = 'Error finding locations. Check your connection.';
       debugPrint('Error fetching suggestions: $e');
@@ -233,6 +235,8 @@ class FinderProvider with ChangeNotifier {
           orElse: () => _routes.first
         );
       }
+    } on RouteFinderApiException catch (e) {
+      _errorMessage = e.message;
     } on FareLookupException catch (e) {
       _errorMessage = e.message;
     } catch (e) {

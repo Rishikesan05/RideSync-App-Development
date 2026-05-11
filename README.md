@@ -1,46 +1,45 @@
-# RideSync
+# RideSync — Real-Time Transit & Ride-Sharing Solution
 
-RideSync is a Flutter-based group project for ride booking and management.
+**RideSync** is a professional-grade mobile application designed to connect passengers and drivers through a seamless, real-time interface. Developed as a capstone project at **Sabaragamuwa University of Sri Lanka (SUSL)**, the platform focuses on optimizing transit scheduling and trip coordination.
 
-## Overview
+## 🚀 Key Features
+- **Real-Time Tracking**: Integration with Google Maps API for live location tracking and polyline route visualization.
+- **Smart Scheduling**: Advanced transit scheduling for recurring and one-off trips.
+- **Secure Authentication**: Robust user authentication system powered by Firebase Auth.
+- **Interactive Dashboards**: Role-based interfaces for both Passengers and Drivers.
+- **Document Management**: Integrated image picking and digital signature capture for verification.
+- **Cloud Infrastructure**: Scalable backend using Cloud Firestore and Firebase Storage.
 
-RideSync is designed to support ride booking, trip coordination, and user management in a simple cross-platform Flutter application.
+## 🛠️ Technical Stack
+- **Framework**: [Flutter](https://flutter.dev/) (Cross-platform Android/iOS)
+- **Language**: [Dart](https://dart.dev/)
+- **Backend/DB**: [Firebase](https://firebase.google.com/) (Auth, Firestore, Storage)
+- **Maps & Location**: [Google Maps SDK](https://pub.dev/packages/google_maps_flutter), Geolocator, Geocoding
+- **State Management**: [Provider](https://pub.dev/packages/provider)
+- **UI/UX**: Custom themed components with Google Fonts and FontAwesome integration.
 
-## Tech Stack
+## 📁 Repository Structure
+- `lib/`: Main source code containing models, services, providers, and UI screens.
+- `assets/`: Image assets and custom icons.
+- `android/` & `ios/`: Platform-specific configurations and build files.
+- `test/`: Unit and widget testing suites.
 
-- Flutter
-- Dart
-- Provider
+## 🚦 Getting Started
+1. **Clone the repo**:
+   ```bash
+   git clone https://github.com/rishikesan05/RideSync-App-Development.git
+   ```
+2. **Install dependencies**:
+   ```bash
+   flutter pub get
+   ```
+3. **Run the app**:
+   ```bash
+   flutter run
+   ```
 
-## Project Workflow
+## 🎓 Academic Context
+This project was developed as part of the Final Year Capstone Project for the Faculty of Applied Sciences at Sabaragamuwa University of Sri Lanka.
 
-Use this branch flow for updates:
-
-1. Create a new branch from `develop`
-2. Commit and push your changes to that branch
-3. Open a pull request into `develop`
-4. After testing, merge `develop` into `main`
-
-Branch flow:
-
-- `feature/...` -> `develop`
-- `develop` -> `main`
-
-## Branch Examples
-
-- `feature/readme-update`
-- `feature/project-update`
-- `feature/ui-fixes`
-
-## Getting Started
-
-```bash
-flutter pub get
-flutter run
-```
-
-## Notes
-
-- Do not push daily work directly to `main`
-- Use `develop` as the main working branch
-- Use separate feature branches for updates
+---
+*Developed by Rishikesan and Team. © 2024.*

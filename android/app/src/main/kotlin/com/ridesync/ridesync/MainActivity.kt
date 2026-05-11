@@ -17,6 +17,8 @@ class MainActivity : FlutterActivity() {
                         val ai = packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
                         val bundle = ai.metaData
                         val apiKey = bundle.getString("com.google.android.geo.API_KEY")
+                            ?.takeIf { it.isNotBlank() }
+                            ?: BuildConfig.GOOGLE_MAPS_API_KEY.takeIf { it.isNotBlank() }
                         result.success(apiKey)
                     } catch (e: Exception) {
                         result.error("UNAVAILABLE", "API Key not available.", null)

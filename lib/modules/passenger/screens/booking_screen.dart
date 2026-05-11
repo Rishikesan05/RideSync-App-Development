@@ -14,7 +14,3 @@ class BookingScreen extends StatelessWidget {
     );
   }
 }
-
-
-
-

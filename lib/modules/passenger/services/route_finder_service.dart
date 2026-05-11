@@ -15,6 +15,15 @@ class FareLookupException implements Exception {
   String toString() => message;
 }
 
+class RouteFinderApiException implements Exception {
+  const RouteFinderApiException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 class RouteFinderService {
   static String? apiKey;
   static String? appSignature;
@@ -24,6 +33,29 @@ class RouteFinderService {
 
   static const String _placesNewBaseUrl = 'https://places.googleapis.com/v1/places';
   static const String _routesBaseUrl = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+
+  String _extractApiError(String body, String fallback) {
+    try {
+      final data = json.decode(body) as Map<String, dynamic>;
+      final error = data['error'] as Map<String, dynamic>?;
+      final message = error?['message'] as String?;
+      final details = error?['details'] as List<dynamic>?;
+
+      if (details != null) {
+        for (final detail in details) {
+          final map = detail as Map<String, dynamic>;
+          final reason = map['reason'] as String?;
+          if (reason == 'API_KEY_ANDROID_APP_BLOCKED') {
+            return 'This Google Maps key is blocked for Android app requests. Check API key restrictions in Google Cloud Console.';
+          }
+        }
+      }
+
+      return message ?? fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
 
   Map<String, String> _getHeaders() {
     final headers = {
@@ -61,8 +93,12 @@ class RouteFinderService {
         }
       } else {
         debugPrint('Autocomplete (New) error: ${response.statusCode} - ${response.body}');
+        throw RouteFinderApiException(
+          _extractApiError(response.body, 'Place search failed. Check Google API key setup.'),
+        );
       }
     } catch (e) {
+      if (e is RouteFinderApiException) rethrow;
       debugPrint('Autocomplete (New) exception: $e');
     }
     return [];
@@ -103,8 +139,12 @@ class RouteFinderService {
         );
       } else {
         debugPrint('Place Details (New) error: ${response.statusCode} - ${response.body}');
+        throw RouteFinderApiException(
+          _extractApiError(response.body, 'Place details failed. Check Google API key setup.'),
+        );
       }
     } catch (e) {
+      if (e is RouteFinderApiException) rethrow;
       debugPrint('Place details (New) exception: $e');
     }
     return null;
@@ -216,7 +256,9 @@ class RouteFinderService {
         }
       } else {
         debugPrint('Routes API error: ${response.statusCode} - ${response.body}');
-        throw Exception('Failed to fetch routes: ${response.statusCode}');
+        throw RouteFinderApiException(
+          _extractApiError(response.body, 'Failed to fetch routes. Check Google API key setup.'),
+        );
       }
     } catch (e) {
       debugPrint('Routes API Exception: $e');
