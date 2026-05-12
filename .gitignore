@@ -114,3 +114,10 @@ build_log.txt
 # Generated Flutter Android files
 android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
 android/app/src/main/kotlin/com/example/ridesync/MainActivity.kt
+
+# AI Assistant Files
+task.md
+implementation_plan.md
+walkthrough.md
+*.ai
+.gemini/
