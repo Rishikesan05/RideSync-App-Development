@@ -121,3 +121,10 @@ implementation_plan.md
 walkthrough.md
 *.ai
 .gemini/
+
+# Environment Exclusions
+.agents/
+.project_history
+.gemini/
+*.ai
+
