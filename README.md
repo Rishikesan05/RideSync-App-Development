@@ -1,4 +1,4 @@
-﻿# RideSync â€” Real-Time Transit & Ride-Sharing Solution
+# RideSync - Real-Time Transit & Ride-Sharing Solution
 
 **RideSync** is a professional-grade mobile application designed to connect passengers and drivers through a seamless, real-time interface. Developed as a capstone project at **Sabaragamuwa University of Sri Lanka (SUSL)**, the platform focuses on optimizing transit scheduling and trip coordination.
 

@@ -115,16 +115,17 @@ build_log.txt
 android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
 android/app/src/main/kotlin/com/example/ridesync/MainActivity.kt
 
-# AI Assistant Files
+# AI & Agent Metadata
+.gemini/
+.antigravity/
+.agents/
+CLAUDE.md
+AGENTS.md
+agent.md
+prompt.md
 task.md
 implementation_plan.md
 walkthrough.md
-*.ai
-.gemini/
-
-# Environment Exclusions
-.agents/
+*.log
+.scratch/
 .project_history
-.gemini/
-*.ai
-
