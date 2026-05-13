@@ -1,6 +1,6 @@
 # RideSync - Real-Time Transit & Ride-Sharing Solution
 
-**RideSync** is a professional-grade mobile application designed to connect passengers and drivers through a seamless, real-time interface. Developed as a capstone project at **Sabaragamuwa University of Sri Lanka (SUSL)**, the platform focuses on optimizing transit scheduling and trip coordination.
+**RideSync** is a professional-grade mobile application designed to connect passengers and drivers through a seamless, real-time interface. Developed at **Sabaragamuwa University of Sri Lanka (SUSL)**, the platform focuses on optimizing transit scheduling and trip coordination.
 
 ## 🚀 Key Features
 - **Real-Time Tracking**: Integration with Google Maps API for live location tracking and polyline route visualization.
@@ -37,6 +37,3 @@
    ```bash
    flutter run
    ```
-
-## 🎓 Academic Context
-This project was developed as part of the Final Year Capstone Project for the Faculty of Applied Sciences at Sabaragamuwa University of Sri Lanka.
