@@ -1,4 +1,4 @@
-# RideSync — Real-Time Transit & Ride-Sharing Solution
+# RideSync - Real-Time Transit & Ride-Sharing Solution
 
 **RideSync** is a professional-grade mobile application designed to connect passengers and drivers through a seamless, real-time interface. Developed as a capstone project at **Sabaragamuwa University of Sri Lanka (SUSL)**, the platform focuses on optimizing transit scheduling and trip coordination.
 
@@ -18,13 +18,13 @@
 - **State Management**: [Provider](https://pub.dev/packages/provider)
 - **UI/UX**: Custom themed components with Google Fonts and FontAwesome integration.
 
-## 📁 Repository Structure
+## 📂 Repository Structure
 - `lib/`: Main source code containing models, services, providers, and UI screens.
 - `assets/`: Image assets and custom icons.
 - `android/` & `ios/`: Platform-specific configurations and build files.
 - `test/`: Unit and widget testing suites.
 
-## 🚦 Getting Started
+## 🏁 Getting Started
 1. **Clone the repo**:
    ```bash
    git clone https://github.com/rishikesan05/RideSync-App-Development.git
@@ -40,6 +40,3 @@
 
 ## 🎓 Academic Context
 This project was developed as part of the Final Year Capstone Project for the Faculty of Applied Sciences at Sabaragamuwa University of Sri Lanka.
-
----
-*Developed by Rishikesan and Team. © 2024.*
