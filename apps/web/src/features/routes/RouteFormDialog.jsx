@@ -140,43 +140,64 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData }) => {
   const stops = watch('stops');
   const totalDistanceKm = watch('totalDistanceKm');
 
-  // Initialize Map
+  // Initialize Map — handles async Google Maps loading
   useEffect(() => {
-    if (open && mapRef.current && !mapInstance.current && window.google) {
-      try {
-        mapInstance.current = new window.google.maps.Map(mapRef.current, {
-          center: { lat: 7.8731, lng: 80.7718 }, // Center of Sri Lanka
-          zoom: 7,
-          disableDefaultUI: true,
-          zoomControl: true
-        });
+    if (!open) return;
 
-        directionsService.current = new window.google.maps.DirectionsService();
-        directionsRenderer.current = new window.google.maps.DirectionsRenderer({
-          map: mapInstance.current,
-          suppressMarkers: false,
-          polylineOptions: {
-            strokeColor: theme.palette.primary.main,
-            strokeWeight: 5,
-            strokeOpacity: 0.8
+    // Poll until window.google is ready (handles async script loading)
+    const waitForGoogle = (attempt = 0) => {
+      if (window.google && window.google.maps) {
+        if (mapRef.current && !mapInstance.current) {
+          try {
+            mapInstance.current = new window.google.maps.Map(mapRef.current, {
+              center: { lat: 7.8731, lng: 80.7718 }, // Center of Sri Lanka
+              zoom: 7,
+              disableDefaultUI: true,
+              zoomControl: true
+            });
+
+            directionsService.current = new window.google.maps.DirectionsService();
+            directionsRenderer.current = new window.google.maps.DirectionsRenderer({
+              map: mapInstance.current,
+              suppressMarkers: false,
+              polylineOptions: {
+                strokeColor: theme.palette.primary.main,
+                strokeWeight: 5,
+                strokeOpacity: 0.8
+              }
+            });
+
+            // Trigger resize after Dialog animation completes
+            const resizeTimer = setTimeout(() => {
+              if (mapInstance.current) {
+                window.google.maps.event.trigger(mapInstance.current, 'resize');
+                mapInstance.current.setCenter({ lat: 7.8731, lng: 80.7718 });
+              }
+            }, 500);
+
+            // Also use ResizeObserver to keep map sized correctly
+            const ro = new ResizeObserver(() => {
+              if (mapInstance.current) {
+                window.google.maps.event.trigger(mapInstance.current, 'resize');
+              }
+            });
+            if (mapRef.current) ro.observe(mapRef.current);
+
+            setApiError(null);
+          } catch (e) {
+            console.error('Map init error:', e);
+            setApiError("Failed to initialize map. Ensure 'Maps JavaScript API' is enabled.");
           }
-        });
-
-        // Trigger resize after a short delay to ensure Dialog is ready
-        setTimeout(() => {
-          if (mapInstance.current) {
-            window.google.maps.event.trigger(mapInstance.current, "resize");
-            mapInstance.current.setCenter({ lat: 7.8731, lng: 80.7718 });
-          }
-        }, 1000);
-
-        setApiError(null);
-      } catch (e) {
-        console.error("Map init error:", e);
-        setApiError("Failed to initialize map. Ensure 'Maps JavaScript API' is enabled.");
+        }
+      } else if (attempt < 40) {
+        // Retry up to 40 times (4 seconds total)
+        setTimeout(() => waitForGoogle(attempt + 1), 100);
+      } else {
+        setApiError('Google Maps failed to load. Check your API key and internet connection.');
       }
-    }
-    // Cleanup removed to prevent destroying refs on every render
+    };
+
+    waitForGoogle();
   }, [open, theme.palette.primary.main]);
 
   // Auto-generate name from start and end points
@@ -371,9 +392,13 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData }) => {
           minHeight: '600px',
           overflow: 'hidden' 
         }}>
-          <Grid container sx={{ height: '100%' }}>
+          {/* Two-column layout using flexbox — MUI Grid has a known bug with width:0 in Dialogs */}
+          <Box sx={{ display: 'flex', height: '100%', width: '100%' }}>
             {/* Left Column: Form Controls */}
-            <Grid item xs={12} md={5.5} sx={{ 
+            <Box sx={{ 
+              width: '41.67%',  /* 5/12 columns */
+              minWidth: '320px',
+              flexShrink: 0,
               p: 3, 
               overflowY: 'auto', 
               borderRight: '1px solid rgba(255,255,255,0.05)',
@@ -524,20 +549,17 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData }) => {
                   )}
                 </Box>
               </Box>
-            </Grid>
+            </Box>
 
             {/* Right Column: Map Preview */}
-            <Grid 
-              item 
-              xs={12} 
-              md={6.5} 
-              sx={{ 
-                backgroundColor: '#111', 
-                position: 'relative', 
-                overflow: 'hidden',
-                minHeight: '500px',
-                height: '100%'
-              }}
+            <Box sx={{ 
+              flex: 1,          /* takes all remaining width */
+              backgroundColor: '#111', 
+              position: 'relative', 
+              overflow: 'hidden',
+              minHeight: '500px',
+              height: '100%'
+            }}
             >
               <Box 
                 ref={mapRef} 
@@ -608,8 +630,8 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData }) => {
                   </Typography>
                 </Paper>
               )}
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </DialogContent>
         
         <DialogActions sx={{ 
