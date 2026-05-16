@@ -1,28 +1,34 @@
 {
-  "flutter": {
-    "platforms": {
-      "android": {
-        "default": {
-          "projectId": "ridesync-2003",
-          "appId": "1:559580096397:android:d0798a0111cab5c893ffc4",
-          "fileOutput": "android/app/google-services.json"
-        }
-      },
-      "dart": {
-        "lib/firebase_options.dart": {
-          "projectId": "ridesync-2003",
-          "configurations": {
-            "android": "1:559580096397:android:d0798a0111cab5c893ffc4",
-            "ios": "1:559580096397:ios:55b0ba963620c50293ffc4",
-            "macos": "1:559580096397:ios:55b0ba963620c50293ffc4",
-            "web": "1:559580096397:web:dd2afa3eb793ce3793ffc4",
-            "windows": "1:559580096397:web:6c6e659b55cab42b93ffc4"
-          }
-        }
-      }
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": ["node_modules", ".git", "firebase-debug.log", "firebase-debug.*.log"]
     }
-  },
+  ],
   "firestore": {
-    "rules": "firestore/firestore.rules"
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "hosting": {
+    "public": "web/dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "emulators": {
+    "auth": { "port": 9099 },
+    "functions": { "port": 5001 },
+    "firestore": { "port": 8080 },
+    "database": { "port": 9000 },
+    "hosting": { "port": 5000 },
+    "ui": { "enabled": true, "port": 4000 }
   }
 }

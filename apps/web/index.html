@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RideSync Admin Dashboard</title>
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-aWk6p90Hpa4l_9s2_yJeUFkk9FmHlSA&libraries=places"></script>
+    <style>
+      /* Ensure Google Maps Autocomplete dropdown is visible above MUI Dialogs */
+      .pac-container {
+        z-index: 9999 !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

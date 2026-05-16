@@ -1,39 +1,107 @@
-# RideSync - Real-Time Transit & Ride-Sharing Solution
+# 🚀 RideSync: Integrated Bus Management Ecosystem
 
-**RideSync** is a professional-grade mobile application designed to connect passengers and drivers through a seamless, real-time interface. Developed at **Sabaragamuwa University of Sri Lanka (SUSL)**, the platform focuses on optimizing transit scheduling and trip coordination.
+[![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-## 🚀 Key Features
-- **Real-Time Tracking**: Integration with Google Maps API for live location tracking and polyline route visualization.
-- **Smart Scheduling**: Advanced transit scheduling for recurring and one-off trips.
-- **Secure Authentication**: Robust user authentication system powered by Firebase Auth.
-- **Interactive Dashboards**: Role-based interfaces for both Passengers and Drivers.
-- **Document Management**: Integrated image picking and digital signature capture for verification.
-- **Cloud Infrastructure**: Scalable backend using Cloud Firestore and Firebase Storage.
+RideSync is a state-of-the-art, multi-platform solution designed to revolutionize public transportation. By integrating real-time tracking, automated scheduling, and seamless passenger interaction, RideSync provides a unified experience for passengers, operators, and administrators.
 
-## 🛠️ Technical Stack
-- **Framework**: [Flutter](https://flutter.dev/) (Cross-platform Android/iOS)
-- **Language**: [Dart](https://dart.dev/)
-- **Backend/DB**: [Firebase](https://firebase.google.com/) (Auth, Firestore, Storage)
-- **Maps & Location**: [Google Maps SDK](https://pub.dev/packages/google_maps_flutter), Geolocator, Geocoding
-- **State Management**: [Provider](https://pub.dev/packages/provider)
-- **UI/UX**: Custom themed components with Google Fonts and FontAwesome integration.
+---
 
-## 📂 Repository Structure
-- `lib/`: Main source code containing models, services, providers, and UI screens.
-- `assets/`: Image assets and custom icons.
-- `android/` & `ios/`: Platform-specific configurations and build files.
-- `test/`: Unit and widget testing suites.
+## 🏗️ Architecture Overview
 
-## 🏁 Getting Started
-1. **Clone the repo**:
+RideSync is structured as a **Monorepo**, ensuring consistency across all platforms and simplifying the sharing of business logic and models.
+
+```text
+RideSync/
+├── apps/
+│   ├── mobile/         # Flutter application for Passengers and Drivers
+│   └── web/            # React-based Admin Dashboard for fleet management
+├── backend/
+│   └── functions/      # Firebase Cloud Functions (Typescript)
+├── packages/
+│   └── shared/         # Shared data models and business logic
+├── config/             # Centralized project configurations
+└── docs/               # Detailed architecture and design specifications
+```
+
+---
+
+## ✨ Key Features
+
+### 📱 Mobile Application (Passenger & Driver)
+- **Real-time Tracking**: Live GPS monitoring of buses on interactive maps.
+- **Dynamic Booking**: Instant seat reservation and digital ticketing.
+- **Smart Notifications**: Push alerts for delays, arrivals, and schedule changes.
+- **Driver Portal**: Route management, occupancy tracking, and navigation.
+
+### 💻 Web Dashboard (Admin)
+- **Fleet Management**: Real-time overview of all active vehicles.
+- **Route Optimization**: Tools for planning and adjusting bus routes based on demand.
+- **Analytics & Reporting**: Data-driven insights into passenger volume and service efficiency.
+- **User Management**: Unified control over passenger and operator accounts.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend (Mobile)**: Flutter (Dart) with Provider/Riverpod for state management.
+- **Frontend (Web)**: React.js, Vite, TailwindCSS.
+- **Backend**: Firebase (Firestore, Authentication, Cloud Functions).
+- **Communication**: Real-time synchronization via Firebase SDK.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) (Stable)
+- [Node.js](https://nodejs.org/) (v18+)
+- [Firebase CLI](https://firebase.google.com/docs/cli)
+
+### Installation
+
+1. **Clone the repository:**
    ```bash
-   git clone https://github.com/rishikesan05/RideSync-App-Development.git
+   git clone https://github.com/Rishikesan05/RideSync-App-Development.git
+   cd RideSync-App-Development
    ```
-2. **Install dependencies**:
+
+2. **Setup Mobile App:**
    ```bash
+   cd apps/mobile
    flutter pub get
-   ```
-3. **Run the app**:
-   ```bash
    flutter run
    ```
+
+3. **Setup Web Dashboard:**
+   ```bash
+   cd apps/web
+   npm install
+   npm run dev
+   ```
+
+4. **Setup Cloud Functions:**
+   ```bash
+   cd backend/functions
+   npm install
+   ```
+
+---
+
+## 🤝 Contribution Guidelines
+
+We follow a strict, professional branching and commit convention to ensure code quality:
+
+- **Branches**: `feature/`, `fix/`, `refactor/`, `docs/`.
+- **Commits**: `[RIDESYNC] YYYY-MM-DD | <Type>: <Description>`
+
+*Example: `[RIDESYNC] 2026-05-16 | Feat: Implement real-time tracking`*
+
+---
+
+## 📄 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+Developed with ❤️ by the RideSync Team.
