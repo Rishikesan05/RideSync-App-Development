@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "busLocations": {
+      "$busId": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.token.role == 'operator' && auth.token.busId == $busId"
+      }
+    },
+    "tripStatus": {
+      "$scheduleId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (auth.token.role == 'operator' || auth.token.role == 'admin')"
+      }
+    }
+  }
+}

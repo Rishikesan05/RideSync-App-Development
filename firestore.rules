@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users: own profile only, admin reads all
+    match /users/{uid} {
+      allow read, update: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null;
+      allow read: if request.auth != null && request.auth.token.role == 'admin';
+    }
+
+    // Passengers profiles
+    match /passengers/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null && request.auth.token.role == 'admin';
+    }
+
+    // Operators profiles
+    match /operators/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if request.auth != null && request.auth.token.role == 'admin';
+    }
+
+    // Helper: check if user has a specific role in Firestore
+    function hasRole(role) {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    // Routes: public read, admin write
+    match /routes/{routeId} {
+      allow read: if true;
+      allow write: if hasRole('admin');
+    }
+
+    // Buses: public read, admin write
+    match /buses/{busId} {
+      allow read: if true;
+      allow write: if hasRole('admin');
+    }
+
+    // Fares: public read, admin write
+    match /fares/{fareId} {
+      allow read: if true;
+      allow write: if hasRole('admin');
+    }
+
+    // Bookings: passenger reads/writes own, operator reads own schedule, admin reads all
+    match /bookings/{bookingId} {
+      allow read: if request.auth != null && (request.auth.uid == resource.data.passengerId
+                  || hasRole('operator') || hasRole('admin'));
+      allow create: if request.auth != null && (hasRole('passenger') || request.auth.token.role == 'passenger');
+      allow update: if request.auth != null && (request.auth.uid == resource.data.passengerId
+                    || hasRole('admin'));
+    }
+
+    // Feedback: passenger creates own, admin reads
+    match /feedback/{feedbackId} {
+      allow create: if hasRole('passenger');
+      allow read: if hasRole('admin');
+    }
+
+    // Notifications: user reads/writes own only
+    match /notifications/{uid}/items/{notifId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Schedules and Seats: Public read for search, secure write/update
+    match /schedules/{scheduleId} {
+      allow read: if true;
+      allow create, delete: if hasRole('admin');
+      allow update: if hasRole('admin') 
+                    || (hasRole('operator') && request.auth.token.busId == resource.data.busId);
+
+      match /seats/{seatId} {
+        allow read: if true;
+        allow write, update: if request.auth != null;
+      }
+    }
+  }
+}
