@@ -26,6 +26,8 @@ local.properties
 **/google-services.json
 **/GoogleService-Info.plist
 **/*service-account*.json
+RIDESYNC_ARCHITECTURE_UPDATED.md
+RIDESYNC_MONOREPO_ARCHITECTURE.md
 **/*dialogflow-key*.json
 !**/.env.example
 
