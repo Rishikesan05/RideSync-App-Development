@@ -2,7 +2,7 @@ import axios from 'axios';
 import { auth } from './firebase';
 
 const baseURL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://127.0.0.1:5001/demo-ridesync/asia-south1/api/api' // Emulator URL
+  ? 'http://127.0.0.1:5001/ridesync-lk/asia-south1/api/api' // Emulator URL
   : 'https://asia-south1-ridesync-lk.cloudfunctions.net/api/api'; // Production URL
 
 const axiosInstance = axios.create({
