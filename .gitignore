@@ -11,9 +11,9 @@ build/
 bin/
 obj/
 out/
-/android/app/debug/
-/android/app/profile/
-/android/app/release/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
 app.*.symbols
 app.*.map.json
 

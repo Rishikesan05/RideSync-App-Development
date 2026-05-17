@@ -68,25 +68,30 @@ RideSync/
    cd RideSync-App-Development
    ```
 
-2. **Setup Mobile App:**
+2. **Setup Mobile App (Android):**
    ```bash
    cd apps/mobile
    flutter pub get
-   flutter run
    ```
 
 3. **Setup Web Dashboard:**
    ```bash
    cd apps/web
    npm install
-   npm run dev
    ```
 
-4. **Setup Cloud Functions:**
-   ```bash
-   cd backend/functions
-   npm install
-   ```
+---
+
+## 🔐 Team Setup & Security
+
+Since API keys and Firebase secrets are **not** stored in Git, every group member must follow these steps to set up their local environment:
+
+### 📱 For Android Development (`apps/mobile`)
+1.  **Firebase Config**: Place your `google-services.json` inside `apps/mobile/android/app/`.
+2.  **Environment**: Copy `.env.example` to `.env` and fill in your `GOOGLE_MAPS_API_KEY`.
+
+### 💻 For Web Development (`apps/web`)
+1.  **Environment**: Copy `.env.example` to `.env` and fill in all `VITE_FIREBASE_*` and `VITE_GOOGLE_MAPS_API_KEY` values.
 
 ---
 
