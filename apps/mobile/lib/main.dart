@@ -12,6 +12,7 @@ import 'package:ridesync/features/auth/presentation/screens/passenger_auth_choic
 import 'package:ridesync/features/auth/presentation/screens/operator_auth_choice_screen.dart';
 import 'package:ridesync/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:ridesync/features/auth/presentation/screens/driver_registration_screen.dart';
+import 'package:ridesync/features/passenger/presentation/screens/splash_screen.dart';
 
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/core/providers/settings_provider.dart';
@@ -61,7 +62,7 @@ class RideSyncApp extends StatelessWidget {
         '/driver-registration': (context) => const DriverRegistrationScreen(),
         '/main': (context) => const PassengerNavigationHub(),
         '/operator-home': (context) => const BusOperatorNavigationHub(),
-        '/splash': (context) => const RoleSelectionScreen(),
+        '/splash': (context) => const SplashScreen(),
       },
     );
   }
@@ -93,6 +94,6 @@ class AuthWrapper extends StatelessWidget {
     }
 
     // Default to login if not authenticated or guest
-    return const LoginScreen();
+    return const SplashScreen();
   }
 }
