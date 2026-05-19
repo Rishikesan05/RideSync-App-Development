@@ -5,6 +5,7 @@ import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/core/providers/settings_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/home_provider.dart';
 import 'package:ridesync/core/widgets/custom_button.dart';
+import 'package:ridesync/features/passenger/presentation/screens/my_bookings_screen.dart';
 
 // Account tab handling Guest vs. Authenticated states
 class AccountScreen extends StatelessWidget {
@@ -246,7 +247,16 @@ class AccountScreen extends StatelessWidget {
               isDark,
               onTap: () => _showFavouriteRoutesDialog(context, isDark),
             ),
-            _buildMenuItem(context, Icons.history, 'Ride History', isDark),
+            _buildMenuItem(
+              context, 
+              Icons.history, 
+              'Ride History', 
+              isDark,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MyBookingsScreen()),
+              ),
+            ),
             _buildMenuItem(
               context,
               Icons.card_giftcard,
