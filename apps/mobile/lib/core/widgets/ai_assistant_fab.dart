@@ -51,13 +51,16 @@ class _AIAssistantFABState extends State<AIAssistantFAB> {
     }
   }
 
-  void _sendMessage() async {
-    final text = _controller.text.trim();
+  void _sendMessage({String? presetText}) async {
+    final text = presetText ?? _controller.text.trim();
     if (text.isEmpty) return;
+
+    if (presetText == null) {
+      _controller.clear();
+    }
 
     setState(() {
       _messages.add(ChatMessage(text: text, isUser: true));
-      _controller.clear();
       _isLoading = true;
     });
     
@@ -104,6 +107,8 @@ class _AIAssistantFABState extends State<AIAssistantFAB> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -144,8 +149,25 @@ class _AIAssistantFABState extends State<AIAssistantFAB> {
                     child: ListView.builder(
                       controller: _scrollController,
                       padding: const EdgeInsets.all(16),
-                      itemCount: _messages.length,
+                      itemCount: _messages.length + (_messages.length == 1 ? 1 : 0),
                       itemBuilder: (context, index) {
+                        if (_messages.length == 1 && index == 1) {
+                          // Suggestion chips
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                _buildSuggestionChip('Colombo to Kandy route'),
+                                _buildSuggestionChip('How is fare calculated?'),
+                                _buildSuggestionChip('Can I book multiple seats?'),
+                                _buildSuggestionChip('Help me find a route'),
+                              ],
+                            ),
+                          );
+                        }
+                        
                         final msg = _messages[index];
                         return Align(
                           alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -156,7 +178,7 @@ class _AIAssistantFABState extends State<AIAssistantFAB> {
                             decoration: BoxDecoration(
                               color: msg.isUser 
                                   ? AppColors.primaryOrange 
-                                  : (Theme.of(context).brightness == Brightness.dark ? AppColors.surfaceMutedDark : AppColors.surfaceMuted),
+                                  : (isDark ? AppColors.surfaceMutedDark : AppColors.surfaceMuted),
                               borderRadius: BorderRadius.circular(16).copyWith(
                                 bottomRight: msg.isUser ? Radius.zero : null,
                                 bottomLeft: !msg.isUser ? Radius.zero : null,
@@ -167,7 +189,7 @@ class _AIAssistantFABState extends State<AIAssistantFAB> {
                               style: TextStyle(
                                 color: msg.isUser 
                                     ? Colors.white 
-                                    : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87),
+                                    : (isDark ? Colors.white : Colors.black87),
                                 fontSize: 13,
                               ),
                             ),
@@ -194,7 +216,7 @@ class _AIAssistantFABState extends State<AIAssistantFAB> {
                               hintStyle: const TextStyle(fontSize: 13),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
                               filled: true,
-                              fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.black26 : Colors.grey.shade100,
+                              fillColor: isDark ? Colors.black26 : Colors.grey.shade100,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                             ),
                             onSubmitted: (_) => _sendMessage(),
@@ -202,7 +224,7 @@ class _AIAssistantFABState extends State<AIAssistantFAB> {
                         ),
                         const SizedBox(width: 8),
                         GestureDetector(
-                          onTap: _sendMessage,
+                          onTap: () => _sendMessage(),
                           child: Container(
                             padding: const EdgeInsets.all(10),
                             decoration: const BoxDecoration(
@@ -244,6 +266,31 @@ class _AIAssistantFABState extends State<AIAssistantFAB> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSuggestionChip(String text) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: () => _sendMessage(presetText: text),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceMutedDark : AppColors.surfaceMuted,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? Colors.white10 : Colors.grey.shade200,
+          ),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white70 : Colors.black87,
+          ),
+        ),
+      ),
     );
   }
 }
