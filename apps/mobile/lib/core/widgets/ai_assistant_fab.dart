@@ -58,8 +58,8 @@ class _AIAssistantFABState extends State<AIAssistantFAB> {
     try {
       final prompt = 'You are a helpful AI assistant for the RideSync public transit app in Sri Lanka. Answer concisely. User: $text';
       
-      // Call the production-stable v1 endpoint directly
-      final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$apiKey');
+      // Call gemini-2.0-flash directly (supported by your key)
+      final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=$apiKey');
       
       final response = await http.post(
         url,
@@ -83,8 +83,8 @@ class _AIAssistantFABState extends State<AIAssistantFAB> {
           _isLoading = false;
         });
       } else {
-        // If v1 / gemini-1.5-flash fails, try falling back to v1 / gemini-pro
-        final fallbackUrl = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=$apiKey');
+        // If gemini-2.0-flash fails, try falling back to gemini-2.5-flash-lite
+        final fallbackUrl = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash-lite:generateContent?key=$apiKey');
         final fallbackResponse = await http.post(
           fallbackUrl,
           headers: {'Content-Type': 'application/json'},
