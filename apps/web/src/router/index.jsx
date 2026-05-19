@@ -12,6 +12,7 @@ import { AnalyticsView } from '../features/analytics/AnalyticsView';
 import { NotificationsView } from '../features/notifications/NotificationsView';
 import { SettingsView } from '../features/settings/SettingsView';
 import SeatManagementView from '../features/seats/SeatManagementView';
+import { LiveMapView } from '../features/live/LiveMapView';
 
 export const AppRouter = () => {
   return (
@@ -24,6 +25,7 @@ export const AppRouter = () => {
           <Route path="schedules" element={<SchedulesView />} />
           <Route path="fleet" element={<FleetView />} />
           <Route path="seats" element={<SeatManagementView />} />
+          <Route path="live" element={<LiveMapView />} />
           <Route path="users" element={<UsersView />} />
           <Route path="analytics" element={<AnalyticsView />} />
           <Route path="notifications" element={<NotificationsView />} />

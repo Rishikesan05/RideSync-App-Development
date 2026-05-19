@@ -34,6 +34,7 @@ import {
   Settings,
   Logout,
   EventSeat,
+  Map,
 } from '@mui/icons-material';
 
 const drawerWidth = 260;
@@ -44,6 +45,7 @@ const menuItems = [
   { text: 'Schedules', icon: <EventNote />, path: '/schedules' },
   { text: 'Fleet', icon: <DirectionsBus />, path: '/fleet' },
   { text: 'Seat Management', icon: <EventSeat />, path: '/seats' },
+  { text: 'Live Tracking', icon: <Map />, path: '/live' },
   { text: 'Users', icon: <People />, path: '/users' },
   { text: 'Analytics', icon: <Assessment />, path: '/analytics' },
   { text: 'Notifications', icon: <Notifications />, path: '/notifications' },
