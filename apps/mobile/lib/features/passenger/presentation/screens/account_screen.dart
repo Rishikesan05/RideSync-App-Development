@@ -6,6 +6,7 @@ import 'package:ridesync/core/providers/settings_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/home_provider.dart';
 import 'package:ridesync/core/widgets/custom_button.dart';
 import 'package:ridesync/features/passenger/presentation/screens/my_bookings_screen.dart';
+import 'package:ridesync/core/localization/translations.dart';
 
 // Account tab handling Guest vs. Authenticated states
 class AccountScreen extends StatelessWidget {
@@ -289,7 +290,7 @@ class AccountScreen extends StatelessWidget {
           _buildMenuItem(
             context,
             Icons.language,
-            'Language',
+            Translations.translate(context, 'language'),
             isDark,
             subTitle: settings.selectedLanguage,
             onTap: () => _showLanguageDialog(context, settings),
@@ -297,7 +298,7 @@ class AccountScreen extends StatelessWidget {
           _buildMenuItem(
             context,
             Icons.dark_mode_outlined,
-            'Appearance',
+            Translations.translate(context, 'appearance'),
             isDark,
             subTitle: _getThemeName(settings.themeMode),
             onTap: () => _showAppearanceDialog(context, settings),
@@ -430,7 +431,7 @@ class AccountScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select Language'),
+        title: Text(Translations.translate(context, 'select_language')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: ['English', 'Sinhala', 'Tamil'].map((lang) {
@@ -440,9 +441,10 @@ class AccountScreen extends StatelessWidget {
                   ? const Icon(Icons.check, color: AppColors.primaryOrange)
                   : null,
               onTap: () {
+                settings.setLanguage(lang);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('$lang selection coming soon!')),
+                  SnackBar(content: Text(Translations.translate(context, 'language_changed'))),
                 );
               },
             );
@@ -456,7 +458,7 @@ class AccountScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppStyles.padding),
       child: CustomButton(
-        label: 'Log Out',
+        label: Translations.translate(context, 'logout'),
         color: AppColors.primaryOrange,
         icon: Icons.logout,
         onPressed: () {

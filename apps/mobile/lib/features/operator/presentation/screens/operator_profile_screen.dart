@@ -4,6 +4,7 @@ import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/core/providers/settings_provider.dart';
 import 'package:ridesync/core/widgets/custom_button.dart';
+import 'package:ridesync/core/localization/translations.dart';
 
 class OperatorProfileScreen extends StatelessWidget {
   const OperatorProfileScreen({super.key});
@@ -189,21 +190,21 @@ class OperatorProfileScreen extends StatelessWidget {
               activeThumbColor: Colors.green,
             )
           ),
-          _buildMenuTile(context, Icons.dark_mode_outlined, 'Appearance', isDark, 
+          _buildMenuTile(context, Icons.dark_mode_outlined, Translations.translate(context, 'appearance'), isDark, 
             subTitle: _getThemeName(settings.themeMode),
             onTap: () => _showAppearanceDialog(context, settings),
           ),
           _buildMenuTile(
             context, 
             Icons.language, 
-            'Language', 
+            Translations.translate(context, 'language'), 
             isDark, 
             subTitle: settings.selectedLanguage,
             onTap: () => _showLanguageDialog(context, settings),
           ),
           const SizedBox(height: 32),
           CustomButton(
-            label: 'Log Out',
+            label: Translations.translate(context, 'logout'),
             onPressed: () {
               auth.logout();
               Navigator.pushNamedAndRemoveUntil(context, '/splash', (route) => false);
@@ -318,7 +319,7 @@ class OperatorProfileScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select Language'),
+        title: Text(Translations.translate(context, 'select_language')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: ['English', 'Sinhala', 'Tamil'].map((lang) {
@@ -328,11 +329,10 @@ class OperatorProfileScreen extends StatelessWidget {
                   ? const Icon(Icons.check, color: AppColors.primaryOrange)
                   : null,
               onTap: () {
-                // Mock selection logic
-                // settings.setSelectedLanguage(lang); // if provider supports it
+                settings.setLanguage(lang);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('$lang selection coming soon!')),
+                  SnackBar(content: Text(Translations.translate(context, 'language_changed'))),
                 );
               },
             );
