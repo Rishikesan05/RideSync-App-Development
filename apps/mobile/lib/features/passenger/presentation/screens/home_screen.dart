@@ -349,13 +349,15 @@ class _SectionWithRoutes extends StatelessWidget {
           title: 'Quick Routes',
           subtitle: 'Jump back into your regular commute.',
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 4), // Reduced to balance the list view's new top padding
         SizedBox(
-          height: 164,
+          height: 204, // 164 + 40 for shadow padding
           child: ListView.separated(
+            clipBehavior: Clip.none, // Prevent hard edge clipping on the left/right shadows
+            padding: const EdgeInsets.symmetric(vertical: 20), // Provide space for bottom shadows
             scrollDirection: Axis.horizontal,
             itemCount: routes.length,
-            separatorBuilder: (_, index) => const SizedBox(width: 14),
+            separatorBuilder: (_, index) => const SizedBox(width: 18), // slightly wider gap for shadows
             itemBuilder: (context, index) {
               final route = routes[index];
               return SizedBox(
