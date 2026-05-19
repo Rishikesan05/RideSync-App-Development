@@ -822,6 +822,32 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
                     const SizedBox(width: 8),
                     InkWell(
                       onTap: () {
+                        final auth = Provider.of<AuthProvider>(context, listen: false);
+                        if (!auth.isAuthenticated) {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Login Required'),
+                              content: const Text('Please log in or sign up to save your favourite routes.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Cancel'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    Navigator.pushNamed(context, '/login');
+                                  },
+                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange),
+                                  child: const Text('Login / Signup'),
+                                ),
+                              ],
+                            ),
+                          );
+                          return;
+                        }
+
                         final originName = finder.origin?.name ?? 'Unknown';
                         final destName = finder.destination?.name ?? 'Unknown';
                         context.read<HomeProvider>().addFavouriteRoute(
