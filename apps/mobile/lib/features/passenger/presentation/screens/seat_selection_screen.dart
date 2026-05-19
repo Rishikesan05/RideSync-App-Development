@@ -4,6 +4,7 @@ import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/seat_layout_engine.dart';
+import 'package:ridesync/features/passenger/presentation/screens/booking_confirmation_screen.dart';
 
 class SeatSelectionScreen extends StatelessWidget {
   final String scheduleId;
@@ -184,7 +185,7 @@ class SeatSelectionScreen extends StatelessWidget {
                       style: const TextStyle(color: AppColors.textLight, fontSize: 13),
                     ),
                     Text(
-                      'LKR ${booking.selectedSeatNumbers.length * 1250}',
+                      'LKR ${booking.totalFare.toStringAsFixed(0)}',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                     ),
                   ],
@@ -219,33 +220,20 @@ class SeatSelectionScreen extends StatelessWidget {
   }
 
   void _showSuccessDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.check_circle, color: Colors.green, size: 64),
-            const SizedBox(height: 16),
-            const Text('Booking Confirmed!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 8),
-            const Text('Your seats have been reserved successfully.', textAlign: TextAlign.center),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context); // Close dialog
-                Navigator.pop(context); // Go back to schedules
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryOrange,
-                minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('Great!', style: TextStyle(color: Colors.white)),
-            ),
-          ],
+    final booking = Provider.of<BookingProvider>(context, listen: false);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookingConfirmationScreen(
+          routeName: booking.selectedSchedule?.routeName ?? 'Express',
+          seatNumbers: booking.selectedSeatNumbers.join(', '),
+          origin: booking.origin?.name ?? '',
+          destination: booking.destination?.name ?? '',
+          farePerSeat: booking.farePerSeat,
+          totalFare: booking.totalFare,
+          distanceKm: booking.distanceKm,
+          seatCount: booking.selectedSeatNumbers.length,
+          plateNumber: booking.selectedSchedule?.plateNumber ?? '',
         ),
       ),
     );

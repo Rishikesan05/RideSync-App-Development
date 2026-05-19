@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ridesync/features/passenger/data/models/route_models.dart';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -55,6 +56,40 @@ class BookingProvider extends ChangeNotifier {
   List<Map<String, dynamic>> currentSeats = [];
   Set<String> selectedSeatNumbers = {};
   bool isBooking = false;
+
+  // --- Fare Calculation ---
+  static const double _farePerKm = 15.0;
+  static const double _minimumFare = 50.0;
+
+  /// Calculate straight-line distance in km using the Haversine formula
+  double get distanceKm {
+    if (origin == null || destination == null) return 0;
+    const earthRadiusKm = 6371.0;
+    final dLat = _toRadians(destination!.position.latitude - origin!.position.latitude);
+    final dLng = _toRadians(destination!.position.longitude - origin!.position.longitude);
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_toRadians(origin!.position.latitude)) *
+            math.cos(_toRadians(destination!.position.latitude)) *
+            math.sin(dLng / 2) *
+            math.sin(dLng / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    // Multiply by 1.3 to approximate road distance from straight-line
+    return (earthRadiusKm * c * 1.3);
+  }
+
+  double _toRadians(double deg) => deg * (math.pi / 180);
+
+  /// Calculated fare for a single seat based on distance
+  double get farePerSeat {
+    final calculated = distanceKm * _farePerKm;
+    return calculated < _minimumFare ? _minimumFare : calculated;
+  }
+
+  /// Total fare for all selected seats
+  double get totalFare => farePerSeat * selectedSeatNumbers.length;
+
+  /// Formatted fare string for display
+  String get formattedFarePerSeat => 'LKR ${farePerSeat.toStringAsFixed(0)}';
 
   void selectSchedule(ScheduleModel schedule) {
     selectedSchedule = schedule;
@@ -125,8 +160,17 @@ class BookingProvider extends ChangeNotifier {
         transaction.set(bookingRef, {
           'passengerId': passengerId,
           'scheduleId': selectedSchedule!.id,
+          'routeId': selectedSchedule!.routeId,
+          'busId': selectedSchedule!.busId,
           'seats': selectedSeatNumbers.toList(),
-          'totalFare': selectedSeatNumbers.length * 1250, // Mock fare
+          'origin': origin?.name ?? '',
+          'destination': destination?.name ?? '',
+          'distanceKm': distanceKm.toStringAsFixed(1),
+          'farePerSeat': farePerSeat.roundToDouble(),
+          'totalFare': totalFare.roundToDouble(),
+          'departureTime': selectedSchedule!.departureTime,
+          'routeName': selectedSchedule!.routeName ?? '',
+          'plateNumber': selectedSchedule!.plateNumber ?? '',
           'timestamp': FieldValue.serverTimestamp(),
           'status': 'confirmed',
         });

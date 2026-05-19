@@ -274,7 +274,7 @@ class _BookingScreenState extends State<BookingScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  'LKR 1,250', // Mock fare for now
+                  booking.formattedFarePerSeat,
                   style: const TextStyle(color: AppColors.primaryOrange, fontWeight: FontWeight.bold, fontSize: 14),
                 ),
               ),
@@ -292,6 +292,21 @@ class _BookingScreenState extends State<BookingScreen> {
               Text('${schedule.capacity} Seats', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.green)),
             ],
           ),
+          if (booking.distanceKm > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.straighten, size: 16, color: AppColors.textLight),
+                  const SizedBox(width: 8),
+                  Text('${booking.distanceKm.toStringAsFixed(1)} km', style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
+                  const SizedBox(width: 12),
+                  const Icon(Icons.calculate_outlined, size: 16, color: AppColors.textLight),
+                  const SizedBox(width: 4),
+                  Text('LKR 15/km', style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
+                ],
+              ),
+            ),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {
