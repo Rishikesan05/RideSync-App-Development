@@ -483,9 +483,28 @@ class _FavouriteRoutesDialog extends StatefulWidget {
 
 class _FavouriteRoutesDialogState extends State<_FavouriteRoutesDialog> {
   bool _isAdding = false;
+  String? _editingId;
   final TextEditingController _titleCtrl = TextEditingController();
   final TextEditingController _originCtrl = TextEditingController();
   final TextEditingController _destCtrl = TextEditingController();
+
+  void _resetForm() {
+    setState(() {
+      _isAdding = false;
+      _editingId = null;
+    });
+    _titleCtrl.clear();
+    _originCtrl.clear();
+    _destCtrl.clear();
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _originCtrl.dispose();
+    _destCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -493,7 +512,7 @@ class _FavouriteRoutesDialogState extends State<_FavouriteRoutesDialog> {
 
     return AlertDialog(
       backgroundColor: widget.isDark ? const Color(0xFF1E293B) : Colors.white,
-      title: const Text('Favourite Routes'),
+      title: Text(_editingId != null ? 'Edit Route' : 'Favourite Routes'),
       content: SizedBox(
         width: double.maxFinite,
         child: _isAdding
@@ -517,17 +536,18 @@ class _FavouriteRoutesDialogState extends State<_FavouriteRoutesDialog> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: () => setState(() => _isAdding = false),
+                        onPressed: _resetForm,
                         child: const Text('Cancel'),
                       ),
                       ElevatedButton(
                         onPressed: () {
                           if (_titleCtrl.text.isNotEmpty && _originCtrl.text.isNotEmpty && _destCtrl.text.isNotEmpty) {
-                            homeProvider.addFavouriteRoute(_titleCtrl.text, _originCtrl.text, _destCtrl.text);
-                            setState(() => _isAdding = false);
-                            _titleCtrl.clear();
-                            _originCtrl.clear();
-                            _destCtrl.clear();
+                            if (_editingId != null) {
+                              homeProvider.editFavouriteRoute(_editingId!, _titleCtrl.text, _originCtrl.text, _destCtrl.text);
+                            } else {
+                              homeProvider.addFavouriteRoute(_titleCtrl.text, _originCtrl.text, _destCtrl.text);
+                            }
+                            _resetForm();
                           }
                         },
                         style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange),
@@ -541,27 +561,55 @@ class _FavouriteRoutesDialogState extends State<_FavouriteRoutesDialog> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Expanded(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: homeProvider.favouriteRoutes.length,
-                      itemBuilder: (context, index) {
-                        final route = homeProvider.favouriteRoutes[index];
-                        return ListTile(
-                          title: Text(route['title'] ?? ''),
-                          subtitle: Text('${route['origin']} -> ${route['destination']}'),
-                          trailing: const Icon(Icons.edit, size: 16),
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Edit coming soon!')),
-                            );
-                          },
-                        );
-                      },
-                    ),
+                    child: homeProvider.favouriteRoutes.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: Text('No favourite routes yet', style: TextStyle(color: AppColors.textLight)),
+                            ),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: homeProvider.favouriteRoutes.length,
+                            itemBuilder: (context, index) {
+                              final route = homeProvider.favouriteRoutes[index];
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(route['title'] ?? ''),
+                                subtitle: Text('${route['origin']} -> ${route['destination']}'),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, size: 16),
+                                      onPressed: () {
+                                        setState(() {
+                                          _isAdding = true;
+                                          _editingId = route['id'];
+                                          _titleCtrl.text = route['title'] ?? '';
+                                          _originCtrl.text = route['origin'] ?? '';
+                                          _destCtrl.text = route['destination'] ?? '';
+                                        });
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete, color: Colors.red, size: 16),
+                                      onPressed: () {
+                                        homeProvider.deleteFavouriteRoute(route['id']!);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
-                    onPressed: () => setState(() => _isAdding = true),
+                    onPressed: () => setState(() {
+                      _isAdding = true;
+                      _editingId = null;
+                    }),
                     icon: const Icon(Icons.add),
                     label: const Text('Add Custom Route'),
                     style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange),

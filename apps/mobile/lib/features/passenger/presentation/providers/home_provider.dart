@@ -64,6 +64,27 @@ class HomeProvider extends ChangeNotifier {
     await fetchHomeData();
   }
 
+  Future<void> editFavouriteRoute(String id, String title, String origin, String destination) async {
+    final index = favouriteRoutes.indexWhere((r) => r['id'] == id);
+    if (index != -1) {
+      favouriteRoutes[index] = {
+        'id': id,
+        'title': title,
+        'origin': origin,
+        'destination': destination,
+        'tag': favouriteRoutes[index]['tag'],
+      };
+      quickRoutes.clear();
+      await fetchHomeData();
+    }
+  }
+
+  Future<void> deleteFavouriteRoute(String id) async {
+    favouriteRoutes.removeWhere((r) => r['id'] == id);
+    quickRoutes.clear();
+    await fetchHomeData();
+  }
+
   Future<Map<String, String>?> _fetchLiveRouteData(String origin, String destination) async {
     final apiKey = dotenv.get('GOOGLE_MAPS_API_KEY');
     final url = Uri.parse(
