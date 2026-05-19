@@ -5,6 +5,7 @@ import 'package:ridesync/core/widgets/ai_assistant_fab.dart';
 import 'package:ridesync/core/widgets/notification_tab.dart';
 import 'package:ridesync/core/widgets/ridesync_ui.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
+import 'package:ridesync/features/passenger/data/models/route_models.dart';
 import 'package:ridesync/features/passenger/presentation/providers/finder_provider.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -122,12 +123,42 @@ class _SearchPlannerCard extends StatefulWidget {
 class _SearchPlannerCardState extends State<_SearchPlannerCard> {
   final _originController = TextEditingController();
   final _destController = TextEditingController();
+  final _originFocus = FocusNode();
+  final _destFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _originController.addListener(() {
+      if (_originFocus.hasFocus && _originController.text.isNotEmpty) {
+        context.read<FinderProvider>().fetchSuggestions(_originController.text, 'origin');
+      }
+    });
+    _destController.addListener(() {
+      if (_destFocus.hasFocus && _destController.text.isNotEmpty) {
+        context.read<FinderProvider>().fetchSuggestions(_destController.text, 'destination');
+      }
+    });
+  }
 
   @override
   void dispose() {
     _originController.dispose();
     _destController.dispose();
+    _originFocus.dispose();
+    _destFocus.dispose();
     super.dispose();
+  }
+
+  void _handleSuggestionTap(Place place) {
+    if (_originFocus.hasFocus) {
+      _originController.text = place.name;
+      _originFocus.unfocus();
+    } else if (_destFocus.hasFocus) {
+      _destController.text = place.name;
+      _destFocus.unfocus();
+    }
+    context.read<FinderProvider>().fetchSuggestions('', ''); // Clear suggestions
   }
 
   void _handleOptimizeRoute() {
@@ -149,6 +180,9 @@ class _SearchPlannerCardState extends State<_SearchPlannerCard> {
 
   @override
   Widget build(BuildContext context) {
+    final finder = context.watch<FinderProvider>();
+    final showSuggestions = finder.suggestions.isNotEmpty && (_originFocus.hasFocus || _destFocus.hasFocus);
+
     return RideSyncSurfaceCard(
       child: Column(
         children: [
@@ -159,6 +193,7 @@ class _SearchPlannerCardState extends State<_SearchPlannerCard> {
             iconColor: AppColors.accentBlue,
             isDark: widget.isDark,
             controller: _originController,
+            focusNode: _originFocus,
           ),
           const SizedBox(height: 14),
           _LocationField(
@@ -168,7 +203,33 @@ class _SearchPlannerCardState extends State<_SearchPlannerCard> {
             iconColor: AppColors.primaryOrange,
             isDark: widget.isDark,
             controller: _destController,
+            focusNode: _destFocus,
           ),
+          if (showSuggestions) ...[
+            const SizedBox(height: 14),
+            Container(
+              constraints: const BoxConstraints(maxHeight: 180),
+              decoration: BoxDecoration(
+                color: widget.isDark ? AppColors.surfaceMutedDark : AppColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: finder.suggestions.length,
+                separatorBuilder: (context, index) => Divider(height: 1, color: widget.isDark ? Colors.white10 : Colors.black12),
+                itemBuilder: (context, index) {
+                  final place = finder.suggestions[index];
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.place_outlined, color: AppColors.primaryOrange, size: 20),
+                    title: Text(place.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: widget.isDark ? Colors.white : AppColors.textDark)),
+                    subtitle: Text(place.address, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: widget.isDark ? Colors.white60 : Colors.black54)),
+                    onTap: () => _handleSuggestionTap(place),
+                  );
+                },
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           RideSyncPrimaryButton(
             label: 'OPTIMIZE ROUTE',
@@ -555,6 +616,7 @@ class _LocationField extends StatelessWidget {
     required this.iconColor,
     required this.isDark,
     required this.controller,
+    required this.focusNode,
   });
 
   final String label;
@@ -563,6 +625,7 @@ class _LocationField extends StatelessWidget {
   final Color iconColor;
   final bool isDark;
   final TextEditingController controller;
+  final FocusNode focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -591,6 +654,7 @@ class _LocationField extends StatelessWidget {
                 const SizedBox(height: 2),
                 TextField(
                   controller: controller,
+                  focusNode: focusNode,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontSize: 15,
                     color: isDark ? Colors.white : AppColors.textDark,
