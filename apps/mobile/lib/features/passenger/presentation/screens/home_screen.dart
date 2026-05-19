@@ -363,6 +363,14 @@ class _SectionWithRoutes extends StatelessWidget {
               return SizedBox(
                 width: 214,
                 child: RideSyncSurfaceCard(
+                  onTap: () {
+                    final finder = context.read<FinderProvider>();
+                    final parts = route.route.split(' -> ');
+                    if (parts.length == 2) {
+                      finder.searchFromRawStrings(parts[0], parts[1]);
+                      Navigator.pushNamed(context, '/main', arguments: {'index': 3});
+                    }
+                  },
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -575,6 +583,12 @@ class _HubNetworkSection extends StatelessWidget {
             final hub = hubs[index];
             return RideSyncSurfaceCard(
               padding: const EdgeInsets.all(18),
+              onTap: () {
+                final finder = context.read<FinderProvider>();
+                final cleanName = hub.$1.replaceAll('\n', ' ');
+                finder.searchFromRawStrings(cleanName, '');
+                Navigator.pushNamed(context, '/main', arguments: {'index': 3});
+              },
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
