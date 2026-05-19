@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
+import 'package:ridesync/features/passenger/presentation/screens/feedback_screen.dart';
 
 /// "My Bookings" screen showing past and upcoming trip history
 /// from the user's bookings collection in Firestore.
@@ -111,13 +112,13 @@ class MyBookingsScreen extends StatelessWidget {
               if (upcoming.isNotEmpty) ...[
                 _buildSectionHeader('Upcoming Trips', upcoming.length, isDark),
                 const SizedBox(height: 12),
-                ...upcoming.map((doc) => _buildBookingCard(doc, isDark, isUpcoming: true)),
+                ...upcoming.map((doc) => _buildBookingCard(context, doc, isDark, isUpcoming: true)),
                 const SizedBox(height: 24),
               ],
               if (past.isNotEmpty) ...[
                 _buildSectionHeader('Past Trips', past.length, isDark),
                 const SizedBox(height: 12),
-                ...past.map((doc) => _buildBookingCard(doc, isDark, isUpcoming: false)),
+                ...past.map((doc) => _buildBookingCard(context, doc, isDark, isUpcoming: false)),
               ],
             ],
           );
@@ -143,7 +144,7 @@ class MyBookingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBookingCard(DocumentSnapshot doc, bool isDark, {required bool isUpcoming}) {
+  Widget _buildBookingCard(BuildContext context, DocumentSnapshot doc, bool isDark, {required bool isUpcoming}) {
     final data = doc.data() as Map<String, dynamic>;
 
     final origin = data['origin'] ?? '';
@@ -154,6 +155,7 @@ class MyBookingsScreen extends StatelessWidget {
     final plateNumber = data['plateNumber'] ?? '';
     final status = data['status'] ?? 'confirmed';
     final distanceKm = data['distanceKm'] ?? '';
+    final hasFeedback = data['hasFeedback'] ?? false;
 
     DateTime? departure;
     final depTime = data['departureTime'];
@@ -264,6 +266,35 @@ class MyBookingsScreen extends StatelessWidget {
               ),
             ],
           ),
+          if (!isUpcoming && status == 'confirmed' && !hasFeedback) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FeedbackScreen(
+                        bookingData: {
+                          'id': doc.id,
+                          ...data,
+                        },
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.star_outline_rounded, size: 18),
+                label: const Text('Rate Your Trip'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primaryOrange,
+                  side: BorderSide(color: AppColors.primaryOrange.withValues(alpha: 0.5)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
