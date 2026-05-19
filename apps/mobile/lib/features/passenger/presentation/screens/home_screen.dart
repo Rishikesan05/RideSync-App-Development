@@ -788,9 +788,7 @@ class _HomeAccountButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
-      onTap: () {
-        Navigator.pushReplacementNamed(context, '/main', arguments: {'index': 4});
-      },
+      onTap: () => _showAccountCard(context),
       child: Container(
         width: 44,
         height: 44,
@@ -807,6 +805,85 @@ class _HomeAccountButton extends StatelessWidget {
             Icons.person_outline_rounded,
             size: 20,
             color: isDark ? Colors.white : AppColors.primaryNavy,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAccountCard(BuildContext context) {
+    final auth = context.read<AuthProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final user = auth.user;
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        elevation: 10,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: AppColors.primaryOrange.withValues(alpha: 0.1),
+                child: const Icon(Icons.person, color: AppColors.primaryOrange, size: 30),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                user?.name ?? 'Guest User',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                user?.email ?? 'Not signed in',
+                style: TextStyle(color: isDark ? Colors.white60 : Colors.black54, fontSize: 13),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.pushNamed(context, '/main', arguments: {'index': 4});
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark ? Colors.white : Colors.black,
+                        side: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Settings'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        if (auth.isAuthenticated) {
+                          auth.logout();
+                          Navigator.pushNamedAndRemoveUntil(context, '/splash', (route) => false);
+                        } else {
+                          Navigator.pushNamed(context, '/login');
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: auth.isAuthenticated ? Colors.redAccent : AppColors.primaryOrange,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(auth.isAuthenticated ? 'Sign Out' : 'Sign In'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

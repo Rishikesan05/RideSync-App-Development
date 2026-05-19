@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:ridesync/core/constants.dart';
-import 'package:ridesync/core/widgets/ridesync_ui.dart';
 
 // Top Notification hub with an in-app inbox preview
 class NotificationTab extends StatelessWidget {
@@ -71,49 +70,39 @@ class NotificationTab extends StatelessWidget {
     showDialog<void>(
       context: context,
       builder: (context) {
-        return RideSyncPopupShell(
-          maxHeight: 620,
-          child: SizedBox(
-            height: 603,
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          elevation: 10,
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                RideSyncPopupHeader(
-                  title: 'Notifications',
-                  subtitle:
-                      'Recent updates from RideSync and your active trips.',
-                  trailing: TextButton(
-                    onPressed: () {},
-                    child: const Text('Mark all read'),
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Notifications',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        foregroundColor: AppColors.primaryOrange,
+                      ),
+                      child: const Text('Close'),
+                    ),
+                  ],
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      _InboxFilterChip(
-                        label: 'All',
-                        selected: true,
-                        isDark: isDark,
-                      ),
-                      const SizedBox(width: 8),
-                      _InboxFilterChip(
-                        label: 'Trips',
-                        selected: false,
-                        isDark: isDark,
-                      ),
-                      const SizedBox(width: 8),
-                      _InboxFilterChip(
-                        label: 'Payments',
-                        selected: false,
-                        isDark: isDark,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Expanded(
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
                   child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
                     itemCount: _notifications.length,
                     separatorBuilder: (_, index) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
@@ -239,40 +228,7 @@ class _NotificationCard extends StatelessWidget {
   }
 }
 
-class _InboxFilterChip extends StatelessWidget {
-  const _InboxFilterChip({
-    required this.label,
-    required this.selected,
-    required this.isDark,
-  });
 
-  final String label;
-  final bool selected;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: selected
-            ? AppColors.primaryOrange
-            : (isDark ? AppColors.surfaceMutedDark : AppColors.surfaceMuted),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: selected
-              ? Colors.white
-              : (isDark ? Colors.white : AppColors.textDark),
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
 
 class _NotificationItem {
   const _NotificationItem({
