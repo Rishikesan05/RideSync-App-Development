@@ -18,6 +18,7 @@ import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/core/providers/settings_provider.dart';
 import 'package:ridesync/features/auth/presentation/screens/user_model.dart';
 import 'package:ridesync/features/passenger/presentation/providers/finder_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/home_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -33,6 +34,7 @@ void main() async {
         ChangeNotifierProvider(create: (context) => AuthProvider()),
         ChangeNotifierProvider(create: (context) => SettingsProvider()),
         ChangeNotifierProvider(create: (context) => FinderProvider()),
+        ChangeNotifierProvider(create: (context) => HomeProvider()),
         ChangeNotifierProvider(create: (context) => BookingProvider()),
       ],
       child: const RideSyncApp(),

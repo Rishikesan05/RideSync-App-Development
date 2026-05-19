@@ -7,9 +7,23 @@ import 'package:ridesync/core/widgets/ridesync_ui.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/features/passenger/data/models/route_models.dart';
 import 'package:ridesync/features/passenger/presentation/providers/finder_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/home_provider.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HomeProvider>().fetchHomeData();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -326,21 +340,8 @@ class _SectionWithRoutes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final routes = [
-      _RouteShortcut(
-        title: 'Work Route',
-        route: 'Pettah -> Maharagama',
-        duration: '18 mins',
-        fare: 'Rs. 120',
-        tag: 'Fastest',
-      ),
-      _RouteShortcut(
-        title: 'Home Route',
-        route: 'Kaduwela -> Fort',
-        duration: '45 mins',
-        fare: 'Rs. 210',
-      ),
-    ];
+    final homeProvider = context.watch<HomeProvider>();
+    final routes = homeProvider.quickRoutes;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -352,7 +353,9 @@ class _SectionWithRoutes extends StatelessWidget {
         const SizedBox(height: 4), // Reduced to balance the list view's new top padding
         SizedBox(
           height: 204, // 164 + 40 for shadow padding
-          child: ListView.separated(
+          child: homeProvider.isLoading 
+              ? const Center(child: CircularProgressIndicator()) 
+              : ListView.separated(
             clipBehavior: Clip.none, // Prevent hard edge clipping on the left/right shadows
             padding: const EdgeInsets.symmetric(vertical: 20), // Provide space for bottom shadows
             scrollDirection: Axis.horizontal,
@@ -365,11 +368,8 @@ class _SectionWithRoutes extends StatelessWidget {
                 child: RideSyncSurfaceCard(
                   onTap: () {
                     final finder = context.read<FinderProvider>();
-                    final parts = route.route.split(' -> ');
-                    if (parts.length == 2) {
-                      finder.searchFromRawStrings(parts[0], parts[1]);
-                      Navigator.pushNamed(context, '/main', arguments: {'index': 3});
-                    }
+                    finder.searchFromRawStrings(route.origin, route.destination);
+                    Navigator.pushNamed(context, '/main', arguments: {'index': 3});
                   },
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -398,7 +398,7 @@ class _SectionWithRoutes extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        route.route,
+                        '${route.origin} -> ${route.destination}',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
@@ -554,12 +554,8 @@ class _HubNetworkSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hubs = [
-      ('Pettah Main\nTerminal', 'Main hub'),
-      ('Nugegoda Bus\nStand', 'Junction hub'),
-      ('Maharagama\nTerminal', 'Regional hub'),
-      ('Kaduwela\nExpressway', 'Highway interchange'),
-    ];
+    final homeProvider = context.watch<HomeProvider>();
+    final hubs = homeProvider.hubs;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -569,7 +565,9 @@ class _HubNetworkSection extends StatelessWidget {
           subtitle: 'Board from the busiest touchpoints in the city.',
         ),
         const SizedBox(height: 16),
-        GridView.builder(
+        homeProvider.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: hubs.length,
@@ -585,7 +583,7 @@ class _HubNetworkSection extends StatelessWidget {
               padding: const EdgeInsets.all(18),
               onTap: () {
                 final finder = context.read<FinderProvider>();
-                final cleanName = hub.$1.replaceAll('\n', ' ');
+                final cleanName = hub.title.replaceAll('\n', ' ');
                 finder.searchFromRawStrings(cleanName, '');
                 Navigator.pushNamed(context, '/main', arguments: {'index': 3});
               },
@@ -599,7 +597,7 @@ class _HubNetworkSection extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    hub.$1,
+                    hub.title,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                       height: 1.3,
@@ -607,7 +605,7 @@ class _HubNetworkSection extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    hub.$2.toUpperCase(),
+                    hub.subtitle.toUpperCase(),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: AppColors.textLight,
                       letterSpacing: 0.9,
@@ -727,22 +725,6 @@ class _InfoDot extends StatelessWidget {
       ],
     );
   }
-}
-
-class _RouteShortcut {
-  const _RouteShortcut({
-    required this.title,
-    required this.route,
-    required this.duration,
-    required this.fare,
-    this.tag,
-  });
-
-  final String title;
-  final String route;
-  final String duration;
-  final String fare;
-  final String? tag;
 }
 
 class _BookingLineItem extends StatelessWidget {
