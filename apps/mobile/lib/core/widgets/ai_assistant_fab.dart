@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/core/widgets/ridesync_ui.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class ChatMessage {
   final String text;
@@ -23,33 +24,10 @@ class _AIAssistantFABState extends State<AIAssistantFAB> {
   bool _isLoading = false;
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  late final GenerativeModel? _model;
   
   List<ChatMessage> _messages = [
     ChatMessage(text: 'Hi! I am the RideSync AI. How can I help you today?', isUser: false),
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeAI();
-  }
-  
-  void _initializeAI() {
-    try {
-      final apiKey = dotenv.env['GEMINI_API_KEY'];
-      if (apiKey != null && apiKey.isNotEmpty) {
-        _model = GenerativeModel(
-          model: 'gemini-1.5-flash',
-          apiKey: apiKey,
-        );
-      } else {
-        _model = null;
-      }
-    } catch (e) {
-      _model = null;
-    }
-  }
 
   void _sendMessage({String? presetText}) async {
     final text = presetText ?? _controller.text.trim();
@@ -66,7 +44,8 @@ class _AIAssistantFABState extends State<AIAssistantFAB> {
     
     _scrollToBottom();
 
-    if (_model == null) {
+    final apiKey = dotenv.env['GEMINI_API_KEY'];
+    if (apiKey == null || apiKey.isEmpty) {
       await Future.delayed(const Duration(seconds: 1));
       setState(() {
         _messages.add(ChatMessage(text: 'Please add a GEMINI_API_KEY to your .env file to enable real AI.', isUser: false));
@@ -79,34 +58,69 @@ class _AIAssistantFABState extends State<AIAssistantFAB> {
     try {
       final prompt = 'You are a helpful AI assistant for the RideSync public transit app in Sri Lanka. Answer concisely. User: $text';
       
-      GenerateContentResponse response;
-      try {
-        response = await _model.generateContent([Content.text(prompt)]);
-      } catch (e1) {
-        try {
-          // Fallback 1: gemini-1.5-flash-latest
-          final fallbackModel1 = GenerativeModel(
-            model: 'gemini-1.5-flash-latest',
-            apiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
-          );
-          response = await fallbackModel1.generateContent([Content.text(prompt)]);
-        } catch (e2) {
-          // Fallback 2: gemini-pro
-          final fallbackModel2 = GenerativeModel(
-            model: 'gemini-pro',
-            apiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
-          );
-          response = await fallbackModel2.generateContent([Content.text(prompt)]);
+      // Call the production-stable v1 endpoint directly
+      final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$apiKey');
+      
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'contents': [
+            {
+              'parts': [
+                {'text': prompt}
+              ]
+            }
+          ]
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final reply = data['candidates']?[0]?['content']?[0]?['parts']?[0]?['text'] ?? 'No response text found.';
+        setState(() {
+          _messages.add(ChatMessage(text: reply, isUser: false));
+          _isLoading = false;
+        });
+      } else {
+        // If v1 / gemini-1.5-flash fails, try falling back to v1 / gemini-pro
+        final fallbackUrl = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=$apiKey');
+        final fallbackResponse = await http.post(
+          fallbackUrl,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'contents': [
+              {
+                'parts': [
+                  {'text': prompt}
+                ]
+              }
+            ]
+          }),
+        );
+
+        if (fallbackResponse.statusCode == 200) {
+          final data = jsonDecode(fallbackResponse.body);
+          final reply = data['candidates']?[0]?['content']?[0]?['parts']?[0]?['text'] ?? 'No response text found.';
+          setState(() {
+            _messages.add(ChatMessage(text: reply, isUser: false));
+            _isLoading = false;
+          });
+        } else {
+          String errMsg = 'API Error: ${response.statusCode}';
+          try {
+            final errorData = jsonDecode(response.body);
+            errMsg = errorData['error']?['message'] ?? errMsg;
+          } catch (_) {}
+          setState(() {
+            _messages.add(ChatMessage(text: 'Error: $errMsg', isUser: false));
+            _isLoading = false;
+          });
         }
       }
-      
-      setState(() {
-        _messages.add(ChatMessage(text: response.text ?? 'I could not process that request.', isUser: false));
-        _isLoading = false;
-      });
     } catch (e) {
       setState(() {
-        _messages.add(ChatMessage(text: 'Error connecting to AI: $e', isUser: false));
+        _messages.add(ChatMessage(text: 'Connection Error: $e', isUser: false));
         _isLoading = false;
       });
     }
