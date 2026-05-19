@@ -5,9 +5,25 @@ import 'package:ridesync/core/widgets/ai_assistant_fab.dart';
 import 'package:ridesync/core/widgets/notification_tab.dart';
 import 'package:ridesync/core/widgets/ridesync_ui.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
+import 'package:ridesync/features/passenger/data/models/route_models.dart';
+import 'package:ridesync/features/passenger/presentation/providers/finder_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/home_provider.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HomeProvider>().fetchHomeData();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,36 +125,130 @@ class _HeroBlock extends StatelessWidget {
   }
 }
 
-class _SearchPlannerCard extends StatelessWidget {
+class _SearchPlannerCard extends StatefulWidget {
   const _SearchPlannerCard({required this.isDark});
 
   final bool isDark;
 
   @override
+  State<_SearchPlannerCard> createState() => _SearchPlannerCardState();
+}
+
+class _SearchPlannerCardState extends State<_SearchPlannerCard> {
+  final _originController = TextEditingController();
+  final _destController = TextEditingController();
+  final _originFocus = FocusNode();
+  final _destFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _originController.addListener(() {
+      if (_originFocus.hasFocus && _originController.text.isNotEmpty) {
+        context.read<FinderProvider>().fetchSuggestions(_originController.text, 'origin');
+      }
+    });
+    _destController.addListener(() {
+      if (_destFocus.hasFocus && _destController.text.isNotEmpty) {
+        context.read<FinderProvider>().fetchSuggestions(_destController.text, 'destination');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _originController.dispose();
+    _destController.dispose();
+    _originFocus.dispose();
+    _destFocus.dispose();
+    super.dispose();
+  }
+
+  void _handleSuggestionTap(Place place) {
+    if (_originFocus.hasFocus) {
+      _originController.text = place.name;
+      _originFocus.unfocus();
+    } else if (_destFocus.hasFocus) {
+      _destController.text = place.name;
+      _destFocus.unfocus();
+    }
+    context.read<FinderProvider>().fetchSuggestions('', ''); // Clear suggestions
+  }
+
+  void _handleOptimizeRoute() {
+    final originText = _originController.text.trim();
+    final destText = _destController.text.trim();
+
+    if (originText.isEmpty || destText.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter both FROM and TO locations')),
+      );
+      return;
+    }
+
+    final finder = context.read<FinderProvider>();
+    finder.searchFromRawStrings(originText, destText);
+
+    Navigator.pushNamed(context, '/main', arguments: {'index': 3});
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final finder = context.watch<FinderProvider>();
+    final showSuggestions = finder.suggestions.isNotEmpty && (_originFocus.hasFocus || _destFocus.hasFocus);
+
     return RideSyncSurfaceCard(
       child: Column(
         children: [
           _LocationField(
             label: 'FROM',
-            value: 'your current location',
+            hint: 'your current location',
             icon: Icons.gps_fixed_rounded,
             iconColor: AppColors.accentBlue,
-            isDark: isDark,
+            isDark: widget.isDark,
+            controller: _originController,
+            focusNode: _originFocus,
           ),
           const SizedBox(height: 14),
           _LocationField(
             label: 'TO',
-            value: 'Where to go today?',
+            hint: 'Where to go today?',
             icon: Icons.location_on_outlined,
             iconColor: AppColors.primaryOrange,
-            isDark: isDark,
+            isDark: widget.isDark,
+            controller: _destController,
+            focusNode: _destFocus,
           ),
+          if (showSuggestions) ...[
+            const SizedBox(height: 14),
+            Container(
+              constraints: const BoxConstraints(maxHeight: 180),
+              decoration: BoxDecoration(
+                color: widget.isDark ? AppColors.surfaceMutedDark : AppColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: finder.suggestions.length,
+                separatorBuilder: (context, index) => Divider(height: 1, color: widget.isDark ? Colors.white10 : Colors.black12),
+                itemBuilder: (context, index) {
+                  final place = finder.suggestions[index];
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.place_outlined, color: AppColors.primaryOrange, size: 20),
+                    title: Text(place.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: widget.isDark ? Colors.white : AppColors.textDark)),
+                    subtitle: Text(place.address, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: widget.isDark ? Colors.white60 : Colors.black54)),
+                    onTap: () => _handleSuggestionTap(place),
+                  );
+                },
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           RideSyncPrimaryButton(
             label: 'OPTIMIZE ROUTE',
             icon: Icons.search_rounded,
-            onPressed: () {},
+            onPressed: _handleOptimizeRoute,
           ),
         ],
       ),
@@ -230,21 +340,8 @@ class _SectionWithRoutes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final routes = [
-      _RouteShortcut(
-        title: 'Work Route',
-        route: 'Pettah -> Maharagama',
-        duration: '18 mins',
-        fare: 'Rs. 120',
-        tag: 'Fastest',
-      ),
-      _RouteShortcut(
-        title: 'Home Route',
-        route: 'Kaduwela -> Fort',
-        duration: '45 mins',
-        fare: 'Rs. 210',
-      ),
-    ];
+    final homeProvider = context.watch<HomeProvider>();
+    final routes = homeProvider.quickRoutes;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,18 +350,28 @@ class _SectionWithRoutes extends StatelessWidget {
           title: 'Quick Routes',
           subtitle: 'Jump back into your regular commute.',
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 4), // Reduced to balance the list view's new top padding
         SizedBox(
-          height: 164,
-          child: ListView.separated(
+          height: 204, // 164 + 40 for shadow padding
+          child: homeProvider.isLoading 
+              ? const Center(child: CircularProgressIndicator()) 
+              : ListView.separated(
+            clipBehavior: Clip.none, // Prevent hard edge clipping on the left/right shadows
+            padding: const EdgeInsets.symmetric(vertical: 20), // Provide space for bottom shadows
             scrollDirection: Axis.horizontal,
             itemCount: routes.length,
-            separatorBuilder: (_, index) => const SizedBox(width: 14),
+            separatorBuilder: (_, index) => const SizedBox(width: 18), // slightly wider gap for shadows
             itemBuilder: (context, index) {
               final route = routes[index];
               return SizedBox(
-                width: 214,
+                width: 240, // Expanded width to prevent right-side text clipping
                 child: RideSyncSurfaceCard(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), // Maximize internal space
+                  onTap: () {
+                    final finder = context.read<FinderProvider>();
+                    finder.searchFromRawStrings(route.origin, route.destination);
+                    Navigator.pushNamed(context, '/main', arguments: {'index': 3});
+                  },
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -292,7 +399,7 @@ class _SectionWithRoutes extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        route.route,
+                        '${route.origin} -> ${route.destination}',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
@@ -448,12 +555,8 @@ class _HubNetworkSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hubs = [
-      ('Pettah Main\nTerminal', 'Main hub'),
-      ('Nugegoda Bus\nStand', 'Junction hub'),
-      ('Maharagama\nTerminal', 'Regional hub'),
-      ('Kaduwela\nExpressway', 'Highway interchange'),
-    ];
+    final homeProvider = context.watch<HomeProvider>();
+    final hubs = homeProvider.hubs;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -463,7 +566,9 @@ class _HubNetworkSection extends StatelessWidget {
           subtitle: 'Board from the busiest touchpoints in the city.',
         ),
         const SizedBox(height: 16),
-        GridView.builder(
+        homeProvider.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: hubs.length,
@@ -477,6 +582,12 @@ class _HubNetworkSection extends StatelessWidget {
             final hub = hubs[index];
             return RideSyncSurfaceCard(
               padding: const EdgeInsets.all(18),
+              onTap: () {
+                final finder = context.read<FinderProvider>();
+                final cleanName = hub.title.replaceAll('\n', ' ');
+                finder.searchFromRawStrings(cleanName, '');
+                Navigator.pushNamed(context, '/main', arguments: {'index': 3});
+              },
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -487,7 +598,7 @@ class _HubNetworkSection extends StatelessWidget {
                   ),
                   const Spacer(),
                   Text(
-                    hub.$1,
+                    hub.title,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                       height: 1.3,
@@ -495,7 +606,7 @@ class _HubNetworkSection extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    hub.$2.toUpperCase(),
+                    hub.subtitle.toUpperCase(),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: AppColors.textLight,
                       letterSpacing: 0.9,
@@ -515,17 +626,21 @@ class _HubNetworkSection extends StatelessWidget {
 class _LocationField extends StatelessWidget {
   const _LocationField({
     required this.label,
-    required this.value,
+    required this.hint,
     required this.icon,
     required this.iconColor,
     required this.isDark,
+    required this.controller,
+    required this.focusNode,
   });
 
   final String label;
-  final String value;
+  final String hint;
   final IconData icon;
   final Color iconColor;
   final bool isDark;
+  final TextEditingController controller;
+  final FocusNode focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -551,12 +666,23 @@ class _LocationField extends StatelessWidget {
                     letterSpacing: 0.8,
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  value,
+                const SizedBox(height: 2),
+                TextField(
+                  controller: controller,
+                  focusNode: focusNode,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontSize: 15,
                     color: isDark ? Colors.white : AppColors.textDark,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontSize: 15,
+                      color: isDark ? Colors.white38 : AppColors.textLight,
+                    ),
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    border: InputBorder.none,
                   ),
                 ),
               ],
@@ -600,22 +726,6 @@ class _InfoDot extends StatelessWidget {
       ],
     );
   }
-}
-
-class _RouteShortcut {
-  const _RouteShortcut({
-    required this.title,
-    required this.route,
-    required this.duration,
-    required this.fare,
-    this.tag,
-  });
-
-  final String title;
-  final String route;
-  final String duration;
-  final String fare;
-  final String? tag;
 }
 
 class _BookingLineItem extends StatelessWidget {
@@ -676,138 +786,107 @@ class _HomeAccountButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RideSyncIconCircleButton(
-      icon: Icons.person_outline_rounded,
-      onPressed: () => _showAccountCard(context),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: () => _showAccountCard(context),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isDark ? Colors.transparent : Colors.white,
+          border: Border.all(
+            color: isDark ? Colors.white12 : Colors.grey.shade300,
+            width: 1,
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.person_outline_rounded,
+            size: 20,
+            color: isDark ? Colors.white : AppColors.primaryNavy,
+          ),
+        ),
+      ),
     );
   }
 
   void _showAccountCard(BuildContext context) {
     final auth = context.read<AuthProvider>();
-    final user = auth.user;
-    final name = (user?.name.isNotEmpty ?? false) ? user!.name : 'Guest User';
-    final email =
-        (user?.email.isNotEmpty ?? false) ? user!.email : 'Sign in to sync rides';
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showDialog<void>(
+    final user = auth.user;
+    
+    showDialog(
       context: context,
-      builder: (dialogContext) {
-        return RideSyncPopupShell(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 18, 22, 22),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                RideSyncPopupHeader(
-                  title: 'Account',
-                  subtitle: auth.isAuthenticated
-                      ? 'Manage your profile and session.'
-                      : 'Sign in to sync your rides and profile.',
-                ),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.surfaceMutedDark : Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isDark ? AppColors.strokeDark : AppColors.stroke,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 16,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        elevation: 10,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: AppColors.primaryOrange.withValues(alpha: 0.1),
+                child: const Icon(Icons.person, color: AppColors.primaryOrange, size: 30),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                user?.name ?? 'Guest User',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                user?.email ?? 'Not signed in',
+                style: TextStyle(color: isDark ? Colors.white60 : Colors.black54, fontSize: 13),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.pushNamed(context, '/main', arguments: {'index': 4});
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark ? Colors.white : Colors.black,
+                        side: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Icon(
-                        Icons.person_outline_rounded,
-                        size: 34,
-                        color: isDark ? Colors.white : AppColors.primaryNavy,
-                      ),
+                      child: const Text('Settings'),
                     ),
-                    const SizedBox(width: 18),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name.toUpperCase(),
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: isDark
-                                        ? Colors.white
-                                        : AppColors.textDark,
-                                  ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              email.toUpperCase(),
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark
-                                        ? AppColors.textMutedDark
-                                        : AppColors.textDark,
-                                  ),
-                            ),
-                            const SizedBox(height: 14),
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.of(dialogContext).pop();
-                                Navigator.pushNamed(context, '/main', arguments: {
-                                  'index': 4,
-                                });
-                              },
-                              child: Text(
-                                'VIEW ACCOUNT',
-                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: isDark ? Colors.white : AppColors.textDark,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 22),
-                RideSyncPrimaryButton(
-                  label: 'SIGN OUT',
-                  onPressed: auth.isAuthenticated
-                      ? () async {
-                          await auth.logout();
-                          if (dialogContext.mounted) {
-                            Navigator.of(dialogContext).pop();
-                          }
-                          if (context.mounted) {
-                            Navigator.pushNamedAndRemoveUntil(
-                              context,
-                              '/splash',
-                              (route) => false,
-                            );
-                          }
-                        }
-                      : () {
-                          Navigator.of(dialogContext).pop();
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        if (auth.isAuthenticated) {
+                          auth.logout();
+                          Navigator.pushNamedAndRemoveUntil(context, '/splash', (route) => false);
+                        } else {
                           Navigator.pushNamed(context, '/login');
-                        },
-                ),
-              ],
-            ),
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: auth.isAuthenticated ? Colors.redAccent : AppColors.primaryOrange,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(auth.isAuthenticated ? 'Sign Out' : 'Sign In'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

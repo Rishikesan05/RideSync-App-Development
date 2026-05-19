@@ -1,42 +1,88 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'package:ridesync/core/constants.dart';
-import 'package:ridesync/core/widgets/ridesync_ui.dart';
+import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 
-// Top Notification hub with an in-app inbox preview
+/// Top Notification hub with a real Firestore inbox stream.
 class NotificationTab extends StatelessWidget {
   const NotificationTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final unreadCount = _notifications.where((item) => item.isUnread).length;
+    final auth = Provider.of<AuthProvider>(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final userId = auth.user?.id;
 
+    if (userId == null) {
+      return _buildIconWrapper(context, 0, isDark);
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('notifications')
+          .doc(userId)
+          .collection('items')
+          .snapshots(),
+      builder: (context, snapshot) {
+        final docs = snapshot.data?.docs ?? [];
+        final unreadCount = docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return !(data['isRead'] ?? false);
+        }).length;
+
+        return _buildIconWrapper(context, unreadCount, isDark, docs: docs);
+      },
+    );
+  }
+
+  Widget _buildIconWrapper(BuildContext context, int unreadCount, bool isDark, {List<QueryDocumentSnapshot>? docs}) {
     return Stack(
+      clipBehavior: Clip.none,
       alignment: Alignment.center,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(right: 4),
-          child: RideSyncIconCircleButton(
-            icon: Icons.notifications_none_outlined,
-            onPressed: () => _showNotifications(context),
+        GestureDetector(
+          onTap: () => _showNotifications(context, docs ?? []),
+          child: Container(
+            width: 44,
+            height: 44,
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isDark ? Colors.transparent : Colors.white,
+              border: Border.all(
+                color: isDark ? Colors.white12 : Colors.grey.shade300,
+                width: 1,
+              ),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.notifications_none_outlined,
+                size: 20,
+                color: isDark ? Colors.white : AppColors.primaryNavy,
+              ),
+            ),
           ),
         ),
         if (unreadCount > 0)
           Positioned(
-            right: 8,
-            top: 8,
+            right: 2,
+            top: 6,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
               decoration: BoxDecoration(
                 color: AppColors.primaryOrange,
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: isDark ? const Color(0xFF0F172A) : Colors.white, width: 1.5),
               ),
-              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
               child: Text(
                 unreadCount.toString(),
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -46,65 +92,78 @@ class NotificationTab extends StatelessWidget {
     );
   }
 
-  void _showNotifications(BuildContext context) {
+  void _showNotifications(BuildContext context, List<QueryDocumentSnapshot> docs) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final userId = auth.user?.id;
+
+    // Mark all as read when opening notifications
+    if (userId != null && docs.isNotEmpty) {
+      for (final doc in docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        if (!(data['isRead'] ?? false)) {
+          doc.reference.update({'isRead': true});
+        }
+      }
+    }
 
     showDialog<void>(
       context: context,
       builder: (context) {
-        return RideSyncPopupShell(
-          maxHeight: 620,
-          child: SizedBox(
-            height: 603,
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          elevation: 10,
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                RideSyncPopupHeader(
-                  title: 'Notifications',
-                  subtitle:
-                      'Recent updates from RideSync and your active trips.',
-                  trailing: TextButton(
-                    onPressed: () {},
-                    child: const Text('Mark all read'),
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Notifications',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        foregroundColor: AppColors.primaryOrange,
+                      ),
+                      child: const Text('Close'),
+                    ),
+                  ],
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      _InboxFilterChip(
-                        label: 'All',
-                        selected: true,
-                        isDark: isDark,
-                      ),
-                      const SizedBox(width: 8),
-                      _InboxFilterChip(
-                        label: 'Trips',
-                        selected: false,
-                        isDark: isDark,
-                      ),
-                      const SizedBox(width: 8),
-                      _InboxFilterChip(
-                        label: 'Payments',
-                        selected: false,
-                        isDark: isDark,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                    itemCount: _notifications.length,
-                    separatorBuilder: (_, index) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final item = _notifications[index];
-                      return _NotificationCard(
-                        item: item,
-                        isDark: isDark,
-                      );
-                    },
-                  ),
+                const SizedBox(height: 12),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
+                  child: docs.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24.0),
+                            child: Text(
+                              'No notifications yet',
+                              style: TextStyle(color: AppColors.textLight, fontSize: 14),
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          padding: EdgeInsets.zero,
+                          itemCount: docs.length,
+                          separatorBuilder: (_, index) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final doc = docs[index];
+                            final data = doc.data() as Map<String, dynamic>;
+                            return _NotificationCard(
+                              data: data,
+                              isDark: isDark,
+                            );
+                          },
+                        ),
                 ),
               ],
             ),
@@ -117,24 +176,73 @@ class NotificationTab extends StatelessWidget {
 
 class _NotificationCard extends StatelessWidget {
   const _NotificationCard({
-    required this.item,
+    required this.data,
     required this.isDark,
   });
 
-  final _NotificationItem item;
+  final Map<String, dynamic> data;
   final bool isDark;
 
   @override
   Widget build(BuildContext context) {
+    final title = data['title'] ?? 'Notification';
+    final body = data['body'] ?? '';
+    final type = data['type'] ?? 'alert';
+    final isRead = data['isRead'] ?? false;
+    final isUnread = !isRead;
+
+    // Parse creation date
+    String timeLabel = 'Just now';
+    final createdAt = data['createdAt'];
+    if (createdAt is Timestamp) {
+      final dt = createdAt.toDate();
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 1) {
+        timeLabel = 'Just now';
+      } else if (diff.inMinutes < 60) {
+        timeLabel = '${diff.inMinutes}m ago';
+      } else if (diff.inHours < 24) {
+        timeLabel = '${diff.inHours}h ago';
+      } else {
+        timeLabel = DateFormat('MMM d').format(dt);
+      }
+    }
+
+    // Determine Icon and Accent color based on type
+    IconData icon;
+    Color accent;
+    switch (type) {
+      case 'booking':
+        icon = Icons.confirmation_number_rounded;
+        accent = AppColors.accentBlue;
+        break;
+      case 'wallet':
+        icon = Icons.account_balance_wallet_rounded;
+        accent = AppColors.success;
+        break;
+      case 'notice':
+        icon = Icons.campaign_outlined;
+        accent = AppColors.primaryNavy;
+        break;
+      case 'profile':
+        icon = Icons.person_outline_rounded;
+        accent = AppColors.accentPink;
+        break;
+      case 'alert':
+      default:
+        icon = Icons.directions_bus_filled_rounded;
+        accent = AppColors.primaryOrange;
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: item.isUnread
+        color: isUnread
             ? AppColors.primaryOrange.withValues(alpha: 0.08)
             : (isDark ? AppColors.surfaceMutedDark : AppColors.surfaceMuted),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: item.isUnread
+          color: isUnread
               ? AppColors.primaryOrange.withValues(alpha: 0.25)
               : (isDark ? AppColors.strokeDark : AppColors.stroke),
         ),
@@ -146,10 +254,10 @@ class _NotificationCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: item.accent.withValues(alpha: 0.14),
+              color: accent.withValues(alpha: 0.14),
               shape: BoxShape.circle,
             ),
-            child: Icon(item.icon, color: item.accent, size: 20),
+            child: Icon(icon, color: accent, size: 20),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -160,14 +268,14 @@ class _NotificationCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        item.title,
+                        title,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w800,
                           color: isDark ? Colors.white : AppColors.textDark,
                         ),
                       ),
                     ),
-                    if (item.isUnread)
+                    if (isUnread)
                       Container(
                         width: 8,
                         height: 8,
@@ -180,7 +288,7 @@ class _NotificationCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  item.message,
+                  body,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     height: 1.4,
                     color: isDark
@@ -192,7 +300,7 @@ class _NotificationCard extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      item.timeLabel,
+                      timeLabel,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         color: isDark
                             ? AppColors.textMutedDark
@@ -200,15 +308,6 @@ class _NotificationCard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const Spacer(),
-                    if (item.actionLabel != null)
-                      Text(
-                        item.actionLabel!,
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: item.accent,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
                   ],
                 ),
               ],
@@ -219,109 +318,3 @@ class _NotificationCard extends StatelessWidget {
     );
   }
 }
-
-class _InboxFilterChip extends StatelessWidget {
-  const _InboxFilterChip({
-    required this.label,
-    required this.selected,
-    required this.isDark,
-  });
-
-  final String label;
-  final bool selected;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: selected
-            ? AppColors.primaryOrange
-            : (isDark ? AppColors.surfaceMutedDark : AppColors.surfaceMuted),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: selected
-              ? Colors.white
-              : (isDark ? Colors.white : AppColors.textDark),
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
-
-class _NotificationItem {
-  const _NotificationItem({
-    required this.title,
-    required this.message,
-    required this.timeLabel,
-    required this.icon,
-    required this.accent,
-    this.actionLabel,
-    this.isUnread = false,
-  });
-
-  final String title;
-  final String message;
-  final String timeLabel;
-  final IconData icon;
-  final Color accent;
-  final String? actionLabel;
-  final bool isUnread;
-}
-
-const List<_NotificationItem> _notifications = [
-  _NotificationItem(
-    title: 'Boarding starts soon',
-    message:
-        'Your Pettah to Maharagama ride starts boarding in 12 minutes at Bay 04.',
-    timeLabel: 'Just now',
-    icon: Icons.directions_bus_filled_rounded,
-    accent: AppColors.primaryOrange,
-    actionLabel: 'View trip',
-    isUnread: true,
-  ),
-  _NotificationItem(
-    title: 'Seat reservation confirmed',
-    message:
-        'Two seats for your travel squad were locked successfully. Show your pass at entry.',
-    timeLabel: '14 mins ago',
-    icon: Icons.confirmation_number_rounded,
-    accent: AppColors.accentBlue,
-    actionLabel: 'Open pass',
-    isUnread: true,
-  ),
-  _NotificationItem(
-    title: 'Fare adjustment applied',
-    message:
-        'A shared-route discount was added to your latest booking. Your updated total is Rs. 750.',
-    timeLabel: '1 hr ago',
-    icon: Icons.account_balance_wallet_rounded,
-    accent: AppColors.success,
-    actionLabel: 'See details',
-    isUnread: true,
-  ),
-  _NotificationItem(
-    title: 'Service notice',
-    message:
-        'Colombo Fort departures may run 8 to 10 minutes late due to traffic congestion near Maradana.',
-    timeLabel: 'Yesterday',
-    icon: Icons.campaign_outlined,
-    accent: AppColors.primaryNavy,
-    actionLabel: 'Plan alternate',
-  ),
-  _NotificationItem(
-    title: 'Profile reminder',
-    message:
-        'Add emergency contact details to make assisted travel support faster when needed.',
-    timeLabel: '2 days ago',
-    icon: Icons.person_outline_rounded,
-    accent: AppColors.accentPink,
-    actionLabel: 'Update profile',
-  ),
-];

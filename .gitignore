@@ -75,6 +75,7 @@ ui-debug.log
 .flutter-plugins-dependencies
 **/doc/api/
 /coverage/
+**/devtools_options.yaml
 
 # Miscellaneous
 *.class
@@ -94,3 +95,13 @@ migrate_working_dir/
 **/.antigravity/
 *.scratch
 .system_generated/
+
+# Flutter generated desktop files
+**/generated_plugin_registrant.*
+**/generated_plugins.cmake
+**/GeneratedPluginRegistrant.swift
+
+# Scratch files and scripts
+**/scratch/
+
+

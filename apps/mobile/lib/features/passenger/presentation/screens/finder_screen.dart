@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/finder_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/home_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
 import 'package:ridesync/features/passenger/data/models/route_models.dart';
 
@@ -187,26 +188,8 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
     
     if (auth.isGuest) {
       // Show login requirement dialog
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Login Required'),
-          content: const Text('You need to be logged in to reserve seats and book rides.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/login');
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange),
-              child: const Text('Login / Signup'),
-            ),
-          ],
-        ),
+      _showAuthRequiredDialog(
+        'You need to be logged in to reserve seats and book rides.',
       );
       return;
     }
@@ -233,7 +216,7 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
     final topPadding = MediaQuery.of(context).padding.top + (finder.isInitialized ? 200.0 : 0.0);
     // Increased bottom padding to 280 to perfectly clear the taller horizontal cards
     final showPanel = finder.routes.isNotEmpty || (finder.errorMessage != null && finder.errorMessage!.contains('No fare data'));
-    final bottomPadding = showPanel ? 240.0 : 40.0;
+    final bottomPadding = showPanel ? 310.0 : 40.0;
 
     return GoogleMap(
       initialCameraPosition: const CameraPosition(
@@ -683,7 +666,7 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
-        height: 240, // Reduced height
+        height: 310, // Restored height to prevent bottom overflow
         padding: const EdgeInsets.only(top: 12, bottom: 4),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.9),
@@ -726,7 +709,7 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
-        height: 240, // Consistent reduced height
+        height: 310, // Consistent restored height
         width: double.infinity,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
@@ -778,8 +761,8 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
       },
       child: Container(
         width: 280,
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
           color: isSelected 
               ? AppColors.primaryOrange.withValues(alpha: 0.08) 
@@ -795,7 +778,7 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.max,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -814,8 +797,39 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
                     Text(route.typeLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _getTypeColor(route.type))),
                   ],
                 ),
-                if (route.isRecommended)
-                  const Text('⭐ BEST', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.primaryOrange)),
+                Row(
+                  children: [
+                    if (route.isRecommended)
+                      const Text('⭐ BEST', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.primaryOrange)),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () {
+                        final auth = Provider.of<AuthProvider>(context, listen: false);
+                        if (!auth.isAuthenticated) {
+                          _showAuthRequiredDialog(
+                            'Please log in or create a free account to save your favourite routes and access them instantly from your home screen.',
+                          );
+                          return;
+                        }
+
+                        final originName = finder.origin?.name ?? 'Unknown';
+                        final destName = finder.destination?.name ?? 'Unknown';
+                        context.read<HomeProvider>().addFavouriteRoute(
+                          '$originName Route',
+                          originName,
+                          destName,
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Added to favourite routes'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      },
+                      child: Icon(Icons.star_border_rounded, size: 22, color: isDark ? Colors.white54 : Colors.black54),
+                    ),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -828,28 +842,29 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
                 child: Text('✓ ${route.fareSource}', style: const TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold)),
               ),
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
+              padding: EdgeInsets.symmetric(vertical: 6),
               child: Divider(height: 1),
             ),
             Text(
               route.reason, 
-              maxLines: 2, 
+              maxLines: 1, 
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+              style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.black54),
             ),
-            const SizedBox(height: 12),
+            const Spacer(),
             SizedBox(
               width: double.infinity,
-              height: 40,
+              height: 44,
               child: ElevatedButton(
                 onPressed: () => _handleBooking(route),
                 style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.zero,
                   backgroundColor: isSelected ? AppColors.primaryOrange : Colors.grey.withValues(alpha: 0.1),
                   foregroundColor: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('Book Seats', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                child: const Text('Book Seats', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
               ),
             ),
           ],
@@ -950,6 +965,77 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
               style: TextStyle(color: AppColors.textLight, fontSize: 12),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showAuthRequiredDialog(String message) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryOrange.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.lock_outline_rounded, color: AppColors.primaryOrange, size: 32),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Account Required',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : AppColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: isDark ? Colors.white70 : AppColors.textLight,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/login');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryOrange,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('Log In / Sign Up', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                style: TextButton.styleFrom(
+                  foregroundColor: isDark ? Colors.white54 : AppColors.textLight,
+                ),
+                child: const Text('Maybe Later', style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
         ),
       ),
     );

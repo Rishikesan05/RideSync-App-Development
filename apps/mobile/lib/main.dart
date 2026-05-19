@@ -12,11 +12,13 @@ import 'package:ridesync/features/auth/presentation/screens/passenger_auth_choic
 import 'package:ridesync/features/auth/presentation/screens/operator_auth_choice_screen.dart';
 import 'package:ridesync/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:ridesync/features/auth/presentation/screens/driver_registration_screen.dart';
+import 'package:ridesync/features/passenger/presentation/screens/splash_screen.dart';
 
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/core/providers/settings_provider.dart';
 import 'package:ridesync/features/auth/presentation/screens/user_model.dart';
 import 'package:ridesync/features/passenger/presentation/providers/finder_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/home_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -32,6 +34,7 @@ void main() async {
         ChangeNotifierProvider(create: (context) => AuthProvider()),
         ChangeNotifierProvider(create: (context) => SettingsProvider()),
         ChangeNotifierProvider(create: (context) => FinderProvider()),
+        ChangeNotifierProvider(create: (context) => HomeProvider()),
         ChangeNotifierProvider(create: (context) => BookingProvider()),
       ],
       child: const RideSyncApp(),
@@ -61,7 +64,7 @@ class RideSyncApp extends StatelessWidget {
         '/driver-registration': (context) => const DriverRegistrationScreen(),
         '/main': (context) => const PassengerNavigationHub(),
         '/operator-home': (context) => const BusOperatorNavigationHub(),
-        '/splash': (context) => const RoleSelectionScreen(),
+        '/splash': (context) => const SplashScreen(),
       },
     );
   }
@@ -93,6 +96,6 @@ class AuthWrapper extends StatelessWidget {
     }
 
     // Default to login if not authenticated or guest
-    return const LoginScreen();
+    return const SplashScreen();
   }
 }

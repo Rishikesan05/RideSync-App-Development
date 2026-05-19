@@ -8,6 +8,7 @@
  *   /notifications/{uid}/items/{notifId}
  */
 const { db, messaging } = require('../../config/firebase.config');
+const smsService = require('../../shared/services/sms.service');
 
 const usersCollection = db.collection('users');
 
@@ -46,6 +47,16 @@ async function sendToUser(uid, payload) {
       // Token may be stale — log but don't throw
       console.warn(`FCM send failed for ${uid}:`, err.message);
     }
+  }
+ 
+  // 2b. Send Twilio SMS if phone exists
+  try {
+    const passengerDoc = await db.collection('passengers').doc(uid).get();
+    if (passengerDoc.exists && passengerDoc.data().phone) {
+      await smsService.sendSms(passengerDoc.data().phone, `${payload.title}\n${payload.body}`);
+    }
+  } catch (err) {
+    console.warn(`SMS dispatch failed for ${uid}:`, err.message);
   }
 
   // 3. Write to in-app notification inbox
@@ -96,6 +107,16 @@ async function broadcastToSchedule(scheduleId, payload) {
     const userDoc = await usersCollection.doc(pid).get();
     if (userDoc.exists && userDoc.data().fcmToken) {
       tokens.push(userDoc.data().fcmToken);
+    }
+ 
+    // Send Twilio SMS to passengers on route changes
+    try {
+      const passengerDoc = await db.collection('passengers').doc(pid).get();
+      if (passengerDoc.exists && passengerDoc.data().phone) {
+        await smsService.sendSms(passengerDoc.data().phone, `${payload.title}\n${payload.body}`);
+      }
+    } catch (err) {
+      console.warn(`SMS broadcast failed for ${pid}:`, err.message);
     }
 
     // 4. Write to each passenger's in-app inbox

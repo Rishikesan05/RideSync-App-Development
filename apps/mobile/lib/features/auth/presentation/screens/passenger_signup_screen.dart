@@ -20,7 +20,7 @@ class _PassengerSignupScreenState extends State<PassengerSignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameC = TextEditingController();
   final _emailC = TextEditingController();
-  final _phoneC = TextEditingController(text: '+94');
+  final _phoneC = TextEditingController();
   final _passC = TextEditingController();
   final _confirmPassC = TextEditingController();
 
@@ -45,6 +45,13 @@ class _PassengerSignupScreenState extends State<PassengerSignupScreen> {
   Future<void> _handleSignup() async {
     if (!_formKey.currentState!.validate()) return;
 
+    String phone = _phoneC.text.trim();
+    if (phone.startsWith('0')) {
+      phone = '+94${phone.substring(1)}';
+    } else if (!phone.startsWith('+94')) {
+      phone = '+94$phone';
+    }
+
     setState(() => _isLoading = true);
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
@@ -52,12 +59,12 @@ class _PassengerSignupScreenState extends State<PassengerSignupScreen> {
         _nameC.text.trim(),
         _emailC.text.trim(),
         _passC.text.trim(),
-        _phoneC.text.trim(),
+        phone,
       );
 
       // After email signup, verify phone via OTP
       if (mounted) {
-        _sendPhoneOtp();
+        _sendPhoneOtp(phone);
       }
     } on FirebaseAuthException catch (e) {
       String msg = 'Signup failed';
@@ -76,10 +83,9 @@ class _PassengerSignupScreenState extends State<PassengerSignupScreen> {
     }
   }
 
-  Future<void> _sendPhoneOtp() async {
-    final phone = _phoneC.text.trim();
+  Future<void> _sendPhoneOtp(String normalizedPhone) async {
     await FirebaseAuth.instance.verifyPhoneNumber(
-      phoneNumber: phone,
+      phoneNumber: normalizedPhone,
       verificationCompleted: (credential) async {
         // Auto-verified
         if (mounted) {
@@ -99,7 +105,7 @@ class _PassengerSignupScreenState extends State<PassengerSignupScreen> {
             MaterialPageRoute(
               builder: (_) => OtpScreen(
                 verificationId: verificationId,
-                phoneNumber: phone,
+                phoneNumber: normalizedPhone,
                 purpose: 'signup',
               ),
             ),
@@ -202,12 +208,22 @@ class _PassengerSignupScreenState extends State<PassengerSignupScreen> {
 
                 // Phone
                 _buildFormField(
-                  isDark, 'Phone (+94XXXXXXXXX)', Icons.phone_outlined, _phoneC,
+                  isDark, 'Phone (e.g. 771234567)', Icons.phone_outlined, _phoneC,
                   keyboardType: TextInputType.phone,
+                  prefixText: '+94 ',
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Phone is required';
-                    if (!_isValidSLPhone(v.trim())) {
-                      return 'Enter a valid Sri Lankan number (+94XXXXXXXXX)';
+                    
+                    // We validate the full phone number assuming +94 is prepended
+                    String phone = v.trim();
+                    if (phone.startsWith('0')) {
+                      phone = '+94${phone.substring(1)}';
+                    } else if (!phone.startsWith('+94')) {
+                      phone = '+94$phone';
+                    }
+                    
+                    if (!_isValidSLPhone(phone)) {
+                      return 'Enter a valid Sri Lankan number';
                     }
                     return null;
                   },
@@ -314,6 +330,7 @@ class _PassengerSignupScreenState extends State<PassengerSignupScreen> {
     VoidCallback? onToggle,
     TextInputType keyboardType = TextInputType.text,
     String? Function(String?)? validator,
+    String? prefixText,
   }) {
     return TextFormField(
       controller: controller,
@@ -325,6 +342,11 @@ class _PassengerSignupScreenState extends State<PassengerSignupScreen> {
         labelText: label,
         labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.grey),
         prefixIcon: Icon(icon, color: isDark ? Colors.white70 : Colors.grey),
+        prefixText: prefixText,
+        prefixStyle: TextStyle(
+          color: isDark ? Colors.white : Colors.black,
+          fontSize: 16,
+        ),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(

@@ -3,7 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/core/providers/settings_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/home_provider.dart';
 import 'package:ridesync/core/widgets/custom_button.dart';
+import 'package:ridesync/features/passenger/presentation/screens/my_bookings_screen.dart';
+import 'package:ridesync/core/localization/translations.dart';
 
 // Account tab handling Guest vs. Authenticated states
 class AccountScreen extends StatelessWidget {
@@ -238,7 +241,23 @@ class AccountScreen extends StatelessWidget {
               'Personal Information',
               isDark,
             ),
-            _buildMenuItem(context, Icons.history, 'Ride History', isDark),
+            _buildMenuItem(
+              context,
+              Icons.star_border,
+              'Favourite Routes',
+              isDark,
+              onTap: () => _showFavouriteRoutesDialog(context, isDark),
+            ),
+            _buildMenuItem(
+              context, 
+              Icons.history, 
+              'Ride History', 
+              isDark,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MyBookingsScreen()),
+              ),
+            ),
             _buildMenuItem(
               context,
               Icons.card_giftcard,
@@ -271,7 +290,7 @@ class AccountScreen extends StatelessWidget {
           _buildMenuItem(
             context,
             Icons.language,
-            'Language',
+            Translations.translate(context, 'language'),
             isDark,
             subTitle: settings.selectedLanguage,
             onTap: () => _showLanguageDialog(context, settings),
@@ -279,7 +298,7 @@ class AccountScreen extends StatelessWidget {
           _buildMenuItem(
             context,
             Icons.dark_mode_outlined,
-            'Appearance',
+            Translations.translate(context, 'appearance'),
             isDark,
             subTitle: _getThemeName(settings.themeMode),
             onTap: () => _showAppearanceDialog(context, settings),
@@ -412,7 +431,7 @@ class AccountScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select Language'),
+        title: Text(Translations.translate(context, 'select_language')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: ['English', 'Sinhala', 'Tamil'].map((lang) {
@@ -422,9 +441,10 @@ class AccountScreen extends StatelessWidget {
                   ? const Icon(Icons.check, color: AppColors.primaryOrange)
                   : null,
               onTap: () {
+                settings.setLanguage(lang);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('$lang selection coming soon!')),
+                  SnackBar(content: Text(Translations.translate(context, 'language_changed'))),
                 );
               },
             );
@@ -438,7 +458,7 @@ class AccountScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppStyles.padding),
       child: CustomButton(
-        label: 'Log Out',
+        label: Translations.translate(context, 'logout'),
         color: AppColors.primaryOrange,
         icon: Icons.logout,
         onPressed: () {
@@ -447,10 +467,158 @@ class AccountScreen extends StatelessWidget {
         },
       ),
     );
+  }  void _showFavouriteRoutesDialog(BuildContext context, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) => _FavouriteRoutesDialog(isDark: isDark),
+    );
   }
 }
 
+class _FavouriteRoutesDialog extends StatefulWidget {
+  final bool isDark;
+  const _FavouriteRoutesDialog({required this.isDark});
 
+  @override
+  State<_FavouriteRoutesDialog> createState() => _FavouriteRoutesDialogState();
+}
 
+class _FavouriteRoutesDialogState extends State<_FavouriteRoutesDialog> {
+  bool _isAdding = false;
+  String? _editingId;
+  final TextEditingController _titleCtrl = TextEditingController();
+  final TextEditingController _originCtrl = TextEditingController();
+  final TextEditingController _destCtrl = TextEditingController();
 
+  void _resetForm() {
+    setState(() {
+      _isAdding = false;
+      _editingId = null;
+    });
+    _titleCtrl.clear();
+    _originCtrl.clear();
+    _destCtrl.clear();
+  }
 
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _originCtrl.dispose();
+    _destCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final homeProvider = context.watch<HomeProvider>();
+
+    return AlertDialog(
+      backgroundColor: widget.isDark ? const Color(0xFF1E293B) : Colors.white,
+      title: Text(_editingId != null ? 'Edit Route' : 'Favourite Routes'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: _isAdding
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _titleCtrl,
+                    decoration: const InputDecoration(labelText: 'Nickname (e.g. Gym)'),
+                  ),
+                  TextField(
+                    controller: _originCtrl,
+                    decoration: const InputDecoration(labelText: 'Origin (e.g. Nugegoda)'),
+                  ),
+                  TextField(
+                    controller: _destCtrl,
+                    decoration: const InputDecoration(labelText: 'Destination (e.g. Fort)'),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: _resetForm,
+                        child: const Text('Cancel'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (_titleCtrl.text.isNotEmpty && _originCtrl.text.isNotEmpty && _destCtrl.text.isNotEmpty) {
+                            if (_editingId != null) {
+                              homeProvider.editFavouriteRoute(_editingId!, _titleCtrl.text, _originCtrl.text, _destCtrl.text);
+                            } else {
+                              homeProvider.addFavouriteRoute(_titleCtrl.text, _originCtrl.text, _destCtrl.text);
+                            }
+                            _resetForm();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange),
+                        child: const Text('Save'),
+                      ),
+                    ],
+                  ),
+                ],
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Expanded(
+                    child: homeProvider.favouriteRoutes.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: Text('No favourite routes yet', style: TextStyle(color: AppColors.textLight)),
+                            ),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: homeProvider.favouriteRoutes.length,
+                            itemBuilder: (context, index) {
+                              final route = homeProvider.favouriteRoutes[index];
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(route['title'] ?? ''),
+                                subtitle: Text('${route['origin']} -> ${route['destination']}'),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, size: 16),
+                                      onPressed: () {
+                                        setState(() {
+                                          _isAdding = true;
+                                          _editingId = route['id'];
+                                          _titleCtrl.text = route['title'] ?? '';
+                                          _originCtrl.text = route['origin'] ?? '';
+                                          _destCtrl.text = route['destination'] ?? '';
+                                        });
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete, color: Colors.red, size: 16),
+                                      onPressed: () {
+                                        homeProvider.deleteFavouriteRoute(route['id']!);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => setState(() {
+                      _isAdding = true;
+                      _editingId = null;
+                    }),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Custom Route'),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}

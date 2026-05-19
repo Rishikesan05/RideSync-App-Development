@@ -4,7 +4,7 @@ import 'package:ridesync/core/constants.dart';
 // Versatile Rounded Navy/Orange buttons
 class CustomButton extends StatelessWidget {
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final Color? color;
   final Color? textColor;
   final bool isLoading;
@@ -13,7 +13,7 @@ class CustomButton extends StatelessWidget {
   const CustomButton({
     super.key,
     required this.label,
-    required this.onPressed,
+    this.onPressed,
     this.color,
     this.textColor,
     this.isLoading = false,

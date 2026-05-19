@@ -17,11 +17,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+export const analytics = (typeof window !== 'undefined' && firebaseConfig.appId) ? getAnalytics(app) : null;
 
-if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-  connectAuthEmulator(auth, "http://127.0.0.1:9099");
-  connectFirestoreEmulator(db, "127.0.0.1", 8080);
-}
+// Connect to emulators only if explicitly requested or configured
+// if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+//   connectAuthEmulator(auth, "http://127.0.0.1:9099");
+//   connectFirestoreEmulator(db, "127.0.0.1", 8080);
+// }
 
 export default app;
