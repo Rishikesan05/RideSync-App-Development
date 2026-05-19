@@ -51,6 +51,7 @@ dependencies:
   firebase_storage: ^13.1.0
   flutter_dotenv: ^5.2.1
   shared_preferences: ^2.5.5
+  google_generative_ai: ^0.4.7
 
 dev_dependencies:
   flutter_test:
