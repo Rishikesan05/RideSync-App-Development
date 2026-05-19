@@ -47,8 +47,14 @@ class _AIAssistantFABState extends State<AIAssistantFAB> {
                     style: TextStyle(fontSize: 13),
                   ),
                   const SizedBox(height: 16),
-                  _buildActionChip(context, 'Optimize Route'),
-                  _buildActionChip(context, 'Check Fares'),
+                  _buildActionChip(context, 'Optimize Route', () {
+                    setState(() => _isExpanded = false);
+                    Navigator.pushNamed(context, '/main', arguments: {'index': 3}); // Finder tab
+                  }),
+                  _buildActionChip(context, 'Check Fares', () {
+                    setState(() => _isExpanded = false);
+                    Navigator.pushNamed(context, '/main', arguments: {'index': 1}); // Booking tab
+                  }),
                 ],
               ),
             ),
@@ -81,19 +87,18 @@ class _AIAssistantFABState extends State<AIAssistantFAB> {
     );
   }
 
-  Widget _buildActionChip(BuildContext context, String label) {
+  Widget _buildActionChip(BuildContext context, String label, VoidCallback onTap) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: InkWell(
-        onTap: () {},
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: isDark
-                ? AppColors.surfaceMutedDark
-                : AppColors.surfaceMuted,
+            color: isDark ? AppColors.surfaceMutedDark : AppColors.surfaceMuted,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
