@@ -101,3 +101,7 @@ migrate_working_dir/
 **/generated_plugins.cmake
 **/GeneratedPluginRegistrant.swift
 
+# Scratch files and scripts
+**/scratch/
+
+
