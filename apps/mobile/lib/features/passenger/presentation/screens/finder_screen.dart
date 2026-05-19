@@ -233,7 +233,7 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
     final topPadding = MediaQuery.of(context).padding.top + (finder.isInitialized ? 200.0 : 0.0);
     // Increased bottom padding to 280 to perfectly clear the taller horizontal cards
     final showPanel = finder.routes.isNotEmpty || (finder.errorMessage != null && finder.errorMessage!.contains('No fare data'));
-    final bottomPadding = showPanel ? 240.0 : 40.0;
+    final bottomPadding = showPanel ? 280.0 : 40.0;
 
     return GoogleMap(
       initialCameraPosition: const CameraPosition(
@@ -683,7 +683,7 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
-        height: 240, // Reduced height
+        height: 280, // Restored height to prevent bottom overflow
         padding: const EdgeInsets.only(top: 12, bottom: 4),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.9),
@@ -726,7 +726,7 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
-        height: 240, // Consistent reduced height
+        height: 280, // Consistent restored height
         width: double.infinity,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(

@@ -75,6 +75,7 @@ ui-debug.log
 .flutter-plugins-dependencies
 **/doc/api/
 /coverage/
+**/devtools_options.yaml
 
 # Miscellaneous
 *.class
