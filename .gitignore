@@ -76,6 +76,27 @@ ui-debug.log
 **/doc/api/
 /coverage/
 **/devtools_options.yaml
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/flutter_lldb_helper.py
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Runner/GeneratedPluginRegistrant.h
+**/ios/Runner/GeneratedPluginRegistrant.m
+**/ios/Runner/GeneratedPluginRegistrant.swift
+**/ios/flutter_lldbinit
+**/macos/Flutter/ephemeral/
+**/ios/Flutter/ephemeral/
+**/ephemeral/
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/Flutter/flutter_export_environment.sh
+**/macos/Flutter/Flutter-Generated.xcconfig
+**/ios/.flutter-plugins
+**/macos/.flutter-plugins
+**/ios/.flutter-plugins-dependencies
+**/macos/.flutter-plugins-dependencies
+
 
 # Miscellaneous
 *.class
