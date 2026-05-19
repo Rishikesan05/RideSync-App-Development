@@ -364,8 +364,9 @@ class _SectionWithRoutes extends StatelessWidget {
             itemBuilder: (context, index) {
               final route = routes[index];
               return SizedBox(
-                width: 214,
+                width: 240, // Expanded width to prevent right-side text clipping
                 child: RideSyncSurfaceCard(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), // Maximize internal space
                   onTap: () {
                     final finder = context.read<FinderProvider>();
                     finder.searchFromRawStrings(route.origin, route.destination);
