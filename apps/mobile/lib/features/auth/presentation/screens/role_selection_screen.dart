@@ -92,7 +92,7 @@ class RoleSelectionScreen extends StatelessWidget {
                 onTap: () {
                   final auth = Provider.of<AuthProvider>(context, listen: false);
                   auth.selectRole(UserRole.passenger);
-                  Navigator.pushNamed(context, '/passenger-auth-choice');
+                  Navigator.pushNamed(context, '/passenger-signup');
                 },
               ),
 
