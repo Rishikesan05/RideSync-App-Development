@@ -5,6 +5,7 @@ import 'package:ridesync/core/widgets/ai_assistant_fab.dart';
 import 'package:ridesync/core/widgets/notification_tab.dart';
 import 'package:ridesync/core/widgets/ridesync_ui.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/finder_provider.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -109,10 +110,42 @@ class _HeroBlock extends StatelessWidget {
   }
 }
 
-class _SearchPlannerCard extends StatelessWidget {
+class _SearchPlannerCard extends StatefulWidget {
   const _SearchPlannerCard({required this.isDark});
 
   final bool isDark;
+
+  @override
+  State<_SearchPlannerCard> createState() => _SearchPlannerCardState();
+}
+
+class _SearchPlannerCardState extends State<_SearchPlannerCard> {
+  final _originController = TextEditingController();
+  final _destController = TextEditingController();
+
+  @override
+  void dispose() {
+    _originController.dispose();
+    _destController.dispose();
+    super.dispose();
+  }
+
+  void _handleOptimizeRoute() {
+    final originText = _originController.text.trim();
+    final destText = _destController.text.trim();
+
+    if (originText.isEmpty || destText.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter both FROM and TO locations')),
+      );
+      return;
+    }
+
+    final finder = context.read<FinderProvider>();
+    finder.searchFromRawStrings(originText, destText);
+
+    Navigator.pushNamed(context, '/main', arguments: {'index': 3});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -121,24 +154,26 @@ class _SearchPlannerCard extends StatelessWidget {
         children: [
           _LocationField(
             label: 'FROM',
-            value: 'your current location',
+            hint: 'your current location',
             icon: Icons.gps_fixed_rounded,
             iconColor: AppColors.accentBlue,
-            isDark: isDark,
+            isDark: widget.isDark,
+            controller: _originController,
           ),
           const SizedBox(height: 14),
           _LocationField(
             label: 'TO',
-            value: 'Where to go today?',
+            hint: 'Where to go today?',
             icon: Icons.location_on_outlined,
             iconColor: AppColors.primaryOrange,
-            isDark: isDark,
+            isDark: widget.isDark,
+            controller: _destController,
           ),
           const SizedBox(height: 18),
           RideSyncPrimaryButton(
             label: 'OPTIMIZE ROUTE',
             icon: Icons.search_rounded,
-            onPressed: () {},
+            onPressed: _handleOptimizeRoute,
           ),
         ],
       ),
@@ -515,17 +550,19 @@ class _HubNetworkSection extends StatelessWidget {
 class _LocationField extends StatelessWidget {
   const _LocationField({
     required this.label,
-    required this.value,
+    required this.hint,
     required this.icon,
     required this.iconColor,
     required this.isDark,
+    required this.controller,
   });
 
   final String label;
-  final String value;
+  final String hint;
   final IconData icon;
   final Color iconColor;
   final bool isDark;
+  final TextEditingController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -551,12 +588,22 @@ class _LocationField extends StatelessWidget {
                     letterSpacing: 0.8,
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  value,
+                const SizedBox(height: 2),
+                TextField(
+                  controller: controller,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontSize: 15,
                     color: isDark ? Colors.white : AppColors.textDark,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontSize: 15,
+                      color: isDark ? Colors.white38 : AppColors.textLight,
+                    ),
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    border: InputBorder.none,
                   ),
                 ),
               ],

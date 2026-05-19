@@ -98,6 +98,43 @@ class FinderProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> searchFromRawStrings(String originText, String destText) async {
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+
+    // Fetch first suggestion for origin
+    await fetchSuggestions(originText, 'origin');
+    if (suggestions.isNotEmpty) {
+      final p = suggestions.first;
+      final latLng = await _getPlaceDetails(p.id!);
+      if (latLng != null) {
+        origin = Place(id: p.id, name: p.name, address: p.address, position: latLng);
+      }
+    }
+
+    // Fetch first suggestion for destination
+    await fetchSuggestions(destText, 'destination');
+    if (suggestions.isNotEmpty) {
+      final p = suggestions.first;
+      final latLng = await _getPlaceDetails(p.id!);
+      if (latLng != null) {
+        destination = Place(id: p.id, name: p.name, address: p.address, position: latLng);
+      }
+    }
+
+    suggestions.clear(); // clear suggestions
+    
+    // Now search routes if both were resolved
+    if (origin != null && destination != null) {
+      await searchRoutes();
+    } else {
+      isLoading = false;
+      errorMessage = "Could not resolve locations from text.";
+      notifyListeners();
+    }
+  }
+
   Future<void> searchRoutes() async {
     if (origin == null || destination == null) {
       errorMessage = 'Please select both origin and destination';
