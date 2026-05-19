@@ -867,7 +867,7 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
                                       child: ElevatedButton(
                                         onPressed: () {
                                           Navigator.pop(context);
-                                          Navigator.pushNamed(context, '/login');
+                                          Navigator.pushNamed(context, '/passenger-auth-choice');
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: AppColors.primaryOrange,

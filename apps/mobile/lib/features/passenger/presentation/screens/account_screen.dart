@@ -131,7 +131,7 @@ class AccountScreen extends StatelessWidget {
         CustomButton(
           label: 'Login / Sign Up',
           onPressed: () {
-            Navigator.pushNamed(context, '/login');
+            Navigator.pushNamed(context, '/passenger-auth-choice');
           },
         ),
       ],
