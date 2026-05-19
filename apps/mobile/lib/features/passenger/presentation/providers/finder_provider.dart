@@ -140,8 +140,19 @@ class FinderProvider extends ChangeNotifier {
         
         debugPrint('Found ${googleRoutes.length} physical routes');
 
-        for (var i = 0; i < googleRoutes.length; i++) {
-          final route = googleRoutes[i];
+        // Sort physical routes from fastest to slowest based on duration value
+        final List sortedRoutes = List.from(googleRoutes);
+        sortedRoutes.sort((a, b) {
+          final aDur = a['legs'][0]['duration']['value'] as int;
+          final bDur = b['legs'][0]['duration']['value'] as int;
+          return aDur.compareTo(bDur);
+        });
+
+        final count = sortedRoutes.length;
+        debugPrint('Found $count sorted physical routes');
+
+        for (var i = 0; i < count; i++) {
+          final route = sortedRoutes[i];
           final leg = route['legs'][0];
           
           final distanceMeters = leg['distance']['value'] as int;
@@ -154,43 +165,94 @@ class FinderProvider extends ChangeNotifier {
           const double baseFare = 30.0;
           const double ratePerKm = 5.0;
           
-          final types = [
-            {'type': RecommendationType.normal, 'mult': 1.0, 'label': 'Normal (Non-A/C)', 'durationMult': 1.0},
-            {'type': RecommendationType.express, 'mult': 2.2, 'label': 'Express (A/C)', 'durationMult': 0.8},
-          ];
+          // Custom Route Categorization Rules
+          RecommendationType rType;
+          double rMult;
+          String rLabel;
+          double rDurationMult;
+          String rReason;
+          bool isRecommended;
 
-          for (var t in types) {
-            final rType = t['type'] as RecommendationType;
-            final rMult = t['mult'] as double;
-            final rLabel = t['label'] as String;
-            final rDurationMult = t['durationMult'] as double;
-
-            // Calculate duration text based on multiplier
-            String adjustedDuration = durationText;
-            if (rDurationMult != 1.0) {
-              final minutes = _parseDurationToMinutes(durationText);
-              final adjustedMinutes = (minutes * rDurationMult).round();
-              adjustedDuration = _formatMinutesToDuration(adjustedMinutes);
+          if (count >= 3) {
+            // Case 1: 3 or more routes returned
+            if (i == 0) {
+              rType = RecommendationType.express;
+              rMult = 2.2;
+              rLabel = 'Express (A/C)';
+              rDurationMult = 0.8;
+              rReason = 'Shortest time with comfortable seating';
+              isRecommended = true;
+            } else if (i == 1) {
+              rType = RecommendationType.intercity;
+              rMult = 1.5;
+              rLabel = 'Intercity (A/C)';
+              rDurationMult = 0.9;
+              rReason = 'Balanced commuter route with moderate speed';
+              isRecommended = false;
+            } else {
+              rType = RecommendationType.normal;
+              rMult = 1.0;
+              rLabel = 'Normal (Non-A/C)';
+              rDurationMult = 1.0;
+              rReason = 'Standard budget commuter service';
+              isRecommended = false;
             }
-
-            allRecommendations.add(_createRoute(
-              id: 'route_${i}_${rType.name}',
-              title: '$rLabel - Via $summary',
-              type: rType,
-              distanceKm: distanceKm,
-              durationText: adjustedDuration,
-              baseFare: baseFare,
-              ratePerKm: ratePerKm,
-              multiplier: rMult,
-              points: points,
-              isRecommended: rType == RecommendationType.express,
-            ));
+          } else if (count == 2) {
+            // Case 2: Exactly 2 routes returned
+            if (i == 0) {
+              rType = RecommendationType.express;
+              rMult = 2.2;
+              rLabel = 'Express (A/C)';
+              rDurationMult = 0.8;
+              rReason = 'Shortest time with comfortable seating';
+              isRecommended = true;
+            } else {
+              rType = RecommendationType.normal;
+              rMult = 1.0;
+              rLabel = 'Normal (Non-A/C)';
+              rDurationMult = 1.0;
+              rReason = 'Standard budget commuter service';
+              isRecommended = false;
+            }
+          } else {
+            // Case 3: Only 1 route returned
+            rType = RecommendationType.normal;
+            rMult = 1.0;
+            rLabel = 'Normal (Non-A/C)';
+            rDurationMult = 1.0;
+            rReason = 'Baseline commuter service';
+            isRecommended = false;
           }
+
+          // Calculate duration text based on multiplier
+          String adjustedDuration = durationText;
+          if (rDurationMult != 1.0) {
+            final minutes = _parseDurationToMinutes(durationText);
+            final adjustedMinutes = (minutes * rDurationMult).round();
+            adjustedDuration = _formatMinutesToDuration(adjustedMinutes);
+          }
+
+          allRecommendations.add(_createRoute(
+            id: 'route_${i}_${rType.name}',
+            title: '$rLabel - Via $summary',
+            type: rType,
+            distanceKm: distanceKm,
+            durationText: adjustedDuration,
+            baseFare: baseFare,
+            ratePerKm: ratePerKm,
+            multiplier: rMult,
+            points: points,
+            isRecommended: isRecommended,
+            reason: rReason,
+          ));
         }
         
         routes = allRecommendations;
         if (routes.isNotEmpty) {
-          selectedRoute = routes.firstWhere((r) => r.type == RecommendationType.express, orElse: () => routes.first);
+          selectedRoute = routes.firstWhere(
+            (r) => r.type == RecommendationType.express,
+            orElse: () => routes.first,
+          );
         }
       } else {
         errorMessage = 'No routes found: ${data['status'] ?? 'Server Error'}';
@@ -219,6 +281,7 @@ class FinderProvider extends ChangeNotifier {
     required double multiplier,
     required List<LatLng> points,
     required bool isRecommended,
+    required String reason,
   }) {
     final fare = baseFare + (distanceKm * ratePerKm * multiplier);
     
@@ -235,7 +298,7 @@ class FinderProvider extends ChangeNotifier {
       isRecommended: isRecommended,
       hasStoredFare: true,
       fareSource: 'RideSync Fare Engine',
-      reason: isRecommended ? 'Shortest time with comfortable seating' : 'Standard commuter service',
+      reason: reason,
       polylinePoints: points,
     );
   }
