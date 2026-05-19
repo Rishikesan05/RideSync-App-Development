@@ -188,26 +188,8 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
     
     if (auth.isGuest) {
       // Show login requirement dialog
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Login Required'),
-          content: const Text('You need to be logged in to reserve seats and book rides.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/login');
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange),
-              child: const Text('Login / Signup'),
-            ),
-          ],
-        ),
+      _showAuthRequiredDialog(
+        'You need to be logged in to reserve seats and book rides.',
       );
       return;
     }
@@ -824,72 +806,8 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
                       onTap: () {
                         final auth = Provider.of<AuthProvider>(context, listen: false);
                         if (!auth.isAuthenticated) {
-                          showDialog(
-                            context: context,
-                            builder: (context) => Dialog(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                              elevation: 0,
-                              child: Padding(
-                                padding: const EdgeInsets.all(24.0),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primaryOrange.withValues(alpha: 0.1),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(Icons.lock_outline_rounded, color: AppColors.primaryOrange, size: 32),
-                                    ),
-                                    const SizedBox(height: 20),
-                                    Text(
-                                      'Account Required',
-                                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        color: isDark ? Colors.white : AppColors.textDark,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      'Please log in or create a free account to save your favourite routes and access them instantly from your home screen.',
-                                      textAlign: TextAlign.center,
-                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                        color: isDark ? Colors.white70 : AppColors.textLight,
-                                        height: 1.5,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 28),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      height: 52,
-                                      child: ElevatedButton(
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                                          Navigator.pushNamed(context, '/login');
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppColors.primaryOrange,
-                                          foregroundColor: Colors.white,
-                                          elevation: 0,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                        ),
-                                        child: const Text('Log In / Sign Up', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: isDark ? Colors.white54 : AppColors.textLight,
-                                      ),
-                                      child: const Text('Maybe Later', style: TextStyle(fontWeight: FontWeight.w600)),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                          _showAuthRequiredDialog(
+                            'Please log in or create a free account to save your favourite routes and access them instantly from your home screen.',
                           );
                           return;
                         }
@@ -1047,6 +965,77 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
               style: TextStyle(color: AppColors.textLight, fontSize: 12),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showAuthRequiredDialog(String message) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryOrange.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.lock_outline_rounded, color: AppColors.primaryOrange, size: 32),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Account Required',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : AppColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: isDark ? Colors.white70 : AppColors.textLight,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/login');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryOrange,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('Log In / Sign Up', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                style: TextButton.styleFrom(
+                  foregroundColor: isDark ? Colors.white54 : AppColors.textLight,
+                ),
+                child: const Text('Maybe Later', style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
         ),
       ),
     );
