@@ -23,7 +23,7 @@ class _LoginScreenState extends State<LoginScreen>
   late TabController _tabController;
   final TextEditingController _emailC = TextEditingController();
   final TextEditingController _passwordC = TextEditingController();
-  final TextEditingController _phoneC = TextEditingController(text: '+94');
+  final TextEditingController _phoneC = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
 
@@ -77,9 +77,21 @@ class _LoginScreenState extends State<LoginScreen>
 
   // ── Phone OTP Login ──
   Future<void> _handlePhoneLogin() async {
-    final phone = _phoneC.text.trim();
+    String phone = _phoneC.text.trim();
+    if (phone.isEmpty) {
+      _showError('Please enter your phone number');
+      return;
+    }
+
+    // Auto-normalize Sri Lankan number format
+    if (phone.startsWith('0')) {
+      phone = '+94${phone.substring(1)}';
+    } else if (!phone.startsWith('+94')) {
+      phone = '+94$phone';
+    }
+
     if (!_isValidSriLankanNumber(phone)) {
-      _showError('Enter a valid Sri Lankan number (+94XXXXXXXXX)');
+      _showError('Enter a valid Sri Lankan number (e.g. 77XXXXXXXX)');
       return;
     }
 
@@ -284,8 +296,9 @@ class _LoginScreenState extends State<LoginScreen>
     return Column(
       children: [
         _buildField(
-            isDark, 'Phone Number (+94XXXXXXXXX)', Icons.phone_outlined, _phoneC,
-            keyboardType: TextInputType.phone),
+            isDark, 'Phone Number (e.g. 771234567)', Icons.phone_outlined, _phoneC,
+            keyboardType: TextInputType.phone,
+            prefixText: '+94 '),
         const SizedBox(height: 8),
         Text(
           'We\'ll send a verification code via SMS',
@@ -305,7 +318,8 @@ class _LoginScreenState extends State<LoginScreen>
   Widget _buildField(
       bool isDark, String label, IconData icon, TextEditingController c,
       {bool isPassword = false,
-      TextInputType keyboardType = TextInputType.text}) {
+      TextInputType keyboardType = TextInputType.text,
+      String? prefixText}) {
     return TextField(
       controller: c,
       obscureText: isPassword ? _obscurePassword : false,
@@ -315,6 +329,11 @@ class _LoginScreenState extends State<LoginScreen>
         labelText: label,
         labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.grey),
         prefixIcon: Icon(icon, color: isDark ? Colors.white70 : Colors.grey),
+        prefixText: prefixText,
+        prefixStyle: TextStyle(
+          color: isDark ? Colors.white : Colors.black,
+          fontSize: 16,
+        ),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
