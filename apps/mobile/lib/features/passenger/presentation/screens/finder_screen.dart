@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/finder_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/home_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
 import 'package:ridesync/features/passenger/data/models/route_models.dart';
 
@@ -814,8 +815,31 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
                     Text(route.typeLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _getTypeColor(route.type))),
                   ],
                 ),
-                if (route.isRecommended)
-                  const Text('⭐ BEST', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.primaryOrange)),
+                Row(
+                  children: [
+                    if (route.isRecommended)
+                      const Text('⭐ BEST', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.primaryOrange)),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () {
+                        final originName = finder.origin?.name ?? 'Unknown';
+                        final destName = finder.destination?.name ?? 'Unknown';
+                        context.read<HomeProvider>().addFavouriteRoute(
+                          '$originName Route',
+                          originName,
+                          destName,
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Added to favourite routes'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      },
+                      child: Icon(Icons.star_border_rounded, size: 22, color: isDark ? Colors.white54 : Colors.black54),
+                    ),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 12),

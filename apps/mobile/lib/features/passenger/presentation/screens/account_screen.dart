@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/core/providers/settings_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/home_provider.dart';
 import 'package:ridesync/core/widgets/custom_button.dart';
 
 // Account tab handling Guest vs. Authenticated states
@@ -238,6 +239,13 @@ class AccountScreen extends StatelessWidget {
               'Personal Information',
               isDark,
             ),
+            _buildMenuItem(
+              context,
+              Icons.star_border,
+              'Favourite Routes',
+              isDark,
+              onTap: () => _showFavouriteRoutesDialog(context, isDark),
+            ),
             _buildMenuItem(context, Icons.history, 'Ride History', isDark),
             _buildMenuItem(
               context,
@@ -447,10 +455,110 @@ class AccountScreen extends StatelessWidget {
         },
       ),
     );
+  }  void _showFavouriteRoutesDialog(BuildContext context, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) => _FavouriteRoutesDialog(isDark: isDark),
+    );
   }
 }
 
+class _FavouriteRoutesDialog extends StatefulWidget {
+  final bool isDark;
+  const _FavouriteRoutesDialog({required this.isDark});
 
+  @override
+  State<_FavouriteRoutesDialog> createState() => _FavouriteRoutesDialogState();
+}
 
+class _FavouriteRoutesDialogState extends State<_FavouriteRoutesDialog> {
+  bool _isAdding = false;
+  final TextEditingController _titleCtrl = TextEditingController();
+  final TextEditingController _originCtrl = TextEditingController();
+  final TextEditingController _destCtrl = TextEditingController();
 
+  @override
+  Widget build(BuildContext context) {
+    final homeProvider = context.watch<HomeProvider>();
 
+    return AlertDialog(
+      backgroundColor: widget.isDark ? const Color(0xFF1E293B) : Colors.white,
+      title: const Text('Favourite Routes'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: _isAdding
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _titleCtrl,
+                    decoration: const InputDecoration(labelText: 'Nickname (e.g. Gym)'),
+                  ),
+                  TextField(
+                    controller: _originCtrl,
+                    decoration: const InputDecoration(labelText: 'Origin (e.g. Nugegoda)'),
+                  ),
+                  TextField(
+                    controller: _destCtrl,
+                    decoration: const InputDecoration(labelText: 'Destination (e.g. Fort)'),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => setState(() => _isAdding = false),
+                        child: const Text('Cancel'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (_titleCtrl.text.isNotEmpty && _originCtrl.text.isNotEmpty && _destCtrl.text.isNotEmpty) {
+                            homeProvider.addFavouriteRoute(_titleCtrl.text, _originCtrl.text, _destCtrl.text);
+                            setState(() => _isAdding = false);
+                            _titleCtrl.clear();
+                            _originCtrl.clear();
+                            _destCtrl.clear();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange),
+                        child: const Text('Save'),
+                      ),
+                    ],
+                  ),
+                ],
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: homeProvider.favouriteRoutes.length,
+                      itemBuilder: (context, index) {
+                        final route = homeProvider.favouriteRoutes[index];
+                        return ListTile(
+                          title: Text(route['title'] ?? ''),
+                          subtitle: Text('${route['origin']} -> ${route['destination']}'),
+                          trailing: const Icon(Icons.edit, size: 16),
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Edit coming soon!')),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => setState(() => _isAdding = true),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Custom Route'),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}

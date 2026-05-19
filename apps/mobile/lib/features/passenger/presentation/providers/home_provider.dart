@@ -40,6 +40,30 @@ class HomeProvider extends ChangeNotifier {
   List<HubModel> hubs = [];
   bool isLoading = false;
 
+  // Stateful list of favourite routes
+  List<Map<String, String?>> favouriteRoutes = [
+    {'id': 'r1', 'title': 'Work Route', 'origin': 'Pettah', 'destination': 'Maharagama', 'tag': 'Fastest'},
+    {'id': 'r2', 'title': 'Home Route', 'origin': 'Kaduwela', 'destination': 'Fort', 'tag': null},
+    {'id': 'r3', 'title': 'Gym Route', 'origin': 'Nugegoda', 'destination': 'Bambalapitiya', 'tag': 'Traffic Heavy'},
+    {'id': 'r4', 'title': 'Campus Route', 'origin': 'Dehiwala', 'destination': 'Moratuwa', 'tag': 'Standard'},
+    {'id': 'r5', 'title': 'Weekend Route', 'origin': 'Kottawa', 'destination': 'Battaramulla', 'tag': 'Scenic'},
+  ];
+
+  Future<void> addFavouriteRoute(String title, String origin, String destination) async {
+    final newId = 'r${DateTime.now().millisecondsSinceEpoch}';
+    favouriteRoutes.add({
+      'id': newId,
+      'title': title,
+      'origin': origin,
+      'destination': destination,
+      'tag': 'New',
+    });
+    
+    // Invalidate current routes to force a refetch
+    quickRoutes.clear();
+    await fetchHomeData();
+  }
+
   Future<Map<String, String>?> _fetchLiveRouteData(String origin, String destination) async {
     final apiKey = dotenv.get('GOOGLE_MAPS_API_KEY');
     final url = Uri.parse(
@@ -62,10 +86,10 @@ class HomeProvider extends ChangeNotifier {
             durationText = durationText.replaceAll('min', 'mins');
           }
 
-          // Calculate fare based on distance (Base 100 + 80 per km)
+          // Calculate fare matching FinderProvider (Base 30 + 5 per km)
           final distanceValue = leg['distance']['value']; // meters
           final distanceKm = distanceValue / 1000.0;
-          final fare = 100 + (distanceKm * 80);
+          final fare = 30.0 + (distanceKm * 5.0);
           final roundedFare = (fare / 10).round() * 10; // Round to nearest 10
 
           return {
@@ -86,19 +110,10 @@ class HomeProvider extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
 
-    // The hardcoded favorite routes for this user
-    final savedRoutes = [
-      {'id': 'r1', 'title': 'Work Route', 'origin': 'Pettah', 'destination': 'Maharagama', 'tag': 'Fastest'},
-      {'id': 'r2', 'title': 'Home Route', 'origin': 'Kaduwela', 'destination': 'Fort', 'tag': null},
-      {'id': 'r3', 'title': 'Gym Route', 'origin': 'Nugegoda', 'destination': 'Bambalapitiya', 'tag': 'Traffic Heavy'},
-      {'id': 'r4', 'title': 'Campus Route', 'origin': 'Dehiwala', 'destination': 'Moratuwa', 'tag': 'Standard'},
-      {'id': 'r5', 'title': 'Weekend Route', 'origin': 'Kottawa', 'destination': 'Battaramulla', 'tag': 'Scenic'},
-    ];
-
     final List<QuickRouteModel> liveRoutes = [];
 
     // Fetch live traffic data for each route
-    for (var route in savedRoutes) {
+    for (var route in favouriteRoutes) {
       final liveData = await _fetchLiveRouteData(route['origin']!, route['destination']!);
       
       liveRoutes.add(QuickRouteModel(
