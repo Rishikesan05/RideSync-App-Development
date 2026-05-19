@@ -233,7 +233,7 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
     final topPadding = MediaQuery.of(context).padding.top + (finder.isInitialized ? 200.0 : 0.0);
     // Increased bottom padding to 280 to perfectly clear the taller horizontal cards
     final showPanel = finder.routes.isNotEmpty || (finder.errorMessage != null && finder.errorMessage!.contains('No fare data'));
-    final bottomPadding = showPanel ? 280.0 : 40.0;
+    final bottomPadding = showPanel ? 310.0 : 40.0;
 
     return GoogleMap(
       initialCameraPosition: const CameraPosition(
@@ -683,7 +683,7 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
-        height: 280, // Restored height to prevent bottom overflow
+        height: 310, // Restored height to prevent bottom overflow
         padding: const EdgeInsets.only(top: 12, bottom: 4),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.9),
@@ -726,7 +726,7 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
-        height: 280, // Consistent restored height
+        height: 310, // Consistent restored height
         width: double.infinity,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
@@ -778,8 +778,8 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
       },
       child: Container(
         width: 280,
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected 
               ? AppColors.primaryOrange.withValues(alpha: 0.08) 
@@ -837,7 +837,7 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
               height: 40,
