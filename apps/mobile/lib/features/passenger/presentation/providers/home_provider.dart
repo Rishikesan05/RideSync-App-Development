@@ -90,6 +90,9 @@ class HomeProvider extends ChangeNotifier {
     final savedRoutes = [
       {'id': 'r1', 'title': 'Work Route', 'origin': 'Pettah', 'destination': 'Maharagama', 'tag': 'Fastest'},
       {'id': 'r2', 'title': 'Home Route', 'origin': 'Kaduwela', 'destination': 'Fort', 'tag': null},
+      {'id': 'r3', 'title': 'Gym Route', 'origin': 'Nugegoda', 'destination': 'Bambalapitiya', 'tag': 'Traffic Heavy'},
+      {'id': 'r4', 'title': 'Campus Route', 'origin': 'Dehiwala', 'destination': 'Moratuwa', 'tag': 'Standard'},
+      {'id': 'r5', 'title': 'Weekend Route', 'origin': 'Kottawa', 'destination': 'Battaramulla', 'tag': 'Scenic'},
     ];
 
     final List<QuickRouteModel> liveRoutes = [];
