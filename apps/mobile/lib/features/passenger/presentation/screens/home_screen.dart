@@ -786,138 +786,30 @@ class _HomeAccountButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RideSyncIconCircleButton(
-      icon: Icons.person_outline_rounded,
-      onPressed: () => _showAccountCard(context),
-    );
-  }
-
-  void _showAccountCard(BuildContext context) {
-    final auth = context.read<AuthProvider>();
-    final user = auth.user;
-    final name = (user?.name.isNotEmpty ?? false) ? user!.name : 'Guest User';
-    final email =
-        (user?.email.isNotEmpty ?? false) ? user!.email : 'Sign in to sync rides';
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return RideSyncPopupShell(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 18, 22, 22),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                RideSyncPopupHeader(
-                  title: 'Account',
-                  subtitle: auth.isAuthenticated
-                      ? 'Manage your profile and session.'
-                      : 'Sign in to sync your rides and profile.',
-                ),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.surfaceMutedDark : Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isDark ? AppColors.strokeDark : AppColors.stroke,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 16,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.person_outline_rounded,
-                        size: 34,
-                        color: isDark ? Colors.white : AppColors.primaryNavy,
-                      ),
-                    ),
-                    const SizedBox(width: 18),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name.toUpperCase(),
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: isDark
-                                        ? Colors.white
-                                        : AppColors.textDark,
-                                  ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              email.toUpperCase(),
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark
-                                        ? AppColors.textMutedDark
-                                        : AppColors.textDark,
-                                  ),
-                            ),
-                            const SizedBox(height: 14),
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.of(dialogContext).pop();
-                                Navigator.pushNamed(context, '/main', arguments: {
-                                  'index': 4,
-                                });
-                              },
-                              child: Text(
-                                'VIEW ACCOUNT',
-                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: isDark ? Colors.white : AppColors.textDark,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 22),
-                RideSyncPrimaryButton(
-                  label: 'SIGN OUT',
-                  onPressed: auth.isAuthenticated
-                      ? () async {
-                          await auth.logout();
-                          if (dialogContext.mounted) {
-                            Navigator.of(dialogContext).pop();
-                          }
-                          if (context.mounted) {
-                            Navigator.pushNamedAndRemoveUntil(
-                              context,
-                              '/splash',
-                              (route) => false,
-                            );
-                          }
-                        }
-                      : () {
-                          Navigator.of(dialogContext).pop();
-                          Navigator.pushNamed(context, '/login');
-                        },
-                ),
-              ],
-            ),
-          ),
-        );
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushReplacementNamed(context, '/main', arguments: {'index': 4});
       },
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isDark ? Colors.transparent : Colors.white,
+          border: Border.all(
+            color: isDark ? Colors.white12 : Colors.grey.shade300,
+            width: 1,
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.person_outline_rounded,
+            size: 20,
+            color: isDark ? Colors.white : AppColors.primaryNavy,
+          ),
+        ),
+      ),
     );
   }
 }

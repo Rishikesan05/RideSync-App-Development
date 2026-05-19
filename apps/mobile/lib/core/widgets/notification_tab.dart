@@ -9,34 +9,53 @@ class NotificationTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final unreadCount = _notifications.where((item) => item.isUnread).length;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Stack(
+      clipBehavior: Clip.none,
       alignment: Alignment.center,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(right: 4),
-          child: RideSyncIconCircleButton(
-            icon: Icons.notifications_none_outlined,
-            onPressed: () => _showNotifications(context),
+        GestureDetector(
+          onTap: () => _showNotifications(context),
+          child: Container(
+            width: 44,
+            height: 44,
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isDark ? Colors.transparent : Colors.white,
+              border: Border.all(
+                color: isDark ? Colors.white12 : Colors.grey.shade300,
+                width: 1,
+              ),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.notifications_none_outlined,
+                size: 20,
+                color: isDark ? Colors.white : AppColors.primaryNavy,
+              ),
+            ),
           ),
         ),
         if (unreadCount > 0)
           Positioned(
-            right: 8,
-            top: 8,
+            right: 2,
+            top: 6,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
               decoration: BoxDecoration(
                 color: AppColors.primaryOrange,
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white, width: 1.5),
               ),
-              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
               child: Text(
                 unreadCount.toString(),
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
                 ),
                 textAlign: TextAlign.center,
               ),
