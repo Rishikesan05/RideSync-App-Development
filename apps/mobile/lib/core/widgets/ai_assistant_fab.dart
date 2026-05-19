@@ -78,7 +78,27 @@ class _AIAssistantFABState extends State<AIAssistantFAB> {
 
     try {
       final prompt = 'You are a helpful AI assistant for the RideSync public transit app in Sri Lanka. Answer concisely. User: $text';
-      final response = await _model.generateContent([Content.text(prompt)]);
+      
+      GenerateContentResponse response;
+      try {
+        response = await _model.generateContent([Content.text(prompt)]);
+      } catch (e1) {
+        try {
+          // Fallback 1: gemini-1.5-flash-latest
+          final fallbackModel1 = GenerativeModel(
+            model: 'gemini-1.5-flash-latest',
+            apiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
+          );
+          response = await fallbackModel1.generateContent([Content.text(prompt)]);
+        } catch (e2) {
+          // Fallback 2: gemini-pro
+          final fallbackModel2 = GenerativeModel(
+            model: 'gemini-pro',
+            apiKey: dotenv.env['GEMINI_API_KEY'] ?? '',
+          );
+          response = await fallbackModel2.generateContent([Content.text(prompt)]);
+        }
+      }
       
       setState(() {
         _messages.add(ChatMessage(text: response.text ?? 'I could not process that request.', isUser: false));
