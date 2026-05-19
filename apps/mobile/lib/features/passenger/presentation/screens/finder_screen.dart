@@ -779,7 +779,7 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
       child: Container(
         width: 280,
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected 
               ? AppColors.primaryOrange.withValues(alpha: 0.08) 
@@ -818,29 +818,29 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
                   const Text('⭐ BEST', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: AppColors.primaryOrange)),
               ],
             ),
-            const SizedBox(height: 12),
-            Text('Est. ${route.duration}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : Colors.black87)),
-            const SizedBox(height: 4),
-            Text('${route.distance} • Est. ${route.currency} ${route.fare.toStringAsFixed(0)}', style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : AppColors.textLight)),
+            const SizedBox(height: 6),
+            Text('Est. ${route.duration}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black87)),
+            const SizedBox(height: 2),
+            Text('${route.distance} • Est. ${route.currency} ${route.fare.toStringAsFixed(0)}', style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : AppColors.textLight)),
             if (route.hasStoredFare)
               Padding(
-                padding: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: 2),
                 child: Text('✓ ${route.fareSource}', style: const TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold)),
               ),
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
+              padding: EdgeInsets.symmetric(vertical: 2),
               child: Divider(height: 1),
             ),
             Text(
               route.reason, 
-              maxLines: 2, 
+              maxLines: 1, 
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             SizedBox(
               width: double.infinity,
-              height: 40,
+              height: 36,
               child: ElevatedButton(
                 onPressed: () => _handleBooking(route),
                 style: ElevatedButton.styleFrom(
@@ -849,7 +849,7 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('Book Seats', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                child: const Text('Book Seats', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
               ),
             ),
           ],
