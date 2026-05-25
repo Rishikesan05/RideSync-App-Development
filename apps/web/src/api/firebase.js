@@ -1,7 +1,8 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
+
 
 // Replace these with actual config for production.
 const firebaseConfig = {
@@ -11,7 +12,7 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_I
 };
 
 const app = initializeApp(firebaseConfig);
@@ -19,8 +20,9 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const analytics = (typeof window !== 'undefined' && firebaseConfig.appId) ? getAnalytics(app) : null;
 
-// Connect to emulators only if explicitly requested or configured
-// if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+// Emulators disabled — app connects to real Firebase.
+// To use emulators locally, set VITE_USE_EMULATORS=true in .env and uncomment below:
+// if (import.meta.env.VITE_USE_EMULATORS === 'true') {
 //   connectAuthEmulator(auth, "http://127.0.0.1:9099");
 //   connectFirestoreEmulator(db, "127.0.0.1", 8080);
 // }
