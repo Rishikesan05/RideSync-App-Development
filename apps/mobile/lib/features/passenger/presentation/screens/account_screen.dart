@@ -7,6 +7,7 @@ import 'package:ridesync/features/passenger/presentation/providers/home_provider
 import 'package:ridesync/core/widgets/custom_button.dart';
 import 'package:ridesync/features/passenger/presentation/screens/my_bookings_screen.dart';
 import 'package:ridesync/core/localization/translations.dart';
+import 'dart:ui';
 
 // Account tab handling Guest vs. Authenticated states
 class AccountScreen extends StatelessWidget {
@@ -143,24 +144,48 @@ class AccountScreen extends StatelessWidget {
   Widget _buildStatsRow(AuthProvider auth, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppStyles.padding),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          _buildStatCard(
-            'Total Rides',
-            '${auth.user?.totalRides ?? 0}',
-            isDark,
+          // Background colorful glowing blob to make the glassmorphism pop
+          Container(
+            width: 250,
+            height: 40,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.primaryOrange.withValues(alpha: 0.5), Colors.blueAccent.withValues(alpha: 0.5)],
+              ),
+              borderRadius: BorderRadius.circular(100),
+              boxShadow: [
+                BoxShadow(color: AppColors.primaryOrange.withValues(alpha: 0.3), blurRadius: 40, spreadRadius: 10)
+              ]
+            ),
           ),
-          _buildStatCard(
-            'Rating',
-            '${auth.user?.rating ?? 5.0}',
-            isDark,
-            icon: Icons.star,
-          ),
-          _buildStatCard(
-            'Loyalty Points',
-            '${auth.user?.loyaltyPoints ?? 0}',
-            isDark,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildStatCard(
+                'Total Rides',
+                '${auth.user?.totalRides ?? 0}',
+                isDark,
+                icon: Icons.directions_car,
+                iconColor: Colors.blueAccent,
+              ),
+              _buildStatCard(
+                'Rating',
+                '${auth.user?.rating ?? 5.0}',
+                isDark,
+                icon: Icons.star,
+                iconColor: Colors.amber,
+              ),
+              _buildStatCard(
+                'Loyalty',
+                '${auth.user?.loyaltyPoints ?? 0}',
+                isDark,
+                icon: Icons.stars,
+                iconColor: AppColors.primaryOrange,
+              ),
+            ],
           ),
         ],
       ),
@@ -172,41 +197,64 @@ class AccountScreen extends StatelessWidget {
     String value,
     bool isDark, {
     IconData? icon,
+    Color iconColor = Colors.amber,
   }) {
     return Expanded(
-      child: Card(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.white,
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    spreadRadius: 0,
+                  )
+                ],
+              ),
+              child: Column(
                 children: [
-                  if (icon != null) ...[
-                    Icon(icon, size: 16, color: Colors.amber),
-                    const SizedBox(width: 4),
-                  ],
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (icon != null) ...[
+                        Icon(icon, size: 18, color: iconColor),
+                        const SizedBox(width: 4),
+                      ],
+                      Text(
+                        value,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
                   Text(
-                    value,
+                    label,
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                      color: isDark ? Colors.white70 : AppColors.textLight,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: isDark ? Colors.white70 : AppColors.textLight,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
