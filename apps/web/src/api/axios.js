@@ -1,9 +1,14 @@
 import axios from 'axios';
 import { auth } from './firebase';
 
-const baseURL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://127.0.0.1:5001/ridesync-lk/asia-south1/api/api' // Emulator URL
-  : 'https://asia-south1-ridesync-lk.cloudfunctions.net/api/api'; // Production URL
+// Use VITE_API_BASE_URL from .env if set.
+// Defaults to the production Cloud Functions URL so the app works without
+// any local emulator running. To develop against the emulator, add:
+//   VITE_API_BASE_URL=http://127.0.0.1:5001/ridesync-lk/asia-south1/api/api
+// to your .env file and start: firebase emulators:start --only functions
+const baseURL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'https://asia-south1-ridesync-lk.cloudfunctions.net/api/api';
 
 const axiosInstance = axios.create({
   baseURL,
