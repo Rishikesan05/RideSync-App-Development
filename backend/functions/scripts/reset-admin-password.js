@@ -12,7 +12,7 @@ const isEmulator = !!process.env.FIREBASE_AUTH_EMULATOR_HOST;
 const isForce = process.argv.includes('--force');
 
 if (!isEmulator && !isForce) {
-  console.error('❌ ERROR: This script should only be run against the Firebase Auth Emulator.');
+  console.error(' ERROR: This script should only be run against the Firebase Auth Emulator.');
   console.error('   To run against a live project, append the --force flag.');
   process.exit(1);
 }
@@ -23,7 +23,7 @@ const email = args[0];
 const newPassword = args[1];
 
 if (!email || !newPassword) {
-  console.error('❌ ERROR: Missing required arguments.');
+  console.error('ERROR: Missing required arguments.');
   console.error('   Usage: node scripts/reset-admin-password.js <email> <newPassword> [--force]');
   process.exit(1);
 }
@@ -38,10 +38,10 @@ async function resetPassword() {
     await auth.updateUser(userRecord.uid, { password: newPassword });
 
     // 3. Security: do NOT echo the password back to stdout
-    console.log(`✅ Password successfully updated for: ${email} (UID: ${userRecord.uid})`);
+    console.log(`Password successfully updated for: ${email} (UID: ${userRecord.uid})`);
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error resetting password:', error.message);
+    console.error('Error resetting password:', error.message);
     process.exit(1);
   }
 }
