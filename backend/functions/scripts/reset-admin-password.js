@@ -1,27 +1,49 @@
 #!/usr/bin/env node
 /**
  * Reset Admin Password Script
- * Usage: node scripts/reset-admin-password.js [email] [newPassword]
- * Defaults: email=admin@ridesync.lk, newPassword=TestPass123!
+ * Usage: node scripts/reset-admin-password.js <email> <newPassword> [--force]
+ *
+ * Safety: By default this script only runs against the Firebase Auth Emulator.
+ *         Pass --force to run against a live project (use with caution).
  */
-const path = require('path');
 
-// Ensure we can require the project's admin config
+// 1. Safety Guard — block production runs unless --force is passed
+const isEmulator = !!process.env.FIREBASE_AUTH_EMULATOR_HOST;
+const isForce = process.argv.includes('--force');
+
+if (!isEmulator && !isForce) {
+  console.error('❌ ERROR: This script should only be run against the Firebase Auth Emulator.');
+  console.error('   To run against a live project, append the --force flag.');
+  process.exit(1);
+}
+
+// 2. Validate arguments — no hardcoded defaults
+const args = process.argv.slice(2).filter(arg => !arg.startsWith('--'));
+const email = args[0];
+const newPassword = args[1];
+
+if (!email || !newPassword) {
+  console.error('❌ ERROR: Missing required arguments.');
+  console.error('   Usage: node scripts/reset-admin-password.js <email> <newPassword> [--force]');
+  process.exit(1);
+}
+
+// Reuse project firebase-admin config (auto-discovers credentials)
+// Note: 'path' import removed — it was unused.
 const { auth } = require('../src/config/firebase.config');
 
-const email = process.argv[2] || 'admin@ridesync.lk';
-const newPassword = process.argv[3] || 'TestPass123!';
-
-async function reset() {
+async function resetPassword() {
   try {
     const userRecord = await auth.getUserByEmail(email);
     await auth.updateUser(userRecord.uid, { password: newPassword });
-    console.log(`✅ Password for ${email} updated to: ${newPassword}`);
+
+    // 3. Security: do NOT echo the password back to stdout
+    console.log(`✅ Password successfully updated for: ${email} (UID: ${userRecord.uid})`);
     process.exit(0);
-  } catch (err) {
-    console.error('❌ Failed to reset password:', err.message || err);
+  } catch (error) {
+    console.error('❌ Error resetting password:', error.message);
     process.exit(1);
   }
 }
 
-reset();
+resetPassword();
