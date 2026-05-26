@@ -882,7 +882,9 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   void _animateToRoute(RouteRecommendation route) {
