@@ -97,13 +97,6 @@ class _HeroBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        RideSyncPill(
-          label: 'Optimized routes',
-          icon: Icons.auto_awesome_rounded,
-          backgroundColor: AppColors.primaryOrange.withValues(alpha: 0.14),
-          foregroundColor: AppColors.primaryOrangeDeep,
-        ),
-        const SizedBox(height: 16),
         Text(
           'Intelligent commute\nstarts here.',
           style: theme.textTheme.displaySmall?.copyWith(
