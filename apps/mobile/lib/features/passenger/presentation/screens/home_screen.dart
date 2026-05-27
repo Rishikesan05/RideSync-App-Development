@@ -612,40 +612,103 @@ class _HubNetworkSection extends StatelessWidget {
           ),
           itemBuilder: (context, index) {
             final hub = hubs[index];
-            return RideSyncSurfaceCard(
-              padding: const EdgeInsets.all(18),
+            
+            // Define a set of vibrant gradients
+            final gradients = [
+              const LinearGradient(colors: [Color(0xFFFFA726), Color(0xFFFF7043)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              const LinearGradient(colors: [Color(0xFF42A5F5), Color(0xFF5C6BC0)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              const LinearGradient(colors: [Color(0xFF26A69A), Color(0xFF00897B)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              const LinearGradient(colors: [Color(0xFFAB47BC), Color(0xFF7E57C2)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            ];
+            final gradient = gradients[index % gradients.length];
+
+            return GestureDetector(
               onTap: () {
                 final finder = context.read<FinderProvider>();
                 final cleanName = hub.title.replaceAll('\n', ' ');
                 finder.searchFromRawStrings(cleanName, '');
                 Navigator.pushNamed(context, '/main', arguments: {'index': 3});
               },
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.place_outlined,
-                    color: AppColors.primaryOrange,
-                    size: 18,
-                  ),
-                  const Spacer(),
-                  Text(
-                    hub.title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      height: 1.3,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  gradient: gradient,
+                  boxShadow: [
+                    BoxShadow(
+                      color: gradient.colors.first.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    hub.subtitle.toUpperCase(),
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.textLight,
-                      letterSpacing: 0.9,
-                      fontWeight: FontWeight.w700,
+                  ],
+                ),
+                child: Stack(
+                  children: [
+                    // Glassmorphism shine overlay
+                    Positioned(
+                      top: -20,
+                      right: -20,
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      bottom: -30,
+                      left: -10,
+                      child: Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.apartment_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            hub.title,
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              height: 1.2,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            hub.subtitle.toUpperCase(),
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Colors.white.withValues(alpha: 0.85),
+                              letterSpacing: 0.5,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
