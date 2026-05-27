@@ -96,6 +96,18 @@ export const AdminLayout = () => {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Theme-aware colors so nav bars are visible in both light and dark modes
+  const appBarBg = scrolled
+    ? (theme.palette.mode === 'dark' ? 'rgba(15,23,42,0.6)' : 'rgba(255,255,255,0.92)')
+    : (theme.palette.mode === 'dark' ? 'rgba(15,23,42,0.45)' : 'rgba(255,255,255,0.85)');
+
+  const drawerBg = scrolled
+    ? (theme.palette.mode === 'dark' ? 'rgba(15,23,42,0.72)' : 'rgba(255,255,255,0.96)')
+    : (theme.palette.mode === 'dark' ? 'rgba(15,23,42,0.5)' : 'rgba(255,255,255,0.92)');
+
+  const navBorder = theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  const navText = theme.palette.text.primary;
+
   const drawer = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
@@ -113,8 +125,8 @@ export const AdminLayout = () => {
                 onClick={() => handleNavigate(item.path)}
                 sx={{
                   borderRadius: 2,
-                  backgroundColor: isActive ? 'rgba(230,141,51,0.12)' : 'transparent',
-                  color: isActive ? '#E68D33' : '#000000',
+                  backgroundColor: isActive ? (theme.palette.mode === 'dark' ? 'rgba(230,141,51,0.12)' : 'rgba(230,141,51,0.08)') : 'transparent',
+                  color: isActive ? '#E68D33' : navText,
                   '&:hover': {
                     backgroundColor: 'rgba(230,141,51,0.08)',
                     color: '#E68D33',
@@ -160,9 +172,9 @@ export const AdminLayout = () => {
           width: { xs: `calc(100% - 32px)`, sm: `calc(100% - ${drawerWidth}px - 48px)` },
           ml: { xs: '16px', sm: `${drawerWidth + 32}px` },
           mr: { xs: '16px', sm: '16px' },
-          backgroundColor: scrolled ? 'rgba(15, 23, 42, 0.5)' : 'rgba(15, 23, 42, 0.4)',
+          backgroundColor: appBarBg,
           color: '#E68D33',
-          backdropFilter: scrolled ? 'blur(12px)' : 'none',
+          backdropFilter: scrolled ? 'blur(12px)' : 'blur(6px)',
           borderBottom: 'none',
           borderRadius: '999px',
           boxShadow: '0 10px 30px rgba(2,6,23,0.6)',
@@ -180,7 +192,7 @@ export const AdminLayout = () => {
             <MenuIcon />
           </IconButton>
           
-          <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, color: '#000000', display: { xs: 'none', sm: 'block' }, fontSize: '1.5rem', textTransform: 'uppercase' }}>
+          <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, color: 'inherit', display: { xs: 'none', sm: 'block' }, fontSize: '1.5rem', textTransform: 'uppercase' }}>
             {menuItems.find(m => m.path === location.pathname)?.text || 'Dashboard'}
           </Typography>
 
@@ -242,11 +254,11 @@ export const AdminLayout = () => {
                 height: 'calc(100% - 32px)',
                 boxSizing: 'border-box',
                 width: drawerWidth,
-                backgroundColor: scrolled ? 'rgba(15, 23, 42, 0.5)' : 'rgba(15, 23, 42, 0.4)',
-                color: theme.palette.text.primary,
-                borderRight: '1px solid rgba(255,255,255,0.06)',
-                backdropFilter: scrolled ? 'blur(12px)' : 'none',
-                WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
+                backgroundColor: drawerBg,
+                color: navText,
+                borderRight: `1px solid ${navBorder}`,
+                backdropFilter: scrolled ? 'blur(12px)' : 'blur(6px)',
+                WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'blur(6px)',
                 boxShadow: '0 8px 30px rgba(2,6,23,0.6)',
                 borderRadius: '32px',
                 overflow: 'hidden'
@@ -266,11 +278,11 @@ export const AdminLayout = () => {
                 height: 'calc(100% - 32px)',
                 boxSizing: 'border-box',
                 width: drawerWidth,
-                backgroundColor: scrolled ? 'rgba(15, 23, 42, 0.5)' : 'rgba(15, 23, 42, 0.4)',
-                color: theme.palette.text.primary,
-                borderRight: '1px solid rgba(255,255,255,0.06)',
-                backdropFilter: scrolled ? 'blur(12px)' : 'none',
-                WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
+                backgroundColor: drawerBg,
+                color: navText,
+                borderRight: `1px solid ${navBorder}`,
+                backdropFilter: scrolled ? 'blur(12px)' : 'blur(6px)',
+                WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'blur(6px)',
                 boxShadow: '0 8px 30px rgba(2,6,23,0.6)',
                 borderRadius: '32px',
                 overflow: 'hidden'
