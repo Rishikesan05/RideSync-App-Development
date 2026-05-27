@@ -125,4 +125,8 @@ migrate_working_dir/
 # Scratch files and scripts
 **/scratch/
 
+# Staging directory for configurations and secrets to share with team
+ridesync-configs-for-share/
+
+
 
