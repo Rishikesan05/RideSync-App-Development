@@ -61,7 +61,7 @@ export const Login = () => {
         {/* Logo & Brand */}
         <div style={styles.brand}>
           <img
-            src="/ridesync-logo.png"
+            src="/ridesync-logo.jpeg"
             alt="RideSync"
             style={styles.logoImg}
           />
