@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:ridesync/features/passenger/data/models/route_models.dart';
 
 class QuickRouteModel {
   final String id;
@@ -11,6 +12,7 @@ class QuickRouteModel {
   final String duration;
   final String fare;
   final String? tag;
+  final RecommendationType routeType;
 
   QuickRouteModel({
     required this.id,
@@ -20,6 +22,7 @@ class QuickRouteModel {
     required this.duration,
     required this.fare,
     this.tag,
+    this.routeType = RecommendationType.normal,
   });
 }
 
@@ -41,12 +44,12 @@ class HomeProvider extends ChangeNotifier {
   bool isLoading = false;
 
   // Stateful list of favourite routes
-  List<Map<String, String?>> favouriteRoutes = [
-    {'id': 'r1', 'title': 'Work Route', 'origin': 'Pettah', 'destination': 'Maharagama', 'tag': 'Fastest'},
-    {'id': 'r2', 'title': 'Home Route', 'origin': 'Kaduwela', 'destination': 'Fort', 'tag': null},
-    {'id': 'r3', 'title': 'Gym Route', 'origin': 'Nugegoda', 'destination': 'Bambalapitiya', 'tag': 'Traffic Heavy'},
-    {'id': 'r4', 'title': 'Campus Route', 'origin': 'Dehiwala', 'destination': 'Moratuwa', 'tag': 'Standard'},
-    {'id': 'r5', 'title': 'Weekend Route', 'origin': 'Kottawa', 'destination': 'Battaramulla', 'tag': 'Scenic'},
+  List<Map<String, dynamic>> favouriteRoutes = [
+    {'id': 'r1', 'title': 'Work Route', 'origin': 'Pettah', 'destination': 'Maharagama', 'tag': 'Fastest', 'type': RecommendationType.express},
+    {'id': 'r2', 'title': 'Home Route', 'origin': 'Kaduwela', 'destination': 'Fort', 'tag': null, 'type': RecommendationType.intercity},
+    {'id': 'r3', 'title': 'Gym Route', 'origin': 'Nugegoda', 'destination': 'Bambalapitiya', 'tag': 'Traffic Heavy', 'type': RecommendationType.normal},
+    {'id': 'r4', 'title': 'Campus Route', 'origin': 'Dehiwala', 'destination': 'Moratuwa', 'tag': 'Standard', 'type': RecommendationType.normal},
+    {'id': 'r5', 'title': 'Weekend Route', 'origin': 'Kottawa', 'destination': 'Battaramulla', 'tag': 'Scenic', 'type': RecommendationType.intercity},
   ];
 
   Future<void> addFavouriteRoute(String title, String origin, String destination) async {
@@ -57,6 +60,7 @@ class HomeProvider extends ChangeNotifier {
       'origin': origin,
       'destination': destination,
       'tag': 'New',
+      'type': RecommendationType.normal,
     });
     
     // Invalidate current routes to force a refetch
@@ -73,6 +77,7 @@ class HomeProvider extends ChangeNotifier {
         'origin': origin,
         'destination': destination,
         'tag': favouriteRoutes[index]['tag'],
+        'type': favouriteRoutes[index]['type'] ?? RecommendationType.normal,
       };
       quickRoutes.clear();
       await fetchHomeData();
@@ -135,16 +140,17 @@ class HomeProvider extends ChangeNotifier {
 
     // Fetch live traffic data for each route
     for (var route in favouriteRoutes) {
-      final liveData = await _fetchLiveRouteData(route['origin']!, route['destination']!);
+      final liveData = await _fetchLiveRouteData(route['origin'] as String, route['destination'] as String);
       
       liveRoutes.add(QuickRouteModel(
-        id: route['id']!,
-        title: route['title']!,
-        origin: route['origin']!,
-        destination: route['destination']!,
+        id: route['id'] as String,
+        title: route['title'] as String,
+        origin: route['origin'] as String,
+        destination: route['destination'] as String,
         duration: liveData?['duration'] ?? 'Calculating...',
         fare: liveData?['fare'] ?? 'Estimating...',
-        tag: route['tag'],
+        tag: route['tag'] as String?,
+        routeType: (route['type'] as RecommendationType?) ?? RecommendationType.normal,
       ));
     }
 

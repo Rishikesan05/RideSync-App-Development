@@ -390,6 +390,21 @@ class _SectionWithRoutes extends StatelessWidget {
                             ),
                         ],
                       ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: _getTypeColor(route.routeType).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Icon(_getTypeIcon(route.routeType), size: 14, color: _getTypeColor(route.routeType)),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(_getTypeLabel(route.routeType), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _getTypeColor(route.routeType))),
+                        ],
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         '${route.origin} -> ${route.destination}',
@@ -422,6 +437,30 @@ class _SectionWithRoutes extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Color _getTypeColor(RecommendationType type) {
+    switch (type) {
+      case RecommendationType.express: return Colors.blue;
+      case RecommendationType.intercity: return Colors.green;
+      case RecommendationType.normal: return Colors.orange;
+    }
+  }
+
+  IconData _getTypeIcon(RecommendationType type) {
+    switch (type) {
+      case RecommendationType.express: return Icons.electric_bolt;
+      case RecommendationType.intercity: return Icons.location_city;
+      case RecommendationType.normal: return Icons.directions_bus;
+    }
+  }
+
+  String _getTypeLabel(RecommendationType type) {
+    switch (type) {
+      case RecommendationType.express: return 'EXPRESS';
+      case RecommendationType.intercity: return 'INTERCITY';
+      case RecommendationType.normal: return 'NORMAL';
+    }
   }
 }
 
