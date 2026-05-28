@@ -7,7 +7,8 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
 } from 'firebase/auth';
-import { auth } from '../../api/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '../../api/firebase';
 
 const signupSchema = z.object({
   displayName: z
@@ -96,10 +97,26 @@ export const SignUp = () => {
   const onSubmit = async (data) => {
     setAuthError('');
     try {
+      // 1. Create the Firebase Auth user
       const credential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+
+      // 2. Set the display name on the Auth profile
       await updateProfile(credential.user, { displayName: data.displayName });
+
+      // 3. Write a Firestore user profile with role 'pending'.
+      //    An admin must manually change this to 'admin' before the
+      //    user can access any protected route.
+      await setDoc(doc(db, 'users', credential.user.uid), {
+        uid: credential.user.uid,
+        displayName: data.displayName,
+        email: data.email,
+        role: 'pending',
+        createdAt: serverTimestamp(),
+      });
+
       setSuccess(true);
-      setTimeout(() => navigate('/'), 1500);
+      // Redirect to pending page — NOT the admin dashboard
+      setTimeout(() => navigate('/pending'), 1500);
     } catch (error) {
       console.error('Signup error:', error);
       switch (error.code) {
