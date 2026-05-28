@@ -343,7 +343,7 @@ class AccountScreen extends StatelessWidget {
             trailing: Switch(
               value: settings.isNotificationsEnabled,
               onChanged: (value) => settings.toggleNotifications(value),
-              activeColor: AppColors.primaryOrange,
+              activeThumbColor: AppColors.primaryOrange,
             ),
             color: Colors.blueAccent,
           ),

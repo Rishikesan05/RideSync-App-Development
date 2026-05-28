@@ -86,32 +86,110 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _HeroBlock extends StatelessWidget {
+class _HeroBlock extends StatefulWidget {
   const _HeroBlock({required this.isDark});
-
   final bool isDark;
+
+  @override
+  State<_HeroBlock> createState() => _HeroBlockState();
+}
+
+class _HeroBlockState extends State<_HeroBlock> with SingleTickerProviderStateMixin {
+  late final AnimationController _animController;
+  late final Animation<Color?> _colorAnim1;
+  late final Animation<Color?> _colorAnim2;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat(reverse: true);
+    
+    final hour = DateTime.now().hour;
+    Color c1, c2, c3, c4;
+    
+    if (hour < 12) {
+      // Morning colors (warm yellow/orange)
+      c1 = const Color(0xFFFFB74D); c2 = const Color(0xFFFF8A65);
+      c3 = const Color(0xFFFFE082); c4 = const Color(0xFFFFCC80);
+    } else if (hour < 17) {
+      // Afternoon colors (bright blue/cyan)
+      c1 = const Color(0xFF4FC3F7); c2 = const Color(0xFF4DD0E1);
+      c3 = const Color(0xFF81D4FA); c4 = const Color(0xFF80DEEA);
+    } else {
+      // Evening/Night colors (deep purple/indigo)
+      c1 = const Color(0xFF7E57C2); c2 = const Color(0xFF5C6BC0);
+      c3 = const Color(0xFF9575CD); c4 = const Color(0xFF7986CB);
+    }
+
+    _colorAnim1 = ColorTween(begin: c1.withValues(alpha: 0.25), end: c3.withValues(alpha: 0.45)).animate(_animController);
+    _colorAnim2 = ColorTween(begin: c2.withValues(alpha: 0.25), end: c4.withValues(alpha: 0.45)).animate(_animController);
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final auth = context.watch<AuthProvider>();
+    final userName = auth.user?.name.split(' ').first ?? 'Rider';
+
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
-        Text(
-          'Intelligent commute\nstarts here.',
-          style: theme.textTheme.displaySmall?.copyWith(
-            fontWeight: FontWeight.w800,
-            height: 1.05,
-            color: isDark ? Colors.white : AppColors.textDark,
+        // Animated glowing background blob
+        Positioned(
+          top: -40,
+          left: -20,
+          child: AnimatedBuilder(
+            animation: _animController,
+            builder: (context, child) {
+              return Container(
+                width: 250,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      _colorAnim1.value ?? Colors.transparent,
+                      (_colorAnim2.value ?? Colors.transparent).withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
-        const SizedBox(height: 10),
-        Text(
-          'Plan your route, coordinate with your travel squad, and move through the city with less friction.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            height: 1.5,
-            color: isDark ? AppColors.textMutedDark : AppColors.textLight,
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${_getGreeting()},\n$userName.',
+              style: theme.textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                height: 1.1,
+                color: widget.isDark ? Colors.white : AppColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Plan your route, coordinate with your travel squad, and move through the city with less friction.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                height: 1.5,
+                color: widget.isDark ? AppColors.textMutedDark : AppColors.textLight,
+              ),
+            ),
+          ],
         ),
       ],
     );
