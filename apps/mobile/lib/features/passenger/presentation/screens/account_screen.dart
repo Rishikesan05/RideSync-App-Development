@@ -288,12 +288,14 @@ class AccountScreen extends StatelessWidget {
               Icons.person_outline,
               'Personal Information',
               isDark,
+              subTitle: 'Name, email, and phone validation',
             ),
             _buildMenuItem(
               context,
               Icons.star_border,
               'Favourite Routes',
               isDark,
+              subTitle: 'Manage frequent destinations',
               onTap: () => _showFavouriteRoutesDialog(context, isDark),
             ),
             _buildMenuItem(
@@ -301,6 +303,7 @@ class AccountScreen extends StatelessWidget {
               Icons.history, 
               'Ride History', 
               isDark,
+              subTitle: 'View bookings and ride transactions',
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const MyBookingsScreen()),
@@ -311,8 +314,15 @@ class AccountScreen extends StatelessWidget {
               Icons.card_giftcard,
               'Loyalty Rewards',
               isDark,
+              subTitle: 'Check points and premium tier benefits',
             ),
-            _buildMenuItem(context, Icons.security, 'Security', isDark),
+            _buildMenuItem(
+              context,
+              Icons.security,
+              'Security',
+              isDark,
+              subTitle: 'Password and biometrics configurations',
+            ),
             const SizedBox(height: 24),
           ],
           Text(
@@ -323,33 +333,37 @@ class AccountScreen extends StatelessWidget {
               color: isDark ? Colors.white70 : AppColors.textLight,
             ),
           ),
-          const SizedBox(height: 12),
-          _buildMenuItem(
+          const SizedBox(height: 16),
+          _buildProminentSettingCard(
             context,
-            Icons.notifications_none,
+            Icons.notifications_active,
             'Notifications',
+            'Toggle push alerts',
             isDark,
             trailing: Switch(
               value: settings.isNotificationsEnabled,
               onChanged: (value) => settings.toggleNotifications(value),
-              activeThumbColor: Colors.green,
+              activeColor: AppColors.primaryOrange,
             ),
+            color: Colors.blueAccent,
           ),
-          _buildMenuItem(
+          _buildProminentSettingCard(
             context,
             Icons.language,
             Translations.translate(context, 'language'),
+            'Current: ${settings.selectedLanguage}',
             isDark,
-            subTitle: settings.selectedLanguage,
             onTap: () => _showLanguageDialog(context, settings),
+            color: Colors.teal,
           ),
-          _buildMenuItem(
+          _buildProminentSettingCard(
             context,
-            Icons.dark_mode_outlined,
+            Icons.dark_mode,
             Translations.translate(context, 'appearance'),
+            'Current: ${_getThemeName(settings.themeMode)}',
             isDark,
-            subTitle: _getThemeName(settings.themeMode),
             onTap: () => _showAppearanceDialog(context, settings),
+            color: Colors.deepPurpleAccent,
           ),
           const SizedBox(height: 24),
           Text(
@@ -361,15 +375,109 @@ class AccountScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          _buildMenuItem(context, Icons.help_outline, 'Help Center', isDark),
-          _buildMenuItem(context, Icons.info_outline, 'About RideSync', isDark),
+          _buildMenuItem(
+            context,
+            Icons.help_outline,
+            'Help Center',
+            isDark,
+            subTitle: 'Get support and view FAQs',
+          ),
+          _buildMenuItem(
+            context,
+            Icons.info_outline,
+            'About RideSync',
+            isDark,
+            subTitle: 'App version info and guidelines',
+          ),
           _buildMenuItem(
             context,
             Icons.privacy_tip_outlined,
             'Privacy Policy',
             isDark,
+            subTitle: 'Read terms of service & data policies',
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProminentSettingCard(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String subtitle,
+    bool isDark, {
+    Widget? trailing,
+    VoidCallback? onTap,
+    required Color color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.1),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isDark ? Colors.black.withValues(alpha: 0.15) : Colors.grey.withValues(alpha: 0.08),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.white60 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (trailing != null)
+                trailing
+              else
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: isDark ? Colors.white70 : AppColors.textLight,
+                  size: 14,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -384,45 +492,71 @@ class AccountScreen extends StatelessWidget {
     VoidCallback? onTap,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        tileColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        leading: Icon(
-          icon,
-          color: isDark ? Colors.white : AppColors.primaryNavy,
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontWeight: FontWeight.w500,
-            color: isDark ? Colors.white : Colors.black,
+      padding: const EdgeInsets.only(bottom: 10.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withValues(alpha: 0.15) : Colors.grey.withValues(alpha: 0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.1),
+            width: 1,
           ),
         ),
-        subtitle: subTitle != null
-            ? Text(
-                subTitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.white70 : Colors.grey,
-                ),
-              )
-            : null,
-        trailing:
-            trailing ??
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 14,
-              color: isDark ? Colors.white70 : AppColors.textLight,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.primaryNavy.withValues(alpha: 0.05),
+              shape: BoxShape.circle,
             ),
-        onTap:
-            onTap ??
-            () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('$title details coming soon!')),
-              );
-            },
+            child: Icon(
+              icon,
+              size: 20,
+              color: isDark ? Colors.white : AppColors.primaryNavy,
+            ),
+          ),
+          title: Text(
+            title,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          subtitle: subTitle != null
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 4.0),
+                  child: Text(
+                    subTitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                    ),
+                  ),
+                )
+              : null,
+          trailing: trailing ??
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: isDark ? Colors.white70 : AppColors.textLight,
+              ),
+          onTap: onTap ??
+              () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('$title details coming soon!')),
+                );
+              },
+        ),
       ),
     );
   }
@@ -467,10 +601,8 @@ class AccountScreen extends StatelessWidget {
           ? const Icon(Icons.check, color: AppColors.primaryOrange)
           : null,
       onTap: () {
+        settings.setThemeMode(mode);
         Navigator.pop(context);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('$title details coming soon!')));
       },
     );
   }
