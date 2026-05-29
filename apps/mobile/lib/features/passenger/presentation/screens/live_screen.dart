@@ -3,7 +3,10 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:provider/provider.dart';
 import 'package:ridesync/core/constants.dart';
+import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/live_journey_provider.dart';
 
 /// Live bus tracking screen with simulated bus movement.
 /// When an operator shares their live location, this screen will
@@ -100,12 +103,14 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
         'KADUWELA EXPRESSWAY',
       ];
 
-      setState(() {
-        _busPosition = LatLng(lat, lng);
-        _kmToGo = remaining.toStringAsFixed(1);
-        _nearestHub = hubNames[_currentPointIndex];
-        _statusText = 'ON TIME';
-      });
+      if (mounted) {
+        setState(() {
+          _busPosition = LatLng(lat, lng);
+          _kmToGo = remaining.toStringAsFixed(1);
+          _nearestHub = hubNames[_currentPointIndex];
+          _statusText = 'ON TIME';
+        });
+      }
 
       _mapController?.animateCamera(CameraUpdate.newLatLng(_busPosition));
     });
@@ -122,6 +127,73 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final auth = context.watch<AuthProvider>();
+    final liveJourney = context.watch<LiveJourneyProvider>();
+
+    if (!auth.isAuthenticated) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.lock_outline, size: 64, color: AppColors.textLight),
+              const SizedBox(height: 16),
+              const Text('Please log in to view live tracking', style: TextStyle(fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (liveJourney.isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primaryOrange),
+        ),
+      );
+    }
+
+    if (!liveJourney.hasActiveBooking) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.directions_bus_outlined, size: 64, color: AppColors.textLight),
+              const SizedBox(height: 16),
+              const Text('You have no active bookings for today.', style: TextStyle(fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (!liveJourney.hasJourneyStarted) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.schedule, size: 64, color: AppColors.primaryOrange),
+                const SizedBox(height: 24),
+                const Text(
+                  'Journey Not Started Yet',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'When your booked journey starts, the live map will be shared here.',
+                  style: TextStyle(color: AppColors.textLight, height: 1.5),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       body: Stack(

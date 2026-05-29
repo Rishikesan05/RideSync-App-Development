@@ -20,6 +20,7 @@ import 'package:ridesync/features/auth/presentation/screens/user_model.dart';
 import 'package:ridesync/features/passenger/presentation/providers/finder_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/home_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/live_journey_provider.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -36,6 +37,14 @@ void main() async {
         ChangeNotifierProvider(create: (context) => FinderProvider()),
         ChangeNotifierProvider(create: (context) => HomeProvider()),
         ChangeNotifierProvider(create: (context) => BookingProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, LiveJourneyProvider>(
+          create: (context) => LiveJourneyProvider(),
+          update: (context, auth, previous) {
+            previous ??= LiveJourneyProvider();
+            previous.initialize(auth.user?.id);
+            return previous;
+          },
+        ),
       ],
       child: const RideSyncApp(),
     ),
