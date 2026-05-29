@@ -81,8 +81,98 @@ async function rejectOperator(uid) {
   return { message: 'Operator rejected and reverted to passenger' };
 }
 
+/**
+ * Approve a pending admin.
+ * Promotes role: 'admin_pending' → 'admin'
+ * Sets the Firebase Auth custom claim so Firestore rules take effect immediately.
+ */
+async function approveAdmin(uid, approverUid) {
+  const userRef = usersCollection.doc(uid);
+  const userDoc = await userRef.get();
+
+  if (!userDoc.exists) {
+    const err = new Error('User not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const userData = userDoc.data();
+
+  // Guard: only admin_pending users can be approved this way
+  if (userData.role !== ROLES.ADMIN_PENDING) {
+    const err = new Error(
+      `User is not pending admin approval. Current role: "${userData.role}".`
+    );
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Promote in Firestore
+  await userRef.update({
+    role: ROLES.ADMIN,
+    approvedBy: approverUid,    // track which admin approved this person
+    approvedAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  // Promote the Firebase Auth JWT custom claim
+  // (new claim takes effect on the user's next token refresh)
+  await auth.setCustomUserClaims(uid, { role: ROLES.ADMIN });
+
+  return {
+    uid,
+    role: ROLES.ADMIN,
+    message: 'Admin approved successfully. They will have admin access on next sign-in.',
+  };
+}
+
+/**
+ * Reject a pending admin.
+ * Reverts role: 'admin_pending' → 'passenger'
+ */
+async function rejectAdmin(uid, approverUid) {
+  const userRef = usersCollection.doc(uid);
+  const userDoc = await userRef.get();
+
+  if (!userDoc.exists) {
+    const err = new Error('User not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const userData = userDoc.data();
+
+  if (userData.role !== ROLES.ADMIN_PENDING) {
+    const err = new Error(
+      `User is not pending admin approval. Current role: "${userData.role}".`
+    );
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Revert to passenger in Firestore
+  await userRef.update({
+    role: ROLES.PASSENGER,
+    rejectedBy: approverUid,    // track which admin rejected
+    rejectedAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  // Revert the JWT claim as well
+  await auth.setCustomUserClaims(uid, { role: ROLES.PASSENGER });
+
+  return {
+    uid,
+    role: ROLES.PASSENGER,
+    message: 'Admin request rejected. User has been reverted to passenger.',
+  };
+}
+
 module.exports = {
   getUsers,
   approveOperator,
   rejectOperator,
+  approveAdmin,
+  rejectAdmin,
 };
+
