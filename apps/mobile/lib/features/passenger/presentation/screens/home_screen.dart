@@ -8,6 +8,7 @@ import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/features/passenger/data/models/route_models.dart';
 import 'package:ridesync/features/passenger/presentation/providers/finder_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/home_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/live_journey_provider.dart';
 import 'dart:ui';
 
 class HomeScreen extends StatefulWidget {
@@ -69,8 +70,19 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               _HeroBlock(isDark: isDark),
               const SizedBox(height: AppStyles.sectionSpacing),
-              _BookingPreviewCard(isDark: isDark),
-              const SizedBox(height: AppStyles.sectionSpacing),
+              Consumer<LiveJourneyProvider>(
+                builder: (context, liveJourney, child) {
+                  if (liveJourney.hasActiveBooking && liveJourney.hasJourneyStarted) {
+                    return Column(
+                      children: [
+                        _BookingPreviewCard(isDark: isDark),
+                        const SizedBox(height: AppStyles.sectionSpacing),
+                      ],
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
               _SearchPlannerCard(isDark: isDark),
               const SizedBox(height: 18),
               _TravelSquadCard(isDark: isDark),
