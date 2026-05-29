@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 
@@ -222,6 +223,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
     final routeName = trip['routeName'] ?? 'Unknown Route';
     final plateNumber = trip['plateNumber'] ?? '';
     final capacity = trip['capacity'] ?? 40;
+    final status = trip['status'] ?? 'scheduled';
     
     DateTime? departure;
     final depTime = trip['departureTime'];
@@ -251,12 +253,16 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.2),
+                  color: (status == 'active' || status == 'in-transit') ? Colors.green.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  trip['status'] == 'active' ? 'ACTIVE NOW' : 'NEXT UP',
-                  style: const TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
+                  (status == 'active' || status == 'in-transit') ? 'ACTIVE NOW' : 'NEXT UP',
+                  style: TextStyle(
+                    color: (status == 'active' || status == 'in-transit') ? Colors.green : Colors.orange, 
+                    fontSize: 10, 
+                    fontWeight: FontWeight.bold
+                  ),
                 ),
               ),
               const Icon(Icons.more_vert, color: Colors.white70),
@@ -279,9 +285,191 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
               _tripMetric(Icons.timer_outlined, formattedTime, 'Departure'),
             ],
           ),
+          if (status == 'scheduled') ...[
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _showStartJourneyModal(trip, isDark),
+                icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+                label: const Text('Start Journey', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryOrange,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  void _showStartJourneyModal(Map<String, dynamic> trip, bool isDark) {
+    final coOpNameController = TextEditingController();
+    final coOpIdController = TextEditingController();
+    bool isSubmitting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateModal) {
+          return Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              top: 24,
+              left: 24,
+              right: 24,
+            ),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Start Journey', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                    IconButton(
+                      icon: Icon(Icons.close, color: isDark ? Colors.white54 : Colors.black54),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // Read-only Details
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _detailRow('Bus Plate', trip['plateNumber'] ?? 'N/A', isDark),
+                      const SizedBox(height: 8),
+                      _detailRow('Capacity', '${trip['capacity'] ?? 40} Seats', isDark),
+                      const SizedBox(height: 8),
+                      _detailRow('Start Time', DateFormat('hh:mm a').format(DateTime.now()), isDark),
+                      const SizedBox(height: 8),
+                      _detailRow('Location', 'GPS (Auto-detect)', isDark),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Form
+                Text('Co-Operator Details', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: coOpNameController,
+                  decoration: InputDecoration(
+                    labelText: 'Co-Operator Name',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: isDark ? Colors.black12 : Colors.grey.shade50,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: coOpIdController,
+                  decoration: InputDecoration(
+                    labelText: 'Co-Operator ID',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: isDark ? Colors.black12 : Colors.grey.shade50,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Submit
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isSubmitting ? null : () async {
+                      if (coOpNameController.text.trim().isEmpty || coOpIdController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+                        return;
+                      }
+
+                      setStateModal(() => isSubmitting = true);
+                      await _startJourney(trip['id'], coOpNameController.text.trim(), coOpIdController.text.trim());
+                      setStateModal(() => isSubmitting = false);
+                      
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryOrange,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: isSubmitting
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('Confirm & Start', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value, bool isDark) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 12)),
+        Text(value, style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontWeight: FontWeight.bold, fontSize: 13)),
+      ],
+    );
+  }
+
+  Future<void> _startJourney(String scheduleId, String coOpName, String coOpId) async {
+    try {
+      // 1. Get GPS Location
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Location permissions are denied');
+        }
+      }
+      
+      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+
+      // 2. Update Firestore
+      await FirebaseFirestore.instance.collection('schedules').doc(scheduleId).update({
+        'status': 'in-transit',
+        'actualStartTime': FieldValue.serverTimestamp(),
+        'coOperatorName': coOpName,
+        'coOperatorId': coOpId,
+        'startLocationLat': position.latitude,
+        'startLocationLng': position.longitude,
+      });
+
+      // 3. Refresh Screen
+      await _fetchOperatorData();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Journey started successfully!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to start journey: $e')));
+      }
+    }
   }
 
   Widget _tripMetric(IconData icon, String value, String label) {
