@@ -700,9 +700,7 @@ class _BookingPreviewCardState extends State<_BookingPreviewCard> with SingleTic
                   label: 'View Live Map',
                   icon: Icons.map_rounded,
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Opening live map...')),
-                    );
+                    Navigator.pushNamed(context, '/main', arguments: {'index': 2});
                   },
                 ),
               ],
