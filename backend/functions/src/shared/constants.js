@@ -8,6 +8,7 @@ const ROLES = Object.freeze({
   OPERATOR: 'operator',
   OPERATOR_PENDING: 'operator_pending',
   ADMIN: 'admin',
+  ADMIN_PENDING: 'admin_pending',   // Registered as admin, waiting for existing admin to approve
 });
 
 const BUS_CLASSES = Object.freeze({
