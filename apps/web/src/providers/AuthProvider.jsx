@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../api/firebase';
 
 const AuthContext = createContext();
@@ -16,40 +16,64 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let profileUnsub = null; // holds the Firestore real-time listener
+
+    const authUnsub = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
 
-      if (user) {
-        try {
-          const profileSnap = await getDoc(doc(db, 'users', user.uid));
-          setUserProfile(profileSnap.exists() ? profileSnap.data() : false);
-        } catch (err) {
-          // If Firestore read fails (e.g. permission denied for pending users),
-          // treat it as no profile so they land on the pending page.
-          console.warn('Could not fetch user profile:', err);
-          setUserProfile(false);
-        }
-      } else {
-        setUserProfile(null);
+      // Tear down any previous Firestore listener
+      if (profileUnsub) {
+        profileUnsub();
+        profileUnsub = null;
       }
 
-      setLoading(false);
+      if (user) {
+        // Real-time listener — fires immediately AND whenever the
+        // /users/{uid} document changes (e.g. admin approves the role).
+        // This means role changes in Firestore are reflected instantly
+        // without requiring the user to sign out and sign back in.
+        profileUnsub = onSnapshot(
+          doc(db, 'users', user.uid),
+          (snap) => {
+            setUserProfile(snap.exists() ? snap.data() : false);
+            setLoading(false);
+          },
+          (err) => {
+            // Permission denied for pending users — treat as no profile
+            console.warn('Could not fetch user profile:', err);
+            setUserProfile(false);
+            setLoading(false);
+          }
+        );
+      } else {
+        setUserProfile(null);
+        setLoading(false);
+      }
     });
 
-    return unsubscribe;
+    // Clean up both listeners on unmount
+    return () => {
+      authUnsub();
+      if (profileUnsub) profileUnsub();
+    };
   }, []);
 
   /**
-   * Call this after a sign-up or profile update so the cached
-   * userProfile stays in sync without a full page reload.
+   * refreshUserProfile is kept for compatibility but is now a no-op —
+   * the onSnapshot listener handles live updates automatically.
    */
-  const refreshUserProfile = async () => {
-    if (!currentUser) return;
+  const refreshUserProfile = () => {};
+
+  /**
+   * Sign the current user out and clear the profile.
+   * Components should call this instead of importing signOut directly.
+   */
+  const signOutUser = async () => {
     try {
-      const profileSnap = await getDoc(doc(db, 'users', currentUser.uid));
-      setUserProfile(profileSnap.exists() ? profileSnap.data() : false);
+      await signOut(auth);
+      // onAuthStateChanged fires → sets currentUser=null, userProfile=null
     } catch (err) {
-      console.warn('Could not refresh user profile:', err);
+      console.error('Sign-out error:', err);
     }
   };
 
@@ -61,6 +85,7 @@ export const AuthProvider = ({ children }) => {
     isAdmin,
     loading,
     refreshUserProfile,
+    signOutUser,
   };
 
   return (
