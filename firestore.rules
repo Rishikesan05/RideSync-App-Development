@@ -2,11 +2,26 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users: own profile only, admin reads all
+    // ── Users ──────────────────────────────────────────────────────────
+    // • Any authenticated user can create their own profile (registration).
+    // • Users can read and update their own profile only.
+    // • admin_pending users can read their own profile to check their status.
+    // • Admins can READ all user documents (to list pending admins).
+    // • Admins can UPDATE any user's role/updatedAt (the approval action).
     match /users/{uid} {
-      allow read, update: if request.auth != null && request.auth.uid == uid;
       allow create: if request.auth != null;
-      allow read: if request.auth != null && request.auth.token.role == 'admin';
+
+      // Own profile: full read + update (but not delete)
+      allow read, update: if request.auth != null && request.auth.uid == uid;
+
+      // Admin: read ALL users (e.g. list admin_pending users for approval)
+      allow read: if isAdmin();
+
+      // Admin: update ANY user's role field (approve/reject admin_pending)
+      // Restricted to only the fields that the approval flow needs to touch.
+      allow update: if isAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly(['role', 'updatedAt']);
     }
 
     // Passengers profiles
@@ -21,10 +36,22 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.token.role == 'admin';
     }
 
-    // Helper: check if user has a specific role in Firestore
+    // isAdmin: checks JWT custom claim first (fast, no extra read),
+    // then falls back to the Firestore /users doc role field.
+    // Custom claims are set by create-demo-user.js and auth.setCustomUserClaims().
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.role == 'admin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    // hasRole: generic role check — JWT claim first, Firestore doc fallback.
     function hasRole(role) {
-      return request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+      return request.auth != null && (
+        request.auth.token.role == role ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role
+      );
     }
 
     // Routes: public read, admin write
