@@ -5,6 +5,7 @@ import { ProtectedRoute } from '../components/Layout/ProtectedRoute';
 import { Login } from '../features/auth/Login';
 import { SignUp } from '../features/auth/SignUp';
 import { ForgotPassword } from '../features/auth/ForgotPassword';
+import { PendingApproval } from '../features/auth/PendingApproval';
 import { Dashboard } from '../features/dashboard/Dashboard';
 import { RoutesView } from '../features/routes/RoutesView';
 import { SchedulesView } from '../features/schedules/SchedulesView';
@@ -23,6 +24,7 @@ export const AppRouter = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/pending" element={<PendingApproval />} />
 
       {/* Protected admin routes */}
       <Route element={<ProtectedRoute />}>
