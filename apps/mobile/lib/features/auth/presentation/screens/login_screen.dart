@@ -56,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen>
       final auth = Provider.of<AuthProvider>(context, listen: false);
       if (auth.currentRole == UserRole.operator) {
         await auth.loginAsOperator(email, password);
-        if (mounted) Navigator.pushReplacementNamed(context, '/operator-main');
+        if (mounted) Navigator.pushReplacementNamed(context, '/operator-home');
       } else {
         await auth.loginAsPassenger(email, password);
         if (mounted) Navigator.pushReplacementNamed(context, '/main');

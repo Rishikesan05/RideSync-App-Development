@@ -49,7 +49,7 @@ class _OperatorAuthChoiceScreenState extends State<OperatorAuthChoiceScreen>
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       await auth.loginAsOperator(_emailC.text.trim(), _passC.text.trim());
-      if (mounted) Navigator.pushNamedAndRemoveUntil(context, '/operator-main', (r) => false);
+      if (mounted) Navigator.pushNamedAndRemoveUntil(context, '/operator-home', (r) => false);
     } on FirebaseAuthException catch (e) {
       String msg = 'Login failed';
       if (e.code == 'user-not-found') msg = 'No operator account found with this email';
