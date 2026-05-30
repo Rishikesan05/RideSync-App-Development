@@ -447,7 +447,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
         }
       }
       
-      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      final position = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
 
       // 2. Update Firestore
       await FirebaseFirestore.instance.collection('schedules').doc(scheduleId).update({
