@@ -160,14 +160,6 @@ class _HeroBlockState extends State<_HeroBlock> with SingleTickerProviderStateMi
     return Stack(
       clipBehavior: Clip.none,
       children: [
-<<<<<<< HEAD
-        Text(
-          'Intelligent commute\nstarts here.',
-          style: theme.textTheme.displaySmall?.copyWith(
-            fontWeight: FontWeight.w800,
-            height: 1.05,
-            color: isDark ? Colors.white : AppColors.textDark,
-=======
         // Animated glowing background blob
         Positioned(
           top: -40,
@@ -189,7 +181,6 @@ class _HeroBlockState extends State<_HeroBlock> with SingleTickerProviderStateMi
                 ),
               );
             },
->>>>>>> origin/develop
           ),
         ),
         Column(
