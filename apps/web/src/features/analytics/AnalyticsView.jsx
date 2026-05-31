@@ -63,12 +63,26 @@ const buildYtdData = (docs) => {
   return monthly;
 };
 
-const routePopularityData = [
-  { name: 'Colombo - Kandy', value: 400 },
-  { name: 'Colombo - Galle', value: 300 },
-  { name: 'Kandy - Nuwara Eliya', value: 300 },
-  { name: 'Colombo - Jaffna', value: 200 },
-];
+/**
+ * Groups bookings by routeId and joins with route names.
+ * Falls back to a shortened routeId if no matching route document exists.
+ * Returns the top 5 routes sorted by booking count.
+ */
+const buildRouteData = (bookingDocs, routesMap) => {
+  const counts = {};
+  bookingDocs.forEach((b) => {
+    const rid = b.routeId || b.route || null;
+    if (!rid) return;
+    counts[rid] = (counts[rid] || 0) + 1;
+  });
+  return Object.entries(counts)
+    .map(([rid, value]) => ({
+      name:  routesMap[rid] || `Route ${rid.substring(0, 6)}`,
+      value,
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+};
 
 const timeOfDayData = [
   { name: 'Morning (6A-12P)', count: 450 },
@@ -77,7 +91,7 @@ const timeOfDayData = [
   { name: 'Night (12A-6A)', count: 90 },
 ];
 
-const COLORS = ['#6366f1', '#ec4899', '#10b981', '#f59e0b'];
+const COLORS = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#3b82f6'];
 
 export const AnalyticsView = () => {
   const theme = useTheme();
@@ -86,22 +100,45 @@ export const AnalyticsView = () => {
   const [ytdData, setYtdData]       = useState([]);
   const [ytdLoading, setYtdLoading] = useState(true);
 
+  // ── Route popularity state (Commit 8) ────────────────────────────────
+  const [routeData, setRouteData]         = useState([]);
+  const [routeLoading, setRouteLoading]   = useState(true);
+
   useEffect(() => {
-    const fetchYtd = async () => {
+    const fetchAll = async () => {
       try {
-        const snap = await getDocs(collection(db, 'bookings'));
-        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setYtdData(buildYtdData(docs));
+        // Fetch bookings and routes in parallel — reuse for both charts
+        const [bookingsSnap, routesSnap] = await Promise.all([
+          getDocs(collection(db, 'bookings')),
+          getDocs(collection(db, 'routes')),
+        ]);
+
+        const bookingDocs = bookingsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+        // Build routes lookup: id → display name
+        const routesMap = {};
+        routesSnap.docs.forEach((d) => {
+          const r = d.data();
+          routesMap[d.id] =
+            r.name ||
+            (r.origin && r.destination ? `${r.origin} → ${r.destination}` : null) ||
+            d.id.substring(0, 10);
+        });
+
+        setYtdData(buildYtdData(bookingDocs));
+        setRouteData(buildRouteData(bookingDocs, routesMap));
       } catch (err) {
-        console.error('AnalyticsView YTD fetch error:', err);
+        console.error('AnalyticsView fetch error:', err);
       } finally {
         setYtdLoading(false);
+        setRouteLoading(false);
       }
     };
-    fetchYtd();
+    fetchAll();
   }, []);
 
-  const ytdHasData = ytdData.some((d) => d.revenue > 0 || d.bookings > 0);
+  const ytdHasData   = ytdData.some((d) => d.revenue > 0 || d.bookings > 0);
+  const routeHasData = routeData.length > 0;
 
   return (
     <Box>
@@ -152,35 +189,41 @@ export const AnalyticsView = () => {
           </Card>
         </Grid>
 
-        {/* Route Popularity */}
+        {/* Route Popularity — real Firestore data */}
         <Grid item xs={12} md={6}>
           <Card sx={{ height: 400 }}>
             <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Route Popularity</Typography>
               <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={routePopularityData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={80}
-                      outerRadius={120}
-                      paddingAngle={5}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {routePopularityData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip 
-                      contentStyle={{ backgroundColor: theme.palette.background.paper, border: 'none', borderRadius: 8 }}
-                      itemStyle={{ color: theme.palette.text.primary }}
-                    />
-                    <Legend verticalAlign="bottom" height={36}/>
-                  </PieChart>
-                </ResponsiveContainer>
+                {routeLoading ? (
+                  <CircularProgress />
+                ) : !routeHasData ? (
+                  <Typography color="text.secondary">No route data in bookings yet.</Typography>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={routeData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={70}
+                        outerRadius={110}
+                        paddingAngle={5}
+                        dataKey="value"
+                        stroke="none"
+                      >
+                        {routeData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip
+                        contentStyle={{ backgroundColor: theme.palette.background.paper, border: 'none', borderRadius: 8 }}
+                        itemStyle={{ color: theme.palette.text.primary }}
+                      />
+                      <Legend verticalAlign="bottom" height={36} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
               </Box>
             </CardContent>
           </Card>
