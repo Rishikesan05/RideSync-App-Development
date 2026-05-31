@@ -16,8 +16,10 @@ class LiveScreen extends StatefulWidget {
   State<LiveScreen> createState() => _LiveScreenState();
 }
 
-class _LiveScreenState extends State<LiveScreen> {
+class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateMixin {
   GoogleMapController? _mapController;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
   Timer? _timer;
 
   // Simulated route waypoints: Pettah → Town Hall → Borella → Nugegoda → Maharagama → Kaduwela
@@ -44,6 +46,14 @@ class _LiveScreenState extends State<LiveScreen> {
     super.initState();
     _eta = _formatETA();
     _startSimulation();
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 0.2, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
   }
 
   String _formatETA() {
@@ -103,6 +113,7 @@ class _LiveScreenState extends State<LiveScreen> {
 
   @override
   void dispose() {
+    _pulseController.dispose();
     _timer?.cancel();
     _mapController?.dispose();
     super.dispose();
@@ -176,12 +187,18 @@ class _LiveScreenState extends State<LiveScreen> {
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Colors.green,
-                          shape: BoxShape.circle,
+                      FadeTransition(
+                        opacity: _pulseAnimation,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(color: Colors.green, blurRadius: 4, spreadRadius: 1)
+                            ]
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
