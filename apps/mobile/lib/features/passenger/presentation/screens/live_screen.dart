@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ridesync/core/constants.dart';
 
@@ -162,42 +163,48 @@ class _LiveScreenState extends State<LiveScreen> {
             top: MediaQuery.of(context).padding.top + 10,
             left: 16,
             right: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10)],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                    ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.75),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: isDark ? Colors.white12 : Colors.white, width: 1.2),
                   ),
-                  const SizedBox(width: 8),
-                  const Text('LIVE SYNC', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1, color: AppColors.textLight)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _nearestHub,
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('LIVE SYNC', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1, color: AppColors.textLight)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _nearestHub,
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text('ACTIVE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.green)),
+                      ),
+                    ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text('ACTIVE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.green)),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -207,79 +214,84 @@ class _LiveScreenState extends State<LiveScreen> {
             bottom: 0,
             left: 0,
             right: 0,
-            child: Container(
-              padding: EdgeInsets.only(
-                left: 24, right: 24, top: 24,
-                bottom: MediaQuery.of(context).padding.bottom + 16,
-              ),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, -5))],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Distance & Destination
-                  Row(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
+                child: Container(
+                  padding: EdgeInsets.only(
+                    left: 24, right: 24, top: 24,
+                    bottom: MediaQuery.of(context).padding.bottom + 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.75) : Colors.white.withValues(alpha: 0.8),
+                    border: Border(top: BorderSide(color: isDark ? Colors.white12 : Colors.white, width: 1.5)),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
+                      // Distance & Destination
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                _kmToGo,
-                                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    _kmToGo,
+                                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Padding(
+                                    padding: EdgeInsets.only(bottom: 5),
+                                    child: Text('KM', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textLight)),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Padding(
+                                    padding: EdgeInsets.only(bottom: 5),
+                                    child: Text('TO GO', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textLight)),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 4),
-                              const Padding(
-                                padding: EdgeInsets.only(bottom: 5),
-                                child: Text('KM', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textLight)),
-                              ),
-                              const SizedBox(width: 4),
-                              const Padding(
-                                padding: EdgeInsets.only(bottom: 5),
-                                child: Text('TO GO', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textLight)),
-                              ),
+                              const SizedBox(height: 2),
+                              const Text('BOUND FOR: KADUWELA', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textLight, letterSpacing: 0.5)),
                             ],
                           ),
-                          const SizedBox(height: 2),
-                          const Text('BOUND FOR: KADUWELA', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textLight, letterSpacing: 0.5)),
+                          const Spacer(),
+                          Icon(Icons.route, color: AppColors.primaryOrange, size: 28),
                         ],
                       ),
-                      const Spacer(),
-                      Icon(Icons.route, color: AppColors.primaryOrange, size: 28),
+
+                      const SizedBox(height: 16),
+
+                      // Progress bar
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: (_currentPointIndex + _progress) / (_routePoints.length - 1),
+                          minHeight: 6,
+                          backgroundColor: isDark ? Colors.white10 : Colors.grey.shade300,
+                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryOrange),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // ETA & Status
+                      Row(
+                        children: [
+                          _buildInfoTile('EST. ARRIVAL', _eta, isDark),
+                          const SizedBox(width: 16),
+                          _buildInfoTile('OPTIMIZER', _statusText, isDark, isStatus: true),
+                        ],
+                      ),
                     ],
                   ),
-
-                  const SizedBox(height: 16),
-
-                  // Progress bar
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: LinearProgressIndicator(
-                      value: (_currentPointIndex + _progress) / (_routePoints.length - 1),
-                      minHeight: 6,
-                      backgroundColor: isDark ? Colors.white10 : Colors.grey.shade200,
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryOrange),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // ETA & Status
-                  Row(
-                    children: [
-                      _buildInfoTile('EST. ARRIVAL', _eta, isDark),
-                      const SizedBox(width: 16),
-                      _buildInfoTile('OPTIMIZER', _statusText, isDark, isStatus: true),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -293,9 +305,9 @@ class _LiveScreenState extends State<LiveScreen> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+          border: Border.all(color: isDark ? Colors.white10 : Colors.white),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
