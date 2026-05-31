@@ -14,9 +14,11 @@ import {
   Button,
   useTheme,
   Alert,
-  CircularProgress
+  CircularProgress,
+  InputAdornment,
+  IconButton
 } from '@mui/material';
-import { DirectionsBus } from '@mui/icons-material';
+import { DirectionsBus, Visibility, VisibilityOff } from '@mui/icons-material';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -27,6 +29,7 @@ export const Login = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const [authError, setAuthError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -105,9 +108,29 @@ export const Login = () => {
             <TextField
               fullWidth
               label="Password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               variant="outlined"
               margin="normal"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={showPassword ? 'hide password' : 'show password'}
+                      onClick={() => setShowPassword((visible) => !visible)}
+                      edge="end"
+                      size="small"
+                      sx={{
+                        color: theme.palette.text.secondary,
+                        '&:hover': {
+                          color: theme.palette.primary.main,
+                        },
+                      }}
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
               {...register('password')}
               error={!!errors.password}
               helperText={errors.password?.message}

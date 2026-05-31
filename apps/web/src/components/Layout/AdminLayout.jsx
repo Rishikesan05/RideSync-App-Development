@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../api/firebase';
@@ -58,6 +58,7 @@ export const AdminLayout = () => {
   const { currentUser } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [scrolled, setScrolled] = useState(false);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -86,14 +87,23 @@ export const AdminLayout = () => {
     setMobileOpen(false);
   };
 
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 8);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   const drawer = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 2 }}>
-        <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, letterSpacing: 1 }}>
+        <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: '#E68D33', letterSpacing: 1, textTransform: 'uppercase' }}>
           RideSync
         </Typography>
       </Toolbar>
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+      <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
       <List sx={{ px: 2, pt: 2, flexGrow: 1 }}>
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
@@ -103,11 +113,11 @@ export const AdminLayout = () => {
                 onClick={() => handleNavigate(item.path)}
                 sx={{
                   borderRadius: 2,
-                  backgroundColor: isActive ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
-                  color: isActive ? theme.palette.primary.light : theme.palette.text.secondary,
+                  backgroundColor: isActive ? 'rgba(230,141,51,0.12)' : 'transparent',
+                  color: isActive ? '#E68D33' : '#000000',
                   '&:hover': {
-                    backgroundColor: 'rgba(99, 102, 241, 0.05)',
-                    color: theme.palette.primary.main,
+                    backgroundColor: 'rgba(230,141,51,0.08)',
+                    color: '#E68D33',
                   },
                   transition: 'all 0.2s',
                 }}
@@ -119,7 +129,8 @@ export const AdminLayout = () => {
                   primary={item.text} 
                   primaryTypographyProps={{ 
                     fontWeight: isActive ? 600 : 500,
-                    fontSize: '0.95rem'
+                    fontSize: '0.95rem',
+                    textTransform: 'uppercase'
                   }} 
                 />
               </ListItemButton>
@@ -130,7 +141,7 @@ export const AdminLayout = () => {
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />
       <Box sx={{ p: 2 }}>
         <ListItem disablePadding>
-          <ListItemButton onClick={() => handleNavigate('/settings')} sx={{ borderRadius: 2, color: theme.palette.text.secondary }}>
+          <ListItemButton onClick={() => handleNavigate('/settings')} sx={{ borderRadius: 2, color: '#000000' }}>
             <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}><Settings /></ListItemIcon>
             <ListItemText primary="Settings" primaryTypographyProps={{ fontSize: '0.95rem' }} />
           </ListItemButton>
@@ -145,11 +156,17 @@ export const AdminLayout = () => {
         position="fixed"
         elevation={0}
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
-          backgroundColor: 'rgba(15, 23, 42, 0.8)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          top: 16,
+          width: { xs: `calc(100% - 32px)`, sm: `calc(100% - ${drawerWidth}px - 48px)` },
+          ml: { xs: '16px', sm: `${drawerWidth + 32}px` },
+          mr: { xs: '16px', sm: '16px' },
+          backgroundColor: scrolled ? 'rgba(15, 23, 42, 0.5)' : 'rgba(15, 23, 42, 0.4)',
+          color: '#E68D33',
+          backdropFilter: scrolled ? 'blur(12px)' : 'none',
+          borderBottom: 'none',
+          borderRadius: '999px',
+          boxShadow: '0 10px 30px rgba(2,6,23,0.6)',
+          zIndex: 1200,
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between' }}>
@@ -163,19 +180,19 @@ export const AdminLayout = () => {
             <MenuIcon />
           </IconButton>
           
-          <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600, color: theme.palette.text.primary, display: { xs: 'none', sm: 'block' } }}>
+          <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, color: '#000000', display: { xs: 'none', sm: 'block' }, fontSize: '1.5rem', textTransform: 'uppercase' }}>
             {menuItems.find(m => m.path === location.pathname)?.text || 'Dashboard'}
           </Typography>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 'auto' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0, ml: 'auto', transform: 'translateX(-8px)' }}>
             <Tooltip title="Notifications">
-              <IconButton color="inherit">
+              <IconButton color="inherit" sx={{ mr: 0, transform: 'translateX(-32px)' }}>
                 <Notifications />
               </IconButton>
             </Tooltip>
             <Tooltip title={currentUser?.email || 'Admin Profile'}>
-              <IconButton onClick={handleMenuOpen} sx={{ p: 0, ml: 1 }}>
-                <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 36, height: 36 }}>
+              <IconButton onClick={handleMenuOpen} sx={{ p: 0, ml: 0, transform: 'translateX(-20px)' }}>
+                <Avatar sx={{ bgcolor: '#E68D33', color: '#fff', width: 36, height: 36 }}>
                   {currentUser?.email?.charAt(0).toUpperCase() || 'A'}
                 </Avatar>
               </IconButton>
@@ -217,17 +234,47 @@ export const AdminLayout = () => {
           onClose={handleDrawerToggle}
           ModalProps={{ keepMounted: true }}
           sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, backgroundColor: theme.palette.background.paper, borderRight: '1px solid rgba(255,255,255,0.05)' },
-          }}
+              display: { xs: 'block', sm: 'none' },
+              '& .MuiDrawer-paper': {
+                position: 'fixed',
+                top: '16px',
+                left: '16px',
+                height: 'calc(100% - 32px)',
+                boxSizing: 'border-box',
+                width: drawerWidth,
+                backgroundColor: scrolled ? 'rgba(15, 23, 42, 0.5)' : 'rgba(15, 23, 42, 0.4)',
+                color: theme.palette.text.primary,
+                borderRight: '1px solid rgba(255,255,255,0.06)',
+                backdropFilter: scrolled ? 'blur(12px)' : 'none',
+                WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
+                boxShadow: '0 8px 30px rgba(2,6,23,0.6)',
+                borderRadius: '32px',
+                overflow: 'hidden'
+              },
+            }}
         >
           {drawer}
         </Drawer>
         <Drawer
           variant="permanent"
           sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, backgroundColor: theme.palette.background.paper, borderRight: '1px solid rgba(255,255,255,0.05)' },
+              display: { xs: 'none', sm: 'block' },
+              '& .MuiDrawer-paper': {
+                position: 'fixed',
+                top: '16px',
+                left: '16px',
+                height: 'calc(100% - 32px)',
+                boxSizing: 'border-box',
+                width: drawerWidth,
+                backgroundColor: scrolled ? 'rgba(15, 23, 42, 0.5)' : 'rgba(15, 23, 42, 0.4)',
+                color: theme.palette.text.primary,
+                borderRight: '1px solid rgba(255,255,255,0.06)',
+                backdropFilter: scrolled ? 'blur(12px)' : 'none',
+                WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
+                boxShadow: '0 8px 30px rgba(2,6,23,0.6)',
+                borderRadius: '32px',
+                overflow: 'hidden'
+              },
           }}
           open
         >
@@ -235,7 +282,7 @@ export const AdminLayout = () => {
         </Drawer>
       </Box>
       
-      <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` }, mt: 8 }}>
+      <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` }, mt: 10 }}>
         <Outlet />
       </Box>
     </Box>
