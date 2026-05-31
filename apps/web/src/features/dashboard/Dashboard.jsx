@@ -283,7 +283,7 @@ export const Dashboard = () => {
                       cursor={{fill: 'rgba(255,255,255,0.05)'}}
                       contentStyle={{ backgroundColor: theme.palette.background.paper, border: 'none', borderRadius: 8 }}
                     />
-                <Bar dataKey="count" fill={theme.palette.secondary.main} radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="count" fill={theme.palette.secondary.main} radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </Box>

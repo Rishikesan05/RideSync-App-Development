@@ -9,7 +9,7 @@ import {
   useTheme,
 } from '@mui/material';
 import {
-  PersonOutline,
+  PersonOutlined,
   SupportAgentOutlined,
   HourglassTopOutlined,
   PeopleAltOutlined,
@@ -69,7 +69,7 @@ export const UserStats = () => {
     {
       label: 'Passengers',
       value: counts.passengers,
-      icon:  <PersonOutline />,
+      icon:  <PersonOutlined />,
       color: theme.palette.primary.main,
     },
     {
