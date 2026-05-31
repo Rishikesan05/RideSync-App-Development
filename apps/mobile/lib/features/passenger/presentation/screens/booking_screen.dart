@@ -6,6 +6,7 @@ import 'package:ridesync/features/passenger/presentation/providers/booking_provi
 import 'package:ridesync/features/passenger/presentation/providers/finder_provider.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/features/passenger/presentation/screens/seat_selection_screen.dart';
+import 'package:ridesync/features/passenger/data/models/route_models.dart';
 
 class BookingScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -18,6 +19,8 @@ class BookingScreen extends StatefulWidget {
 class _BookingScreenState extends State<BookingScreen> {
   final TextEditingController _originController = TextEditingController();
   final TextEditingController _destController = TextEditingController();
+  final FocusNode _originFocus = FocusNode();
+  final FocusNode _destFocus = FocusNode();
 
   @override
   void initState() {
@@ -28,13 +31,44 @@ class _BookingScreenState extends State<BookingScreen> {
       if (booking.origin != null) _originController.text = booking.origin!.name;
       if (booking.destination != null) _destController.text = booking.destination!.name;
     });
+
+    _originController.addListener(() {
+      if (_originFocus.hasFocus && _originController.text.isNotEmpty) {
+        context.read<FinderProvider>().fetchSuggestions(_originController.text, 'origin');
+      }
+    });
+    _destController.addListener(() {
+      if (_destFocus.hasFocus && _destController.text.isNotEmpty) {
+        context.read<FinderProvider>().fetchSuggestions(_destController.text, 'destination');
+      }
+    });
   }
 
   @override
   void dispose() {
     _originController.dispose();
     _destController.dispose();
+    _originFocus.dispose();
+    _destFocus.dispose();
     super.dispose();
+  }
+
+  void _handleSuggestionTap(Place place) async {
+    final finder = context.read<FinderProvider>();
+    final booking = context.read<BookingProvider>();
+
+    if (_originFocus.hasFocus) {
+      await finder.selectOrigin(place);
+      _originController.text = finder.origin!.name;
+      booking.setOrigin(finder.origin!);
+      _originFocus.unfocus();
+    } else if (_destFocus.hasFocus) {
+      await finder.selectDestination(place);
+      _destController.text = finder.destination!.name;
+      booking.setDestination(finder.destination!);
+      _destFocus.unfocus();
+    }
+    finder.fetchSuggestions('', ''); // Clear suggestions
   }
 
   Future<void> _selectDate(BuildContext context, BookingProvider booking) async {
@@ -91,6 +125,9 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   Widget _buildSearchHeader(BookingProvider booking, bool isDark) {
+    final finder = context.watch<FinderProvider>();
+    final showSuggestions = finder.suggestions.isNotEmpty && (_originFocus.hasFocus || _destFocus.hasFocus);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -102,22 +139,51 @@ class _BookingScreenState extends State<BookingScreen> {
       ),
       child: Column(
         children: [
-          _buildLocationInput(
-            hint: 'From',
-            icon: Icons.circle_outlined,
+          _LocationField(
+            label: 'FROM',
+            hint: 'your current location',
+            icon: Icons.gps_fixed_rounded,
+            iconColor: AppColors.accentBlue,
+            isDark: isDark,
             controller: _originController,
-            onTap: () => _showPlaceSearch(true, booking),
-            isDark: isDark,
+            focusNode: _originFocus,
           ),
-          const SizedBox(height: 12),
-          _buildLocationInput(
-            hint: 'To',
+          const SizedBox(height: 14),
+          _LocationField(
+            label: 'TO',
+            hint: 'Where to go today?',
             icon: Icons.location_on_outlined,
-            controller: _destController,
-            onTap: () => _showPlaceSearch(false, booking),
+            iconColor: AppColors.primaryOrange,
             isDark: isDark,
+            controller: _destController,
+            focusNode: _destFocus,
           ),
-          const SizedBox(height: 12),
+          if (showSuggestions) ...[
+            const SizedBox(height: 14),
+            Container(
+              constraints: const BoxConstraints(maxHeight: 180),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.surfaceMutedDark : AppColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: finder.suggestions.length,
+                separatorBuilder: (context, index) => Divider(height: 1, color: isDark ? Colors.white10 : Colors.black12),
+                itemBuilder: (context, index) {
+                  final place = finder.suggestions[index];
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.place_outlined, color: AppColors.primaryOrange, size: 20),
+                    title: Text(place.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : AppColors.textDark)),
+                    subtitle: Text(place.address, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.black54)),
+                    onTap: () => _handleSuggestionTap(place),
+                  );
+                },
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
@@ -163,42 +229,7 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  Widget _buildLocationInput({
-    required String hint, 
-    required IconData icon, 
-    required TextEditingController controller, 
-    required VoidCallback onTap,
-    required bool isDark
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.black26 : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: AppColors.textLight),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                controller.text.isEmpty ? hint : controller.text,
-                style: TextStyle(
-                  color: controller.text.isEmpty ? AppColors.textLight : (isDark ? Colors.white : AppColors.textDark),
-                  fontWeight: controller.text.isEmpty ? FontWeight.normal : FontWeight.w600
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildSchedulesList(BookingProvider booking, bool isDark) {
     if (booking.isLoading) {
@@ -351,93 +382,74 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  void _showPlaceSearch(bool isOrigin, BookingProvider booking) {
-    final finder = Provider.of<FinderProvider>(context, listen: false);
-    
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return Container(
-            height: MediaQuery.of(context).size.height * 0.8,
-            decoration: BoxDecoration(
-              color: Theme.of(context).canvasColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-            ),
+}
+
+class _LocationField extends StatelessWidget {
+  const _LocationField({
+    required this.label,
+    required this.hint,
+    required this.icon,
+    required this.iconColor,
+    required this.isDark,
+    required this.controller,
+    required this.focusNode,
+  });
+
+  final String label;
+  final String hint;
+  final IconData icon;
+  final Color iconColor;
+  final bool isDark;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceMutedDark : AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: iconColor, size: 18),
+          const SizedBox(width: 14),
+          Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 12),
-                Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      const Text('Search City', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 20),
-                      TextField(
-                        autofocus: true,
-                        decoration: InputDecoration(
-                          hintText: 'Type at least 3 letters...',
-                          prefixIcon: const Icon(Icons.search, color: AppColors.primaryOrange),
-                          filled: true,
-                          fillColor: Colors.grey.withValues(alpha: 0.1),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                        ),
-                        onChanged: (value) async {
-                          if (value.length >= 3) {
-                            await finder.fetchSuggestions(value, isOrigin ? 'origin' : 'destination');
-                            setModalState(() {}); // Rebuild with suggestions
-                          }
-                        },
-                      ),
-                    ],
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppColors.textLight,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
                   ),
                 ),
-                Expanded(
-                  child: finder.suggestions.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.keyboard_outlined, size: 48, color: Colors.grey.shade300),
-                              const SizedBox(height: 16),
-                              Text('Type 3+ letters to search', style: TextStyle(color: Colors.grey.shade400)),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: finder.suggestions.length,
-                          itemBuilder: (context, index) {
-                            final place = finder.suggestions[index];
-                            return ListTile(
-                              leading: const Icon(Icons.location_city, size: 20, color: AppColors.primaryOrange),
-                              title: Text(place.name, style: const TextStyle(fontWeight: FontWeight.w500)),
-                              subtitle: Text(place.address, style: const TextStyle(fontSize: 12)),
-                              onTap: () async {
-                                // Important: We need coordinates for the booking search to work well
-                                // Fetching place details through FinderProvider
-                                if (isOrigin) {
-                                  await finder.selectOrigin(place);
-                                  _originController.text = finder.origin!.name;
-                                  booking.setOrigin(finder.origin!);
-                                } else {
-                                  await finder.selectDestination(place);
-                                  _destController.text = finder.destination!.name;
-                                  booking.setDestination(finder.destination!);
-                                }
-                                if (context.mounted) Navigator.pop(context);
-                              },
-                            );
-                          },
-                        ),
+                const SizedBox(height: 2),
+                TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontSize: 15,
+                    color: isDark ? Colors.white : AppColors.textDark,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontSize: 15,
+                      color: isDark ? Colors.white38 : AppColors.textLight,
+                    ),
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    border: InputBorder.none,
+                  ),
                 ),
               ],
             ),
-          );
-        }
+          ),
+        ],
       ),
     );
   }
