@@ -29,7 +29,10 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
   Future<void> _fetchOperatorData() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final userId = auth.user?.id;
-    if (userId == null) return;
+    if (userId == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
 
     try {
       final now = DateTime.now();
@@ -40,7 +43,8 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
       final bookingsQuery = await FirebaseFirestore.instance
           .collection('bookings')
           .where('operatorId', isEqualTo: 'system_operator')
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 10));
 
       double revenue = 0;
       for (final doc in bookingsQuery.docs) {
@@ -55,7 +59,8 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
           .where('departureTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfToday))
           .where('departureTime', isLessThan: Timestamp.fromDate(endOfToday))
           .orderBy('departureTime', descending: false)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 10));
 
       List<Map<String, dynamic>> schedules = [];
       for (final doc in schedulesQuery.docs) {
