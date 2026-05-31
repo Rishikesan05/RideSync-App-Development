@@ -1,18 +1,14 @@
 import React from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
-import { auth } from '../../api/firebase';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../providers/AuthProvider';
 
 export const PendingApproval = () => {
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser, userProfile, signOutUser } = useAuth();
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-    } catch (err) {
-      console.error('Sign-out error:', err);
-    }
+    await signOutUser();
+    navigate('/login', { replace: true });
   };
 
   const displayName = currentUser?.displayName || userProfile?.displayName || 'there';
