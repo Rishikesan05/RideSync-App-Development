@@ -186,7 +186,9 @@ export const Login = () => {
             <span style={styles.dividerLine} />
           </div>
 
-       
+          <RouterLink to="/signup" style={styles.signupBtn} id="go-to-signup-btn">
+            Create an account
+          </RouterLink>
         </div>
 
         <p style={styles.footer}>

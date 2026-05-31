@@ -3,6 +3,8 @@ import { Routes, Route } from 'react-router-dom';
 import { AdminLayout } from '../components/Layout/AdminLayout';
 import { ProtectedRoute } from '../components/Layout/ProtectedRoute';
 import { Login } from '../features/auth/Login';
+import { SignUp } from '../features/auth/SignUp';
+import { ForgotPassword } from '../features/auth/ForgotPassword';
 import { Dashboard } from '../features/dashboard/Dashboard';
 import { RoutesView } from '../features/routes/RoutesView';
 import { SchedulesView } from '../features/schedules/SchedulesView';
@@ -17,7 +19,12 @@ import { LiveMapView } from '../features/live/LiveMapView';
 export const AppRouter = () => {
   return (
     <Routes>
+      {/* Public auth routes */}
       <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+
+      {/* Protected admin routes */}
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
