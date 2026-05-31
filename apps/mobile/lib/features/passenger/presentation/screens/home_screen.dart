@@ -8,6 +8,8 @@ import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/features/passenger/data/models/route_models.dart';
 import 'package:ridesync/features/passenger/presentation/providers/finder_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/home_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/live_journey_provider.dart';
+import 'dart:ui';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -68,11 +70,22 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               _HeroBlock(isDark: isDark),
               const SizedBox(height: AppStyles.sectionSpacing),
+              Consumer<LiveJourneyProvider>(
+                builder: (context, liveJourney, child) {
+                  if (liveJourney.hasActiveBooking && liveJourney.hasJourneyStarted) {
+                    return Column(
+                      children: [
+                        _BookingPreviewCard(isDark: isDark),
+                        const SizedBox(height: AppStyles.sectionSpacing),
+                      ],
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
               _SearchPlannerCard(isDark: isDark),
               const SizedBox(height: 18),
               _TravelSquadCard(isDark: isDark),
-              const SizedBox(height: AppStyles.sectionSpacing),
-              _BookingPreviewCard(isDark: isDark),
               const SizedBox(height: AppStyles.sectionSpacing),
               _SectionWithRoutes(isDark: isDark),
               const SizedBox(height: AppStyles.sectionSpacing),
@@ -86,32 +99,119 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _HeroBlock extends StatelessWidget {
+class _HeroBlock extends StatefulWidget {
   const _HeroBlock({required this.isDark});
-
   final bool isDark;
+
+  @override
+  State<_HeroBlock> createState() => _HeroBlockState();
+}
+
+class _HeroBlockState extends State<_HeroBlock> with SingleTickerProviderStateMixin {
+  late final AnimationController _animController;
+  late final Animation<Color?> _colorAnim1;
+  late final Animation<Color?> _colorAnim2;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat(reverse: true);
+    
+    final hour = DateTime.now().hour;
+    Color c1, c2, c3, c4;
+    
+    if (hour < 12) {
+      // Morning colors (warm yellow/orange)
+      c1 = const Color(0xFFFFB74D); c2 = const Color(0xFFFF8A65);
+      c3 = const Color(0xFFFFE082); c4 = const Color(0xFFFFCC80);
+    } else if (hour < 17) {
+      // Afternoon colors (bright blue/cyan)
+      c1 = const Color(0xFF4FC3F7); c2 = const Color(0xFF4DD0E1);
+      c3 = const Color(0xFF81D4FA); c4 = const Color(0xFF80DEEA);
+    } else {
+      // Evening/Night colors (deep purple/indigo)
+      c1 = const Color(0xFF7E57C2); c2 = const Color(0xFF5C6BC0);
+      c3 = const Color(0xFF9575CD); c4 = const Color(0xFF7986CB);
+    }
+
+    _colorAnim1 = ColorTween(begin: c1.withValues(alpha: 0.25), end: c3.withValues(alpha: 0.45)).animate(_animController);
+    _colorAnim2 = ColorTween(begin: c2.withValues(alpha: 0.25), end: c4.withValues(alpha: 0.45)).animate(_animController);
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final auth = context.watch<AuthProvider>();
+    final userName = auth.user?.name.split(' ').first ?? 'Rider';
+
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
+<<<<<<< HEAD
         Text(
           'Intelligent commute\nstarts here.',
           style: theme.textTheme.displaySmall?.copyWith(
             fontWeight: FontWeight.w800,
             height: 1.05,
             color: isDark ? Colors.white : AppColors.textDark,
+=======
+        // Animated glowing background blob
+        Positioned(
+          top: -40,
+          left: -20,
+          child: AnimatedBuilder(
+            animation: _animController,
+            builder: (context, child) {
+              return Container(
+                width: 250,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      _colorAnim1.value ?? Colors.transparent,
+                      (_colorAnim2.value ?? Colors.transparent).withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+              );
+            },
+>>>>>>> origin/develop
           ),
         ),
-        const SizedBox(height: 10),
-        Text(
-          'Plan your route, coordinate with your travel squad, and move through the city with less friction.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            height: 1.5,
-            color: isDark ? AppColors.textMutedDark : AppColors.textLight,
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${_getGreeting()},\n$userName.',
+              style: theme.textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                height: 1.1,
+                color: widget.isDark ? Colors.white : AppColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Plan your route, coordinate with your travel squad, and move through the city with less friction.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                height: 1.5,
+                color: widget.isDark ? AppColors.textMutedDark : AppColors.textLight,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -390,6 +490,21 @@ class _SectionWithRoutes extends StatelessWidget {
                             ),
                         ],
                       ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: _getTypeColor(route.routeType).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Icon(_getTypeIcon(route.routeType), size: 14, color: _getTypeColor(route.routeType)),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(_getTypeLabel(route.routeType), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _getTypeColor(route.routeType))),
+                        ],
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         '${route.origin} -> ${route.destination}',
@@ -423,119 +538,196 @@ class _SectionWithRoutes extends StatelessWidget {
       ],
     );
   }
+
+  Color _getTypeColor(RecommendationType type) {
+    switch (type) {
+      case RecommendationType.express: return Colors.blue;
+      case RecommendationType.intercity: return Colors.green;
+      case RecommendationType.normal: return Colors.orange;
+    }
+  }
+
+  IconData _getTypeIcon(RecommendationType type) {
+    switch (type) {
+      case RecommendationType.express: return Icons.electric_bolt;
+      case RecommendationType.intercity: return Icons.location_city;
+      case RecommendationType.normal: return Icons.directions_bus;
+    }
+  }
+
+  String _getTypeLabel(RecommendationType type) {
+    switch (type) {
+      case RecommendationType.express: return 'EXPRESS';
+      case RecommendationType.intercity: return 'INTERCITY';
+      case RecommendationType.normal: return 'NORMAL';
+    }
+  }
 }
 
-class _BookingPreviewCard extends StatelessWidget {
+class _BookingPreviewCard extends StatefulWidget {
   const _BookingPreviewCard({required this.isDark});
-
   final bool isDark;
 
   @override
+  State<_BookingPreviewCard> createState() => _BookingPreviewCardState();
+}
+
+class _BookingPreviewCardState extends State<_BookingPreviewCard> with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+    
+    _pulseAnimation = Tween<double>(begin: 0.2, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return RideSyncSurfaceCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'TOTAL FARE',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.textLight,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
-              Text(
-                'GROUP',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.textLight,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                width: 30,
-                height: 18,
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.surfaceMutedDark : AppColors.surfaceMuted,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: isDark ? AppColors.strokeDark : AppColors.stroke,
-                  ),
-                ),
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.all(2),
-                child: Container(
-                  width: 14,
-                  height: 14,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primaryNavy,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'Rs. 450',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : AppColors.textDark,
-            ),
-          ),
-          const SizedBox(height: 18),
-          const _BookingLineItem(
-            icon: Icons.place_outlined,
-            title: 'Pettah Main Terminal',
-            subtitle: 'Boarding hub',
-          ),
-          const SizedBox(height: 14),
-          const _BookingLineItem(
-            icon: Icons.people_outline_rounded,
-            title: '2 seats reserved for squad',
-            subtitle: 'Mom + Brother',
-          ),
-          const SizedBox(height: 22),
-          RideSyncPrimaryButton(
-            label: 'Book seats',
-            icon: Icons.arrow_forward_rounded,
-            onPressed: () {
-              final auth = Provider.of<AuthProvider>(context, listen: false);
-              if (auth.isGuest) {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Login Required'),
-                    content: const Text('You need to be logged in to reserve seats and book rides.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          Navigator.pushNamed(context, '/login');
-                        },
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange),
-                        child: const Text('Login / Signup'),
-                      ),
-                    ],
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Proceeding to booking...'), backgroundColor: Colors.green),
-                );
-              }
-            },
+    return Container(
+      decoration: BoxDecoration(
+        color: widget.isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: widget.isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: widget.isDark ? Colors.black.withValues(alpha: 0.3) : AppColors.primaryOrange.withValues(alpha: 0.15),
+            blurRadius: 20,
+            spreadRadius: -5,
+            offset: const Offset(0, 10),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    FadeTransition(
+                      opacity: _pulseAnimation,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: const BoxDecoration(
+                          color: Colors.redAccent,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(color: Colors.redAccent, blurRadius: 8, spreadRadius: 2)
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'LIVE TRACKING',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: widget.isDark ? Colors.black26 : Colors.black12,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'ETA: 12 mins',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: widget.isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Express 154 to Fort',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: widget.isDark ? Colors.white : AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Your bus is currently near Town Hall',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: widget.isDark ? Colors.white60 : Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Progress Bar
+                Stack(
+                  children: [
+                    Container(
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: widget.isDark ? Colors.white10 : Colors.black12,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    FractionallySizedBox(
+                      widthFactor: 0.65,
+                      child: Container(
+                        height: 8,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [AppColors.primaryOrange, Colors.redAccent],
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Borella', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: widget.isDark ? Colors.white70 : Colors.black45)),
+                    Text('Fort', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: widget.isDark ? Colors.white70 : Colors.black45)),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                RideSyncPrimaryButton(
+                  label: 'View Live Map',
+                  icon: Icons.map_rounded,
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/main', arguments: {'index': 2});
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -573,40 +765,103 @@ class _HubNetworkSection extends StatelessWidget {
           ),
           itemBuilder: (context, index) {
             final hub = hubs[index];
-            return RideSyncSurfaceCard(
-              padding: const EdgeInsets.all(18),
+            
+            // Define a set of vibrant gradients
+            final gradients = [
+              const LinearGradient(colors: [Color(0xFFFFA726), Color(0xFFFF7043)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              const LinearGradient(colors: [Color(0xFF42A5F5), Color(0xFF5C6BC0)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              const LinearGradient(colors: [Color(0xFF26A69A), Color(0xFF00897B)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+              const LinearGradient(colors: [Color(0xFFAB47BC), Color(0xFF7E57C2)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            ];
+            final gradient = gradients[index % gradients.length];
+
+            return GestureDetector(
               onTap: () {
                 final finder = context.read<FinderProvider>();
                 final cleanName = hub.title.replaceAll('\n', ' ');
                 finder.searchFromRawStrings(cleanName, '');
                 Navigator.pushNamed(context, '/main', arguments: {'index': 3});
               },
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.place_outlined,
-                    color: AppColors.primaryOrange,
-                    size: 18,
-                  ),
-                  const Spacer(),
-                  Text(
-                    hub.title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      height: 1.3,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  gradient: gradient,
+                  boxShadow: [
+                    BoxShadow(
+                      color: gradient.colors.first.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    hub.subtitle.toUpperCase(),
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.textLight,
-                      letterSpacing: 0.9,
-                      fontWeight: FontWeight.w700,
+                  ],
+                ),
+                child: Stack(
+                  children: [
+                    // Glassmorphism shine overlay
+                    Positioned(
+                      top: -20,
+                      right: -20,
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      bottom: -30,
+                      left: -10,
+                      child: Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.apartment_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            hub.title,
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              height: 1.2,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            hub.subtitle.toUpperCase(),
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Colors.white.withValues(alpha: 0.85),
+                              letterSpacing: 0.5,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -721,58 +976,6 @@ class _InfoDot extends StatelessWidget {
   }
 }
 
-class _BookingLineItem extends StatelessWidget {
-  const _BookingLineItem({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Row(
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceMutedDark : AppColors.surfaceMuted,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, size: 18, color: AppColors.primaryOrange),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: isDark ? AppColors.textMutedDark : AppColors.textLight,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primaryOrange),
-      ],
-    );
-  }
-}
 
 class _HomeAccountButton extends StatelessWidget {
   const _HomeAccountButton();
