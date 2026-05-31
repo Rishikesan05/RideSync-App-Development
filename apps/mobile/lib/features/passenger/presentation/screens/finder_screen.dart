@@ -690,8 +690,9 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
             const SizedBox(height: 12),
             Expanded(
               child: ListView.builder(
+                clipBehavior: Clip.none,
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 itemCount: finder.routes.length,
                 itemBuilder: (context, index) {
                   final route = finder.routes[index];
@@ -759,24 +760,35 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
         finder.selectRoute(route);
         _animateToRoute(route);
       },
-      child: Container(
-        width: 280,
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          color: isSelected 
-              ? AppColors.primaryOrange.withValues(alpha: 0.08) 
-              : (isDark ? const Color(0xFF1E293B) : Colors.white),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isSelected ? AppColors.primaryOrange : (isDark ? Colors.white10 : Colors.grey.shade100),
-            width: 2,
-          ),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: isSelected ? 0.1 : 0.05), blurRadius: 8, offset: const Offset(0, 4)),
-          ],
-        ),
-        child: Column(
+      child: AnimatedScale(
+        scale: isSelected ? 1.05 : 0.95,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutBack,
+        child: AnimatedOpacity(
+          opacity: isSelected ? 1.0 : 0.5,
+          duration: const Duration(milliseconds: 300),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: 280,
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: isSelected 
+                  ? AppColors.primaryOrange.withValues(alpha: 0.08) 
+                  : (isDark ? const Color(0xFF1E293B) : Colors.white),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isSelected ? AppColors.primaryOrange : (isDark ? Colors.white10 : Colors.grey.shade100),
+                width: 2,
+              ),
+              boxShadow: [
+                if (isSelected)
+                  BoxShadow(color: AppColors.primaryOrange.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 8))
+                else
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
+              ],
+            ),
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.max,
           children: [
