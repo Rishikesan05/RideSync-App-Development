@@ -24,7 +24,7 @@ const args = process.argv.slice(2).filter(arg => !arg.startsWith('--'));
 const email = args[0];
 
 if (!email || !args[1]) {
-  console.error('❌ ERROR: Missing required arguments.');
+  console.error(' ERROR: Missing required arguments.');
   console.error('   Usage: node scripts/reset-admin-password.js <email> <newPassword> [--force]');
   process.exit(1);
 }
@@ -43,10 +43,10 @@ async function resetPassword() {
     await auth.updateUser(userRecord.uid, { password: newPassword });
 
     // Log only identity info — the password value is intentionally never printed.
-    console.log(`✅ Password successfully updated for: ${email} (UID: ${userRecord.uid})`);
+    console.log(`Password successfully updated for: ${email} (UID: ${userRecord.uid})`);
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error resetting password:', error.message);
+    console.error(' Error resetting password:', error.message);
     process.exit(1);
   }
 }
