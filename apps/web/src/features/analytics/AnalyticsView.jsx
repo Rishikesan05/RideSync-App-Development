@@ -84,12 +84,31 @@ const buildRouteData = (bookingDocs, routesMap) => {
     .slice(0, 5);
 };
 
-const timeOfDayData = [
-  { name: 'Morning (6A-12P)', count: 450 },
-  { name: 'Afternoon (12P-6P)', count: 320 },
-  { name: 'Evening (6P-12A)', count: 280 },
-  { name: 'Night (12A-6A)', count: 90 },
-];
+/**
+ * Groups bookings into four time-of-day buckets by extracting
+ * the hour from each booking's timestamp field.
+ */
+const buildTimeOfDay = (bookingDocs) => {
+  const buckets = { Morning: 0, Afternoon: 0, Evening: 0, Night: 0 };
+  bookingDocs.forEach((b) => {
+    const raw = b.timestamp ?? b.createdAt ?? b.bookedAt ?? null;
+    if (!raw) return;
+    try {
+      const date = typeof raw.toDate === 'function' ? raw.toDate() : new Date(raw);
+      const h = date.getHours();
+      if      (h >= 6  && h < 12) buckets.Morning++;
+      else if (h >= 12 && h < 18) buckets.Afternoon++;
+      else if (h >= 18 && h < 24) buckets.Evening++;
+      else                        buckets.Night++;
+    } catch { /* skip malformed timestamps */ }
+  });
+  return [
+    { name: 'Morning (6A–12P)',   count: buckets.Morning },
+    { name: 'Afternoon (12P–6P)', count: buckets.Afternoon },
+    { name: 'Evening (6P–12A)',   count: buckets.Evening },
+    { name: 'Night (12A–6A)',    count: buckets.Night },
+  ];
+};
 
 const COLORS = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#3b82f6'];
 
@@ -101,8 +120,12 @@ export const AnalyticsView = () => {
   const [ytdLoading, setYtdLoading] = useState(true);
 
   // ── Route popularity state (Commit 8) ────────────────────────────────
-  const [routeData, setRouteData]         = useState([]);
-  const [routeLoading, setRouteLoading]   = useState(true);
+  const [routeData, setRouteData]       = useState([]);
+  const [routeLoading, setRouteLoading] = useState(true);
+
+  // ── Time-of-day state (Commit 9) ─────────────────────────────────────
+  const [timeData, setTimeData]         = useState([]);
+  const [timeLoading, setTimeLoading]   = useState(true);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -127,11 +150,13 @@ export const AnalyticsView = () => {
 
         setYtdData(buildYtdData(bookingDocs));
         setRouteData(buildRouteData(bookingDocs, routesMap));
+        setTimeData(buildTimeOfDay(bookingDocs));
       } catch (err) {
         console.error('AnalyticsView fetch error:', err);
       } finally {
         setYtdLoading(false);
         setRouteLoading(false);
+        setTimeLoading(false);
       }
     };
     fetchAll();
@@ -139,6 +164,7 @@ export const AnalyticsView = () => {
 
   const ytdHasData   = ytdData.some((d) => d.revenue > 0 || d.bookings > 0);
   const routeHasData = routeData.length > 0;
+  const timeHasData  = timeData.some((d) => d.count > 0);
 
   return (
     <Box>
@@ -229,24 +255,42 @@ export const AnalyticsView = () => {
           </Card>
         </Grid>
 
-        {/* Booking Time Distribution */}
+        {/* Bookings by Time of Day — real Firestore data */}
         <Grid item xs={12} md={6}>
           <Card sx={{ height: 400 }}>
             <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Bookings by Time of Day</Typography>
               <Box sx={{ flexGrow: 1, minHeight: 0 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={timeOfDayData} layout="vertical" margin={{ top: 10, right: 30, left: 40, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                    <XAxis type="number" stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} />
-                    <YAxis dataKey="name" type="category" stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} />
-                    <RechartsTooltip 
-                      cursor={{fill: 'rgba(255,255,255,0.05)'}}
-                      contentStyle={{ backgroundColor: theme.palette.background.paper, border: 'none', borderRadius: 8 }}
-                    />
-                    <Bar dataKey="count" name="Bookings" fill={theme.palette.info.main} radius={[0, 4, 4, 0]} barSize={30} />
-                  </BarChart>
-                </ResponsiveContainer>
+                {timeLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                    <CircularProgress />
+                  </Box>
+                ) : !timeHasData ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                    <Typography color="text.secondary">No timestamped bookings to analyse yet.</Typography>
+                  </Box>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={timeData} layout="vertical" margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                      <XAxis type="number" stroke={theme.palette.text.secondary} tick={{ fill: theme.palette.text.secondary }} axisLine={false} tickLine={false} />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        stroke={theme.palette.text.secondary}
+                        tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={115}
+                      />
+                      <RechartsTooltip
+                        cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                        contentStyle={{ backgroundColor: theme.palette.background.paper, border: 'none', borderRadius: 8 }}
+                      />
+                      <Bar dataKey="count" name="Bookings" fill={theme.palette.info.main} radius={[0, 4, 4, 0]} barSize={28} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </Box>
             </CardContent>
           </Card>
