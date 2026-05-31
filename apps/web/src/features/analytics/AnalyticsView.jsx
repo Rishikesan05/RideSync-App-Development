@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Typography, 
   Card, 
   CardContent, 
   Box, 
   Grid,
+  CircularProgress,
   useTheme
 } from '@mui/material';
 import {
@@ -25,16 +26,42 @@ import {
   Legend
 } from 'recharts';
 
-// Mock data for analytics
-const revenueData = [
-  { name: 'Jan', revenue: 40000, bookings: 240 },
-  { name: 'Feb', revenue: 30000, bookings: 139 },
-  { name: 'Mar', revenue: 20000, bookings: 980 },
-  { name: 'Apr', revenue: 27800, bookings: 390 },
-  { name: 'May', revenue: 18900, bookings: 480 },
-  { name: 'Jun', revenue: 23900, bookings: 380 },
-  { name: 'Jul', revenue: 34900, bookings: 430 },
-];
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../../api/firebase';
+
+// Month labels for YTD chart
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+/**
+ * Reads a booking document's date regardless of which timestamp
+ * field name the mobile app used: timestamp | createdAt | bookedAt
+ */
+const getBookingDate = (data) => {
+  const raw = data.timestamp ?? data.createdAt ?? data.bookedAt ?? null;
+  if (!raw) return null;
+  try {
+    return typeof raw.toDate === 'function' ? raw.toDate() : new Date(raw);
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Groups bookings by calendar month for the current year.
+ * Returns a 12-element array: [{ name:'Jan', revenue, bookings }, ...]
+ */
+const buildYtdData = (docs) => {
+  const year = new Date().getFullYear();
+  const monthly = MONTH_NAMES.map((name) => ({ name, revenue: 0, bookings: 0 }));
+  docs.forEach((d) => {
+    const date = getBookingDate(d);
+    if (!date || date.getFullYear() !== year) return;
+    const m = date.getMonth();
+    monthly[m].revenue  += d.totalFare || 0;
+    monthly[m].bookings += 1;
+  });
+  return monthly;
+};
 
 const routePopularityData = [
   { name: 'Colombo - Kandy', value: 400 },
@@ -55,6 +82,27 @@ const COLORS = ['#6366f1', '#ec4899', '#10b981', '#f59e0b'];
 export const AnalyticsView = () => {
   const theme = useTheme();
 
+  // ── YTD chart state (Commit 7) ──────────────────────────────────────
+  const [ytdData, setYtdData]       = useState([]);
+  const [ytdLoading, setYtdLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchYtd = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'bookings'));
+        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setYtdData(buildYtdData(docs));
+      } catch (err) {
+        console.error('AnalyticsView YTD fetch error:', err);
+      } finally {
+        setYtdLoading(false);
+      }
+    };
+    fetchYtd();
+  }, []);
+
+  const ytdHasData = ytdData.some((d) => d.revenue > 0 || d.bookings > 0);
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
@@ -62,33 +110,43 @@ export const AnalyticsView = () => {
       </Box>
 
       <Grid container spacing={3}>
-        {/* Revenue & Bookings Over Time */}
+        {/* Revenue & Bookings YTD — real Firestore data */}
         <Grid item xs={12}>
           <Card sx={{ height: 400 }}>
             <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Revenue & Booking Volume (YTD)</Typography>
               <Box sx={{ flexGrow: 1, minHeight: 0 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                    <XAxis dataKey="name" stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} />
-                    <YAxis yAxisId="left" stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} />
-                    <YAxis yAxisId="right" orientation="right" stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} />
-                    <RechartsTooltip 
-                      contentStyle={{ backgroundColor: theme.palette.background.paper, border: 'none', borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}
-                      itemStyle={{ color: theme.palette.primary.light }}
-                    />
-                    <Legend />
-                    <Area yAxisId="left" type="monotone" dataKey="revenue" name="Revenue (LKR)" stroke={theme.palette.primary.main} strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
-                    <Line yAxisId="right" type="monotone" dataKey="bookings" name="Total Bookings" stroke={theme.palette.secondary.main} strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                  </AreaChart>
-                </ResponsiveContainer>
+                {ytdLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                    <CircularProgress />
+                  </Box>
+                ) : !ytdHasData ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                    <Typography color="text.secondary">No booking data available for this year yet.</Typography>
+                  </Box>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={ytdData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorRevenueYtd" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                      <XAxis dataKey="name" stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} />
+                      <YAxis yAxisId="left" stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} />
+                      <YAxis yAxisId="right" orientation="right" stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} />
+                      <RechartsTooltip 
+                        contentStyle={{ backgroundColor: theme.palette.background.paper, border: 'none', borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}
+                        itemStyle={{ color: theme.palette.primary.light }}
+                      />
+                      <Legend />
+                      <Area yAxisId="left" type="monotone" dataKey="revenue" name="Revenue (LKR)" stroke={theme.palette.primary.main} strokeWidth={3} fillOpacity={1} fill="url(#colorRevenueYtd)" />
+                      <Line yAxisId="right" type="monotone" dataKey="bookings" name="Total Bookings" stroke={theme.palette.secondary.main} strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
               </Box>
             </CardContent>
           </Card>
