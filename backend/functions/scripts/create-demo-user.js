@@ -1,20 +1,44 @@
 #!/usr/bin/env node
 /**
- * Create Demo User Script
- * Usage: node scripts/create-demo-user.js [email] [password]
- * Defaults: email=demo.admin@ridesync.lk, password=DemoPass123!
+ * Create Demo Admin User Script
+ * Usage: node scripts/create-demo-user.js <email> <password> [--force]
  *
- * Note: Requires Firebase Admin credentials (service account) or running
- * against the Firebase Auth emulator.
+ * Safety: By default this script only runs against the Firebase Auth Emulator.
+ *         Pass --force to run against a live project (use with caution).
  */
+
+// 1. Safety Guard — block production runs unless --force is passed
+const isEmulator = !!process.env.FIREBASE_AUTH_EMULATOR_HOST;
+const isForce = process.argv.includes('--force');
+
+if (!isEmulator && !isForce) {
+  console.error('❌ ERROR: Guard triggered. This script is intended for development environments.');
+  console.error('   To create a verified admin user in production, append the --force flag.');
+  process.exit(1);
+}
+
+// 2. Validate arguments — no hardcoded defaults
+const args = process.argv.slice(2).filter(arg => !arg.startsWith('--'));
+const email = args[0];
+const password = args[1];
+
+if (!email || !password) {
+  console.error('❌ ERROR: Missing required arguments.');
+  console.error('   Usage: node scripts/create-demo-user.js <email> <password> [--force]');
+  process.exit(1);
+}
+
+// Reuse project firebase-admin config (auto-discovers credentials)
 const { auth, db } = require('../src/config/firebase.config');
 
-const email = process.argv[2] || 'demo.admin@ridesync.lk';
-const password = process.argv[3] || 'DemoPass123!';
+// 3. Code Consistency — import ROLES from the centralized constants file
+//    rather than using raw 'admin' strings scattered across scripts.
+const { ROLES } = require('../src/shared/constants');
 
-async function createDemo() {
+async function createDemoAdmin() {
   try {
-    // Create Auth user
+    console.log(`Creating admin account for: ${email}...`);
+
     const userRecord = await auth.createUser({
       email,
       emailVerified: true,
@@ -22,17 +46,16 @@ async function createDemo() {
       disabled: false,
     });
 
-    // Set admin role claim so this account can access admin portal
-    await auth.setCustomUserClaims(userRecord.uid, { role: 'admin' });
+    // Use ROLES.ADMIN constant for Custom Claims
+    await auth.setCustomUserClaims(userRecord.uid, { role: ROLES.ADMIN });
 
-    // Create a Firestore profile document (mirror of registerUser)
     const now = new Date();
     const userData = {
       uid: userRecord.uid,
       name: 'Demo Admin',
       email,
       phone: null,
-      role: 'admin',
+      role: ROLES.ADMIN, // Use ROLES.ADMIN constant for Firestore profile
       busId: null,
       fcmToken: null,
       createdAt: now,
@@ -41,13 +64,15 @@ async function createDemo() {
 
     await db.collection('users').doc(userRecord.uid).set(userData);
 
-    console.log(`✅ Demo user created: ${email}`);
-    console.log(`👉 Password: ${password}`);
+    // 4. Security: do NOT echo the password back to stdout
+    console.log(`✅ Demo admin user created successfully!`);
+    console.log(`   Email: ${email}`);
+    console.log(`   UID:   ${userRecord.uid}`);
     process.exit(0);
-  } catch (err) {
-    console.error('❌ Failed to create demo user:', err.message || err);
+  } catch (error) {
+    console.error('❌ Error creating demo user:', error.message);
     process.exit(1);
   }
 }
 
-createDemo();
+createDemoAdmin();
