@@ -292,13 +292,15 @@ export const Dashboard = () => {
         </Grid>
       </Grid>
 
-      {/* ── Today's Schedules ──────────────────────────────────────────── */}
-      <Box sx={{ mt: 3 }}>
-        <TodaySchedules />
-      </Box>
+      {/* ── Row 3: Today's Schedules (full width) ──────────────────────── */}
+      <Grid container spacing={3} sx={{ mt: 3 }}>
+        <Grid item xs={12}>
+          <TodaySchedules />
+        </Grid>
+      </Grid>
 
-      {/* ── User Stats + Recent Bookings row ──────────────────────────── */}
-      <Grid container spacing={3} sx={{ mt: 0 }}>
+      {/* ── Row 4: UserStats (left) + RecentBookings (right) ───────────── */}
+      <Grid container spacing={3} sx={{ mt: 3 }}>
         <Grid item xs={12} md={4}>
           <UserStats />
         </Grid>
@@ -306,6 +308,7 @@ export const Dashboard = () => {
           <RecentBookings />
         </Grid>
       </Grid>
+
     </Box>
   );
 };
