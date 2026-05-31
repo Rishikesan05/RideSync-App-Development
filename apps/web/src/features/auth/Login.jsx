@@ -111,7 +111,9 @@ export const Login = () => {
             <div style={styles.fieldGroup}>
               <div style={styles.labelRow}>
                 <label style={styles.label} htmlFor="login-password">Password</label>
-              
+                <RouterLink to="/forgot-password" style={styles.forgotLink}>
+                  Forgot password?
+                </RouterLink>
               </div>
               <div style={styles.inputWrapper}>
                 <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -184,6 +186,7 @@ export const Login = () => {
             <span style={styles.dividerLine} />
           </div>
 
+       
         </div>
 
         <p style={styles.footer}>
