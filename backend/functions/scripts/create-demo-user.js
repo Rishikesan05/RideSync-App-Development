@@ -12,7 +12,7 @@ const isEmulator = !!process.env.FIREBASE_AUTH_EMULATOR_HOST;
 const isForce = process.argv.includes('--force');
 
 if (!isEmulator && !isForce) {
-  console.error('❌ ERROR: Guard triggered. This script is intended for development environments.');
+  console.error(' ERROR: Guard triggered. This script is intended for development environments.');
   console.error('   To create a verified admin user in production, append the --force flag.');
   process.exit(1);
 }
@@ -23,7 +23,7 @@ const email = args[0];
 const password = args[1];
 
 if (!email || !password) {
-  console.error('❌ ERROR: Missing required arguments.');
+  console.error(' ERROR: Missing required arguments.');
   console.error('   Usage: node scripts/create-demo-user.js <email> <password> [--force]');
   process.exit(1);
 }
@@ -65,12 +65,12 @@ async function createDemoAdmin() {
     await db.collection('users').doc(userRecord.uid).set(userData);
 
     // 4. Security: do NOT echo the password back to stdout
-    console.log(`✅ Demo admin user created successfully!`);
+    console.log(` Demo admin user created successfully!`);
     console.log(`   Email: ${email}`);
     console.log(`   UID:   ${userRecord.uid}`);
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error creating demo user:', error.message);
+    console.error(' Error creating demo user:', error.message);
     process.exit(1);
   }
 }
