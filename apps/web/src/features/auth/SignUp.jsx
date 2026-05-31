@@ -138,7 +138,7 @@ export const SignUp = () => {
             Back to login
           </RouterLink>
           <img
-            src="/ridesync-logo.png"
+            src="/ridesync-logo.jpeg"
             alt="RideSync"
             style={styles.logoImg}
           />
