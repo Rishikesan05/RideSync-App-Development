@@ -15,6 +15,9 @@ import {
 
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '../../api/firebase';
+import { RecentBookings } from './RecentBookings';
+import { UserStats } from './UserStats';
+import { TodaySchedules } from './TodaySchedules';
 
 const StatCard = ({ title, value, icon, trend, color, loading }) => {
   const theme = useTheme();
@@ -288,6 +291,24 @@ export const Dashboard = () => {
           </Card>
         </Grid>
       </Grid>
+
+      {/* ── Row 3: Today's Schedules (full width) ──────────────────────── */}
+      <Grid container spacing={3} sx={{ mt: 3 }}>
+        <Grid item xs={12}>
+          <TodaySchedules />
+        </Grid>
+      </Grid>
+
+      {/* ── Row 4: UserStats (left) + RecentBookings (right) ───────────── */}
+      <Grid container spacing={3} sx={{ mt: 3 }}>
+        <Grid item xs={12} md={4}>
+          <UserStats />
+        </Grid>
+        <Grid item xs={12} md={8}>
+          <RecentBookings />
+        </Grid>
+      </Grid>
+
     </Box>
   );
 };
