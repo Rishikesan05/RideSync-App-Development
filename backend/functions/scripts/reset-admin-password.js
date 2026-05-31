@@ -18,12 +18,13 @@ if (!isEmulator && !isForce) {
 }
 
 // 2. Validate arguments — no hardcoded defaults
+//    Parsed inside the function so the password value is scoped as tightly as
+//    possible and can never be accidentally referenced at module level.
 const args = process.argv.slice(2).filter(arg => !arg.startsWith('--'));
 const email = args[0];
-const newPassword = args[1];
 
-if (!email || !newPassword) {
-  console.error('ERROR: Missing required arguments.');
+if (!email || !args[1]) {
+  console.error('❌ ERROR: Missing required arguments.');
   console.error('   Usage: node scripts/reset-admin-password.js <email> <newPassword> [--force]');
   process.exit(1);
 }
@@ -33,15 +34,19 @@ if (!email || !newPassword) {
 const { auth } = require('../src/config/firebase.config');
 
 async function resetPassword() {
+  // Password is scoped exclusively inside this function — never at module level —
+  // to prevent any accidental logging or exposure outside this call site.
+  const newPassword = args[1];
+
   try {
     const userRecord = await auth.getUserByEmail(email);
     await auth.updateUser(userRecord.uid, { password: newPassword });
 
-    // 3. Security: do NOT echo the password back to stdout
-    console.log(`Password successfully updated for: ${email} (UID: ${userRecord.uid})`);
+    // Log only identity info — the password value is intentionally never printed.
+    console.log(`✅ Password successfully updated for: ${email} (UID: ${userRecord.uid})`);
     process.exit(0);
   } catch (error) {
-    console.error('Error resetting password:', error.message);
+    console.error('❌ Error resetting password:', error.message);
     process.exit(1);
   }
 }

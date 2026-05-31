@@ -39,6 +39,16 @@ async function createDemoAdmin() {
   try {
     console.log(`Creating admin account for: ${email}...`);
 
+    // Explicit point-of-use guard: warn loudly right before the high-impact
+    // Firebase calls when --force is active against a live project, so the
+    // risk is visible even if the top-of-file guard is missed during review.
+    if (isForce && !isEmulator) {
+      console.warn('\n⚠️  WARNING: --force flag active. Writing a verified admin user to LIVE Firebase.');
+      console.warn(`   Project: ${process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || 'unknown'}`);
+      console.warn('   Proceeding in 3 seconds — press Ctrl+C to abort.\n');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+
     const userRecord = await auth.createUser({
       email,
       emailVerified: true,
