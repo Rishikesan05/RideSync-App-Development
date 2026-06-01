@@ -106,18 +106,64 @@ class _BookingScreenState extends State<BookingScreen> {
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       appBar: AppBar(
-        title: const Text('Book Your Ride', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
+        title: const Text('Book Your Ride', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
         leading: widget.onBack != null 
           ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: widget.onBack)
           : null,
       ),
-      body: Column(
+      body: Stack(
+        clipBehavior: Clip.none,
         children: [
-          _buildSearchHeader(booking, isDark),
-          Expanded(
-            child: _buildSchedulesList(booking, isDark),
+          // Orange Background Curve
+          Container(
+            height: 160,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
+              ),
+            ),
+          ),
+          // Bus Animation
+          Positioned(
+            top: -10,
+            right: 0,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 200, end: 0),
+              duration: const Duration(milliseconds: 3500),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, child) {
+                return Transform.translate(
+                  offset: Offset(value, 0),
+                  child: child,
+                );
+              },
+              child: Opacity(
+                opacity: 0.4,
+                child: Image.asset(
+                  'assets/images/bussymbol.png',
+                  height: 120,
+                  color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+                  colorBlendMode: BlendMode.multiply,
+                ),
+              ),
+            ),
+          ),
+          // Content
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: _buildSearchHeader(booking, isDark),
+              ),
+              Expanded(
+                child: _buildSchedulesList(booking, isDark),
+              ),
+            ],
           ),
         ],
       ),
@@ -132,9 +178,9 @@ class _BookingScreenState extends State<BookingScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
+          BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 15, offset: const Offset(0, 5))
         ],
       ),
       child: Column(

@@ -69,37 +69,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-<<<<<<< HEAD
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _HeroBlock(isDark: isDark),
-              const SizedBox(height: AppStyles.sectionSpacing),
-              Consumer<LiveJourneyProvider>(
-                builder: (context, liveJourney, child) {
-                  if (liveJourney.hasActiveBooking && liveJourney.hasJourneyStarted) {
-                    return Column(
-                      children: [
-                        _BookingPreviewCard(isDark: isDark),
-                        const SizedBox(height: AppStyles.sectionSpacing),
-                      ],
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-              _SearchPlannerCard(isDark: isDark),
-              const SizedBox(height: 18),
-              _TravelSquadCard(isDark: isDark),
-              const SizedBox(height: AppStyles.sectionSpacing),
-              _SectionWithRoutes(isDark: isDark),
-              const SizedBox(height: AppStyles.sectionSpacing),
-              _HubNetworkSection(isDark: isDark),
-            ],
-=======
       body: Stack(
         children: [
           // Orange Background Curve
@@ -112,7 +81,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 bottomRight: Radius.circular(40),
               ),
             ),
->>>>>>> feat/operator-home-redesign
           ),
           // Scrollable Content
           SingleChildScrollView(
