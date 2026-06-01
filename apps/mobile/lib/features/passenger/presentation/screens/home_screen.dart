@@ -32,9 +32,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
+      backgroundColor: isDark ? AppColors.backgroundDark : const Color(0xFFF0F2F5),
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        backgroundColor: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+        elevation: 0,
         title: Row(
           children: [
             ClipRRect(
@@ -49,7 +51,12 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 12),
             Text(
               'RideSync',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w800, // Extra bold for a logo feel
+                letterSpacing: 0.5,
+              ),
             ),
           ],
         ),
@@ -58,38 +65,70 @@ class _HomeScreenState extends State<HomeScreen> {
           SizedBox(width: 6),
           Padding(
             padding: EdgeInsets.only(right: 16),
-            child: _HomeAccountButton(),
+            child: HomeAccountButton(),
           ),
         ],
       ),
-      body: SafeArea(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          // Add refresh logic if needed
+        },
+        color: AppColors.primaryOrange,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 120),
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              _HeroBlock(isDark: isDark),
-              const SizedBox(height: AppStyles.sectionSpacing),
-              Consumer<LiveJourneyProvider>(
-                builder: (context, liveJourney, child) {
-                  if (liveJourney.hasActiveBooking && liveJourney.hasJourneyStarted) {
-                    return Column(
-                      children: [
-                        _BookingPreviewCard(isDark: isDark),
-                        const SizedBox(height: AppStyles.sectionSpacing),
-                      ],
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
+              // Orange Background Curve
+              Container(
+                height: 240, // Extends down behind the planner card
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(40),
+                    bottomRight: Radius.circular(40),
+                  ),
+                ),
               ),
-              _SearchPlannerCard(isDark: isDark),
-              const SizedBox(height: 18),
-              _TravelSquadCard(isDark: isDark),
-              const SizedBox(height: AppStyles.sectionSpacing),
-              _SectionWithRoutes(isDark: isDark),
-              const SizedBox(height: AppStyles.sectionSpacing),
-              _HubNetworkSection(isDark: isDark),
+              // Scrollable Content Layout
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header Text
+                  _CurvedHeaderText(isDark: isDark),
+                  
+                  // Cards (Search Planner starts here, overlapping the orange background visually)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Consumer<LiveJourneyProvider>(
+                          builder: (context, liveJourney, child) {
+                            if (liveJourney.hasActiveBooking && liveJourney.hasJourneyStarted) {
+                              return Column(
+                                children: [
+                                  _BookingPreviewCard(isDark: isDark),
+                                  const SizedBox(height: AppStyles.sectionSpacing),
+                                ],
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                        _SearchPlannerCard(isDark: isDark),
+                        const SizedBox(height: 18),
+                        _TravelSquadCard(isDark: isDark),
+                        const SizedBox(height: AppStyles.sectionSpacing),
+                        _SectionWithRoutes(isDark: isDark),
+                        const SizedBox(height: AppStyles.sectionSpacing),
+                        _HubNetworkSection(isDark: isDark),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -99,115 +138,75 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _HeroBlock extends StatefulWidget {
-  const _HeroBlock({required this.isDark});
+class _CurvedHeaderText extends StatelessWidget {
+  const _CurvedHeaderText({required this.isDark});
   final bool isDark;
 
   @override
-  State<_HeroBlock> createState() => _HeroBlockState();
-}
-
-class _HeroBlockState extends State<_HeroBlock> with SingleTickerProviderStateMixin {
-  late final AnimationController _animController;
-  late final Animation<Color?> _colorAnim1;
-  late final Animation<Color?> _colorAnim2;
-
-  @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat(reverse: true);
-    
-    final hour = DateTime.now().hour;
-    Color c1, c2, c3, c4;
-    
-    if (hour < 12) {
-      // Morning colors (warm yellow/orange)
-      c1 = const Color(0xFFFFB74D); c2 = const Color(0xFFFF8A65);
-      c3 = const Color(0xFFFFE082); c4 = const Color(0xFFFFCC80);
-    } else if (hour < 17) {
-      // Afternoon colors (bright blue/cyan)
-      c1 = const Color(0xFF4FC3F7); c2 = const Color(0xFF4DD0E1);
-      c3 = const Color(0xFF81D4FA); c4 = const Color(0xFF80DEEA);
-    } else {
-      // Evening/Night colors (deep purple/indigo)
-      c1 = const Color(0xFF7E57C2); c2 = const Color(0xFF5C6BC0);
-      c3 = const Color(0xFF9575CD); c4 = const Color(0xFF7986CB);
-    }
-
-    _colorAnim1 = ColorTween(begin: c1.withValues(alpha: 0.25), end: c3.withValues(alpha: 0.45)).animate(_animController);
-    _colorAnim2 = ColorTween(begin: c2.withValues(alpha: 0.25), end: c4.withValues(alpha: 0.45)).animate(_animController);
-  }
-
-  @override
-  void dispose() {
-    _animController.dispose();
-    super.dispose();
-  }
-
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final auth = context.watch<AuthProvider>();
     final userName = auth.user?.name.split(' ').first ?? 'Rider';
 
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        // Animated glowing background blob
-        Positioned(
-          top: -40,
-          left: -20,
-          child: AnimatedBuilder(
-            animation: _animController,
-            builder: (context, child) {
-              return Container(
-                width: 250,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      _colorAnim1.value ?? Colors.transparent,
-                      (_colorAnim2.value ?? Colors.transparent).withValues(alpha: 0.0),
-                    ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.only(top: 10, left: 24, right: 24, bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  'Hello,\n$userName',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    height: 1.2,
                   ),
                 ),
-              );
-            },
+              ),
+              const SizedBox(width: 16),
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 200, end: 0), // Start off-screen right
+                duration: const Duration(milliseconds: 3500), // VERY slow (3.5 seconds) so you can't miss it
+                curve: Curves.easeOutCubic,
+                builder: (context, value, child) {
+                  return Transform.translate(
+                    offset: Offset(value, 0),
+                    child: child,
+                  );
+                },
+                child: Opacity(
+                  opacity: 0.4,
+                  child: Image.asset(
+                    'assets/images/bussymbol.png',
+                    height: 100,
+                    color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+                    colorBlendMode: BlendMode.multiply,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${_getGreeting()},\n$userName.',
-              style: theme.textTheme.displaySmall?.copyWith(
-                fontWeight: FontWeight.w800,
-                height: 1.1,
-                color: widget.isDark ? Colors.white : AppColors.textDark,
-              ),
+          const SizedBox(height: 12),
+          Text(
+            'Plan your route, coordinate with your travel squad, and move through the city with less friction.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontSize: 14,
+              height: 1.5,
             ),
-            const SizedBox(height: 12),
-            Text(
-              'Plan your route, coordinate with your travel squad, and move through the city with less friction.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                height: 1.5,
-                color: widget.isDark ? AppColors.textMutedDark : AppColors.textLight,
-              ),
-            ),
-          ],
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }
+
+
 
 class _SearchPlannerCard extends StatefulWidget {
   const _SearchPlannerCard({required this.isDark});
@@ -968,8 +967,8 @@ class _InfoDot extends StatelessWidget {
 }
 
 
-class _HomeAccountButton extends StatelessWidget {
-  const _HomeAccountButton();
+class HomeAccountButton extends StatelessWidget {
+  const HomeAccountButton({super.key});
 
   @override
   Widget build(BuildContext context) {
