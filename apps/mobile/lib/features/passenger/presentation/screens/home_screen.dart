@@ -35,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: isDark ? AppColors.backgroundDark : const Color(0xFFF0F2F5),
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: isDark ? const Color(0xFF0F172A) : AppColors.primaryNavy,
+        backgroundColor: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
         elevation: 0,
         title: Row(
           children: [
@@ -122,7 +122,7 @@ class _CurvedHeader extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.only(top: 20, left: 24, right: 24, bottom: 40),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : AppColors.primaryNavy,
+        color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(40),
           bottomRight: Radius.circular(40),
