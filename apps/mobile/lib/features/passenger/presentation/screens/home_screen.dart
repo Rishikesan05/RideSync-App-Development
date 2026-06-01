@@ -51,9 +51,12 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 12),
             Text(
               'RideSync',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                  ),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w800, // Extra bold for a logo feel
+                letterSpacing: 0.5,
+              ),
             ),
           ],
         ),
@@ -158,11 +161,25 @@ class _CurvedHeaderText extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 16),
-              Image.asset(
-                'assets/images/bussymbol.png',
-                height: 60,
-                color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
-                colorBlendMode: BlendMode.multiply, // Automatically removes the white background by tinting it to match the header!
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 200, end: 0), // Start off-screen right
+                duration: const Duration(milliseconds: 3500), // VERY slow (3.5 seconds) so you can't miss it
+                curve: Curves.easeOutCubic,
+                builder: (context, value, child) {
+                  return Transform.translate(
+                    offset: Offset(value, 0),
+                    child: child,
+                  );
+                },
+                child: Opacity(
+                  opacity: 0.4,
+                  child: Image.asset(
+                    'assets/images/bussymbol.png',
+                    height: 100,
+                    color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+                    colorBlendMode: BlendMode.multiply,
+                  ),
+                ),
               ),
             ],
           ),
