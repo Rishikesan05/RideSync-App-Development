@@ -69,61 +69,69 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          // Orange Background Curve
-          Container(
-            height: 240, // Extends down behind the planner card
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(40),
-                bottomRight: Radius.circular(40),
-              ),
-            ),
-          ),
-          // Scrollable Content
-          SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 120),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header Text
-                _CurvedHeaderText(isDark: isDark),
-                
-                // Cards (Search Planner starts here, overlapping the orange background visually)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Consumer<LiveJourneyProvider>(
-                        builder: (context, liveJourney, child) {
-                          if (liveJourney.hasActiveBooking && liveJourney.hasJourneyStarted) {
-                            return Column(
-                              children: [
-                                _BookingPreviewCard(isDark: isDark),
-                                const SizedBox(height: AppStyles.sectionSpacing),
-                              ],
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
-                      _SearchPlannerCard(isDark: isDark),
-                      const SizedBox(height: 18),
-                      _TravelSquadCard(isDark: isDark),
-                      const SizedBox(height: AppStyles.sectionSpacing),
-                      _SectionWithRoutes(isDark: isDark),
-                      const SizedBox(height: AppStyles.sectionSpacing),
-                      _HubNetworkSection(isDark: isDark),
-                    ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          // Add refresh logic if needed
+        },
+        color: AppColors.primaryOrange,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 120),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Orange Background Curve
+              Container(
+                height: 240, // Extends down behind the planner card
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(40),
+                    bottomRight: Radius.circular(40),
                   ),
                 ),
-              ],
-            ),
+              ),
+              // Scrollable Content Layout
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header Text
+                  _CurvedHeaderText(isDark: isDark),
+                  
+                  // Cards (Search Planner starts here, overlapping the orange background visually)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Consumer<LiveJourneyProvider>(
+                          builder: (context, liveJourney, child) {
+                            if (liveJourney.hasActiveBooking && liveJourney.hasJourneyStarted) {
+                              return Column(
+                                children: [
+                                  _BookingPreviewCard(isDark: isDark),
+                                  const SizedBox(height: AppStyles.sectionSpacing),
+                                ],
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                        _SearchPlannerCard(isDark: isDark),
+                        const SizedBox(height: 18),
+                        _TravelSquadCard(isDark: isDark),
+                        const SizedBox(height: AppStyles.sectionSpacing),
+                        _SectionWithRoutes(isDark: isDark),
+                        const SizedBox(height: AppStyles.sectionSpacing),
+                        _HubNetworkSection(isDark: isDark),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
       floatingActionButton: const AIAssistantFAB(),
     );
