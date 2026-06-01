@@ -35,76 +35,43 @@ class AccountScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // Orange Background Curve
-          Container(
-            height: 240,
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(40),
-                bottomRight: Radius.circular(40),
-              ),
-            ),
-          ),
-          // Bus Animation
-          Positioned(
-            top: -10,
-            right: 0,
-            child: IgnorePointer(
-              child: TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 200, end: 0),
-                duration: const Duration(milliseconds: 3500),
-                curve: Curves.easeOutCubic,
-                builder: (context, value, child) {
-                  return Transform.translate(
-                    offset: Offset(value, 0),
-                    child: child,
-                  );
-                },
-                child: Opacity(
-                  opacity: 0.4,
-                  child: Image.asset(
-                    'assets/images/bussymbol.png',
-                    height: 120,
-                    color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
-                    colorBlendMode: BlendMode.multiply,
-                  ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // The orange header section that scrolls
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.only(bottom: 30),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40),
                 ),
               ),
+              child: _buildHeader(context, authProvider, isDark),
             ),
-          ),
-          // Main Content
-          SafeArea(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  _buildHeader(context, authProvider, isDark),
-                  if (isLoggedIn) _buildStatsRow(authProvider, isDark),
-                  const SizedBox(height: 16),
-                  _buildMenuSection(
-                    context,
-                    isLoggedIn,
-                    authProvider,
-                    settingsProvider,
-                    isDark,
-                  ),
-                  if (isLoggedIn) _buildLogoutButton(context, authProvider),
-                  const SizedBox(height: 32),
-                ],
-              ),
+            const SizedBox(height: 16),
+            if (isLoggedIn) _buildStatsRow(authProvider, isDark),
+            const SizedBox(height: 16),
+            _buildMenuSection(
+              context,
+              isLoggedIn,
+              authProvider,
+              settingsProvider,
+              isDark,
             ),
-          ),
-        ],
+            if (isLoggedIn) _buildLogoutButton(context, authProvider),
+            const SizedBox(height: 32),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context, AuthProvider auth, bool isDark) {
     return Container(
-      padding: const EdgeInsets.all(AppStyles.padding),
+      padding: const EdgeInsets.symmetric(horizontal: AppStyles.padding),
       child: Column(
         children: [
           const SizedBox(height: 20),
