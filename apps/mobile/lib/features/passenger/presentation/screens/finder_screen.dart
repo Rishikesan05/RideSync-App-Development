@@ -169,8 +169,51 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
       backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       resizeToAvoidBottomInset: false,
       body: Stack(
+        clipBehavior: Clip.none,
         children: [
           _buildMap(finder, isDark),
+          
+          // Orange Background Curve
+          IgnorePointer(
+            child: Container(
+              height: 240,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40),
+                ),
+              ),
+            ),
+          ),
+          // Bus Animation
+          Positioned(
+            top: -10,
+            right: 0,
+            child: IgnorePointer(
+              child: TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 200, end: 0),
+                duration: const Duration(milliseconds: 3500),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, child) {
+                  return Transform.translate(
+                    offset: Offset(value, 0),
+                    child: child,
+                  );
+                },
+                child: Opacity(
+                  opacity: 0.4,
+                  child: Image.asset(
+                    'assets/images/bussymbol.png',
+                    height: 120,
+                    color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+                    colorBlendMode: BlendMode.multiply,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
           _buildFloatingSearchHeader(context, finder, isDark),
           _buildMapControls(isDark), // New Side Controls
           if (finder.routes.isNotEmpty) _buildHorizontalResultsPanel(finder, isDark),
