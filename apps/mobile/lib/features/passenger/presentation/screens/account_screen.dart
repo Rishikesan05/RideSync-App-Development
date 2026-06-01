@@ -22,24 +22,82 @@ class AccountScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              _buildHeader(context, authProvider, isDark),
-              if (isLoggedIn) _buildStatsRow(authProvider, isDark),
-              _buildMenuSection(
-                context,
-                isLoggedIn,
-                authProvider,
-                settingsProvider,
-                isDark,
-              ),
-              if (isLoggedIn) _buildLogoutButton(context, authProvider),
-              const SizedBox(height: 32),
-            ],
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+        elevation: 0,
+        title: const Text(
+          'My Profile',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
           ),
         ),
+      ),
+      body: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Orange Background Curve
+          Container(
+            height: 240,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
+              ),
+            ),
+          ),
+          // Bus Animation
+          Positioned(
+            top: -10,
+            right: 0,
+            child: IgnorePointer(
+              child: TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 200, end: 0),
+                duration: const Duration(milliseconds: 3500),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, child) {
+                  return Transform.translate(
+                    offset: Offset(value, 0),
+                    child: child,
+                  );
+                },
+                child: Opacity(
+                  opacity: 0.4,
+                  child: Image.asset(
+                    'assets/images/bussymbol.png',
+                    height: 120,
+                    color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+                    colorBlendMode: BlendMode.multiply,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Main Content
+          SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  _buildHeader(context, authProvider, isDark),
+                  if (isLoggedIn) _buildStatsRow(authProvider, isDark),
+                  const SizedBox(height: 16),
+                  _buildMenuSection(
+                    context,
+                    isLoggedIn,
+                    authProvider,
+                    settingsProvider,
+                    isDark,
+                  ),
+                  if (isLoggedIn) _buildLogoutButton(context, authProvider),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -68,17 +126,17 @@ class AccountScreen extends StatelessWidget {
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.primaryOrange, width: 2),
+                border: Border.all(color: Colors.white, width: 2),
               ),
               child: CircleAvatar(
                 radius: 50,
                 backgroundColor: isDark
                     ? Colors.grey[800]
-                    : const Color(0xFFE2E8F0),
+                    : Colors.white,
                 child: Icon(
                   Icons.person,
                   size: 60,
-                  color: isDark ? Colors.white : AppColors.primaryNavy,
+                  color: isDark ? Colors.white : AppColors.primaryOrange,
                 ),
               ),
             ),
@@ -87,8 +145,8 @@ class AccountScreen extends StatelessWidget {
               bottom: 0,
               child: CircleAvatar(
                 radius: 18,
-                backgroundColor: AppColors.primaryOrange,
-                child: const Icon(Icons.edit, size: 18, color: Colors.white),
+                backgroundColor: Colors.white,
+                child: Icon(Icons.edit, size: 18, color: AppColors.primaryOrange),
               ),
             ),
           ],
@@ -96,16 +154,16 @@ class AccountScreen extends StatelessWidget {
         const SizedBox(height: 16),
         Text(
           auth.user?.name ?? 'User Name',
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white : AppColors.textDark,
+            color: Colors.white,
           ),
         ),
         Text(
           'Member Since ${auth.user?.joinYear ?? 2024}',
-          style: TextStyle(
-            color: isDark ? Colors.white70 : AppColors.textLight,
+          style: const TextStyle(
+            color: Colors.white70,
           ),
         ),
       ],
@@ -121,21 +179,27 @@ class AccountScreen extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 50,
-          backgroundColor: isDark
-              ? Colors.white10
-              : AppColors.primaryNavy.withValues(alpha: 0.1),
-          child: Icon(
+          backgroundColor: Colors.white.withValues(alpha: 0.2),
+          child: const Icon(
             Icons.person_outline,
             size: 60,
-            color: isDark ? Colors.white : AppColors.primaryNavy,
+            color: Colors.white,
           ),
         ),
         const SizedBox(height: 24),
-        CustomButton(
-          label: 'Login / Sign Up',
+        ElevatedButton(
           onPressed: () {
             Navigator.pushNamed(context, '/login');
           },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: AppColors.primaryOrange,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+          ),
+          child: const Text('Login / Sign Up', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ],
     );
