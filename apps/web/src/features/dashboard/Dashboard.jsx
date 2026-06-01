@@ -18,6 +18,7 @@ import { db } from '../../api/firebase';
 import { RecentBookings } from './RecentBookings';
 import { UserStats } from './UserStats';
 import { TodaySchedules } from './TodaySchedules';
+import { FleetStats } from './FleetStats';
 
 const StatCard = ({ title, value, icon, trend, color, loading }) => {
   const theme = useTheme();
@@ -299,12 +300,15 @@ export const Dashboard = () => {
         </Grid>
       </Grid>
 
-      {/* ── Row 4: UserStats (left) + RecentBookings (right) ───────────── */}
+      {/* ── Row 4: FleetStats (md=4) + UserStats (md=4) + RecentBookings (md=4) ─ */}
       <Grid container spacing={3} sx={{ mt: 3 }}>
+        <Grid item xs={12} md={4}>
+          <FleetStats />
+        </Grid>
         <Grid item xs={12} md={4}>
           <UserStats />
         </Grid>
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12} md={4}>
           <RecentBookings />
         </Grid>
       </Grid>
