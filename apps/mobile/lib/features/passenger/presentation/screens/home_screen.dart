@@ -142,14 +142,29 @@ class _CurvedHeaderText extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Hello,\n$userName',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              height: 1.2,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  'Hello,\n$userName',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Image.asset(
+                'assets/images/bussymbol.png',
+                height: 60,
+                color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+                colorBlendMode: BlendMode.multiply, // Automatically removes the white background by tinting it to match the header!
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Text(
