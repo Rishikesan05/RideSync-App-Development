@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../api/firebase';
+import { useAuth } from '../../providers/AuthProvider';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -13,8 +14,16 @@ const loginSchema = z.object({
 
 export const Login = () => {
   const navigate = useNavigate();
+  const { currentUser, isAdmin } = useAuth();
   const [authError, setAuthError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // If the user is already signed in and approved, send them straight to dashboard
+  useEffect(() => {
+    if (currentUser && isAdmin) {
+      navigate('/', { replace: true });
+    }
+  }, [currentUser, isAdmin, navigate]);
 
   const {
     register,

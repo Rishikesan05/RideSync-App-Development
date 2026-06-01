@@ -1,7 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 
@@ -12,23 +14,58 @@ class OperatorHomeScreen extends StatefulWidget {
   State<OperatorHomeScreen> createState() => _OperatorHomeScreenState();
 }
 
-class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
+class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProviderStateMixin {
   bool _isLoading = true;
   double _totalRevenue = 0;
   int _tripsToday = 0;
   List<Map<String, dynamic>> _todaySchedules = [];
   Map<String, dynamic>? _activeTrip;
 
+  late AnimationController _animController;
+  late Animation<Color?> _colorAnim1;
+  late Animation<Color?> _colorAnim2;
+  late AnimationController _radarAnimController;
+
   @override
   void initState() {
     super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
+
+    _colorAnim1 = ColorTween(
+      begin: AppColors.primaryOrange.withValues(alpha: 0.2),
+      end: AppColors.primaryNavy.withValues(alpha: 0.2),
+    ).animate(_animController);
+
+    _colorAnim2 = ColorTween(
+      begin: AppColors.primaryNavy.withValues(alpha: 0.2),
+      end: AppColors.primaryOrange.withValues(alpha: 0.2),
+    ).animate(_animController);
+
+    _radarAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+
     _fetchOperatorData();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    _radarAnimController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchOperatorData() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final userId = auth.user?.id;
-    if (userId == null) return;
+    if (userId == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
 
     try {
       final now = DateTime.now();
@@ -39,7 +76,8 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
       final bookingsQuery = await FirebaseFirestore.instance
           .collection('bookings')
           .where('operatorId', isEqualTo: 'system_operator')
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 10));
 
       double revenue = 0;
       for (final doc in bookingsQuery.docs) {
@@ -54,7 +92,8 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
           .where('departureTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfToday))
           .where('departureTime', isLessThan: Timestamp.fromDate(endOfToday))
           .orderBy('departureTime', descending: false)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 10));
 
       List<Map<String, dynamic>> schedules = [];
       for (final doc in schedulesQuery.docs) {
@@ -101,33 +140,143 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _fetchOperatorData,
-          color: AppColors.primaryOrange,
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: AppColors.primaryOrange))
-              : SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(operatorName, isDark),
-                      const SizedBox(height: 24),
-                      _buildSummaryCards(isDark),
-                      const SizedBox(height: 24),
-                      if (_activeTrip != null) ...[
-                        _buildActiveTripCard(_activeTrip!, isDark),
-                        const SizedBox(height: 24),
-                      ],
-                      _buildSectionHeader('Today\'s Schedule', isDark),
-                      const SizedBox(height: 16),
-                      _buildScheduleList(isDark),
-                    ],
-                  ),
+      body: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: -100,
+            right: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.primaryOrange.withValues(alpha: 0.2),
+                    Colors.transparent,
+                  ],
                 ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: RefreshIndicator(
+              onRefresh: _fetchOperatorData,
+              color: AppColors.primaryOrange,
+              child: _isLoading
+                  ? _buildSkeletonLoading(isDark)
+                  : SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHeader(operatorName, isDark),
+                          const SizedBox(height: 24),
+                          _buildSummaryCards(isDark),
+                          const SizedBox(height: 24),
+                          _buildQuickActions(isDark),
+                          const SizedBox(height: 24),
+                          if (_activeTrip != null) ...[
+                            _buildActiveTripCard(_activeTrip!, isDark),
+                            const SizedBox(height: 24),
+                          ],
+                          _buildSectionHeader('Today\'s Schedule', isDark),
+                          const SizedBox(height: 16),
+                          _buildScheduleList(isDark),
+                        ],
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonLoading(bool isDark) {
+    return AnimatedBuilder(
+      animation: _animController,
+      builder: (context, child) {
+        final opacity = 0.4 + (_animController.value * 0.4);
+        return Opacity(
+          opacity: opacity,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(width: 150, height: 24, color: isDark ? Colors.white12 : Colors.black12),
+                const SizedBox(height: 32),
+                Row(
+                  children: [
+                    Expanded(child: Container(height: 100, decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.black12, borderRadius: BorderRadius.circular(20)))),
+                    const SizedBox(width: 16),
+                    Expanded(child: Container(height: 100, decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.black12, borderRadius: BorderRadius.circular(20)))),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Container(height: 80, decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.black12, borderRadius: BorderRadius.circular(16))),
+                const SizedBox(height: 24),
+                Container(height: 200, decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.black12, borderRadius: BorderRadius.circular(24))),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildQuickActions(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Quick Actions', isDark),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _quickActionBtn(Icons.qr_code_scanner, 'Scan Ticket', Colors.blue, isDark),
+            _quickActionBtn(Icons.groups_outlined, 'Passengers', Colors.purple, isDark),
+            _quickActionBtn(Icons.car_crash_outlined, 'Emergency', Colors.red, isDark),
+            _quickActionBtn(Icons.assignment_turned_in_outlined, 'Check', Colors.teal, isDark),
+          ],
         ),
+      ],
+    );
+  }
+
+  Widget _quickActionBtn(IconData icon, String label, Color color, bool isDark) {
+    return InkWell(
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label Screen Coming Soon')));
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDark 
+                    ? [color.withValues(alpha: 0.2), color.withValues(alpha: 0.05)]
+                    : [color.withValues(alpha: 0.15), color.withValues(alpha: 0.05)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: color.withValues(alpha: isDark ? 0.2 : 0.3)),
+              boxShadow: [
+                if (!isDark)
+                  BoxShadow(color: color.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4)),
+              ],
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : AppColors.textDark)),
+        ],
       ),
     );
   }
@@ -179,40 +328,58 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
   Widget _statCard(String label, String value, IconData icon, Color color, bool isDark) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white),
           boxShadow: [
             if (!isDark)
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: color.withValues(alpha: 0.1),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
               ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : AppColors.textDark,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: color, size: 24),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : AppColors.textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.white70 : AppColors.textLight,
+                    ),
+                  ),
+                ],
               ),
             ),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? Colors.white70 : AppColors.textLight,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -222,6 +389,8 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
     final routeName = trip['routeName'] ?? 'Unknown Route';
     final plateNumber = trip['plateNumber'] ?? '';
     final capacity = trip['capacity'] ?? 40;
+    final status = trip['status'] ?? 'scheduled';
+    final isTransit = status == 'in-transit' || status == 'active';
     
     DateTime? departure;
     final depTime = trip['departureTime'];
@@ -233,53 +402,416 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.primaryNavy, isDark ? const Color(0xFF1E293B) : const Color(0xFF334155)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.primaryNavy.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  trip['status'] == 'active' ? 'ACTIVE NOW' : 'NEXT UP',
-                  style: const TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const Icon(Icons.more_vert, color: Colors.white70),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            plateNumber,
-            style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          Text(
-            routeName,
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              _tripMetric(Icons.people_outline, '24/$capacity', 'Occupancy'),
-              const SizedBox(width: 24),
-              _tripMetric(Icons.timer_outlined, formattedTime, 'Departure'),
-            ],
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryNavy.withValues(alpha: 0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isTransit ? Colors.green.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: isTransit ? Colors.green.withValues(alpha: 0.3) : Colors.orange.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isTransit) ...[
+                            FadeTransition(
+                              opacity: _radarAnimController,
+                              child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Colors.greenAccent,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Text('BROADCASTING GPS', style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ] else ...[
+                            const Text('NEXT UP', style: TextStyle(color: Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ]
+                        ]
+                      ),
+                    ),
+                    const Icon(Icons.more_vert, color: Colors.white70),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  plateNumber,
+                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  routeName,
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Occupancy', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                              Text('24 / $capacity', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: LinearProgressIndicator(
+                              value: isTransit ? 0.65 : 24 / capacity,
+                              backgroundColor: Colors.white.withValues(alpha: 0.1),
+                              valueColor: AlwaysStoppedAnimation<Color>(isTransit ? Colors.greenAccent : AppColors.primaryOrange),
+                              minHeight: 6,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    _tripMetric(isTransit ? Icons.speed : Icons.timer_outlined, isTransit ? '42 km/h' : formattedTime, isTransit ? 'Current Speed' : 'Departure'),
+                  ],
+                ),
+                if (isTransit) ...[
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_on, color: AppColors.primaryOrange, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text('Next Stop: Town Hall', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                              Text('3 Boarding • 1 Alighting', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _showDelayReportModal(trip, isDark),
+                          icon: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 18),
+                          label: const Text('Delay', style: TextStyle(color: Colors.white, fontSize: 13)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange.withValues(alpha: 0.3),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.orange.withValues(alpha: 0.5))),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _endJourney(trip['id']),
+                          icon: const Icon(Icons.stop_circle_outlined, color: Colors.white, size: 18),
+                          label: const Text('End Trip', style: TextStyle(color: Colors.white, fontSize: 13)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.withValues(alpha: 0.8),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else if (status == 'scheduled') ...[
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showStartJourneyModal(trip, isDark),
+                      icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+                      label: const Text('Start Journey', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryOrange,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showStartJourneyModal(Map<String, dynamic> trip, bool isDark) {
+    final coOpNameController = TextEditingController();
+    final coOpIdController = TextEditingController();
+    bool isSubmitting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateModal) {
+          return Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              top: 24,
+              left: 24,
+              right: 24,
+            ),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Start Journey', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                    IconButton(
+                      icon: Icon(Icons.close, color: isDark ? Colors.white54 : Colors.black54),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // Read-only Details
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _detailRow('Bus Plate', trip['plateNumber'] ?? 'N/A', isDark),
+                      const SizedBox(height: 8),
+                      _detailRow('Capacity', '${trip['capacity'] ?? 40} Seats', isDark),
+                      const SizedBox(height: 8),
+                      _detailRow('Start Time', DateFormat('hh:mm a').format(DateTime.now()), isDark),
+                      const SizedBox(height: 8),
+                      _detailRow('Location', 'GPS (Auto-detect)', isDark),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Form
+                Text('Co-Operator Details', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: coOpNameController,
+                  decoration: InputDecoration(
+                    labelText: 'Co-Operator Name',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: isDark ? Colors.black12 : Colors.grey.shade50,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: coOpIdController,
+                  decoration: InputDecoration(
+                    labelText: 'Co-Operator ID',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: isDark ? Colors.black12 : Colors.grey.shade50,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Submit
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isSubmitting ? null : () async {
+                      if (coOpNameController.text.trim().isEmpty || coOpIdController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+                        return;
+                      }
+
+                      setStateModal(() => isSubmitting = true);
+                      await _startJourney(trip['id'], coOpNameController.text.trim(), coOpIdController.text.trim());
+                      setStateModal(() => isSubmitting = false);
+                      
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryOrange,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: isSubmitting
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('Confirm & Start', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value, bool isDark) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 12)),
+        Text(value, style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontWeight: FontWeight.bold, fontSize: 13)),
+      ],
+    );
+  }
+
+  Future<void> _startJourney(String scheduleId, String coOpName, String coOpId) async {
+    try {
+      // 1. Get GPS Location
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Location permissions are denied');
+        }
+      }
+      
+      final position = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
+
+      // 2. Update Firestore
+      await FirebaseFirestore.instance.collection('schedules').doc(scheduleId).update({
+        'status': 'in-transit',
+        'actualStartTime': FieldValue.serverTimestamp(),
+        'coOperatorName': coOpName,
+        'coOperatorId': coOpId,
+        'startLocationLat': position.latitude,
+        'startLocationLng': position.longitude,
+      });
+
+      // 3. Refresh Screen
+      await _fetchOperatorData();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Journey started successfully!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to start journey: $e')));
+      }
+    }
+  }
+  Future<void> _endJourney(String scheduleId) async {
+    try {
+      await FirebaseFirestore.instance.collection('schedules').doc(scheduleId).update({
+        'status': 'completed',
+        'actualEndTime': FieldValue.serverTimestamp(),
+      });
+      await _fetchOperatorData();
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trip Completed!')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  void _showDelayReportModal(Map<String, dynamic> trip, bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Report Delay', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _delayButton(trip['id'], 5, isDark),
+                  _delayButton(trip['id'], 10, isDark),
+                  _delayButton(trip['id'], 20, isDark),
+                ],
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _delayButton(String scheduleId, int minutes, bool isDark) {
+    return InkWell(
+      onTap: () async {
+        Navigator.pop(context);
+        try {
+          await FirebaseFirestore.instance.collection('schedules').doc(scheduleId).update({
+            'delayMinutes': FieldValue.increment(minutes),
+          });
+          await _fetchOperatorData();
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Added $minutes min delay')));
+        } catch (e) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.orange.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+        ),
+        child: Text('+$minutes m', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 18)),
       ),
     );
   }
@@ -335,10 +867,12 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
     }
 
     return Column(
-      children: _todaySchedules.map((trip) {
+      children: List.generate(_todaySchedules.length, (index) {
+        final trip = _todaySchedules[index];
         final dest = trip['routeName']?.split(' - ').last ?? 'Terminal';
         final plate = trip['plateNumber'] ?? '';
         final status = trip['status']?.toUpperCase() ?? 'SCHEDULED';
+        final isLast = index == _todaySchedules.length - 1;
         
         DateTime? departure;
         final depTime = trip['departureTime'];
@@ -347,67 +881,91 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> {
         }
         final formattedTime = departure != null ? DateFormat('hh:mm a').format(departure) : '--:--';
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: _scheduleItem(dest, formattedTime, plate, status, isDark),
-        );
-      }).toList(),
+        return _scheduleItem(dest, formattedTime, plate, status, isDark, isLast);
+      }),
     );
   }
 
-  Widget _scheduleItem(String destination, String time, String id, String status, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade100),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.primaryOrange.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.access_time, color: AppColors.primaryOrange, size: 20),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'To $destination',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark),
-                ),
-                Text(
-                  'Bus: $id  |  Today at $time',
-                  style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : AppColors.textLight),
-                ),
-              ],
+  Widget _scheduleItem(String destination, String time, String id, String status, bool isDark, bool isLast) {
+    return Stack(
+      children: [
+        if (!isLast)
+          Positioned(
+            left: 19,
+            top: 16,
+            bottom: 0,
+            child: Container(
+              width: 2,
+              color: isDark ? Colors.white12 : Colors.grey.shade300,
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: status == 'ACTIVE' 
-                  ? Colors.green.withValues(alpha: 0.1)
-                  : Colors.orange.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                color: status == 'ACTIVE' ? Colors.green : Colors.orange,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 40,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Center(
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: status == 'ACTIVE' || status == 'IN-TRANSIT' ? Colors.green : AppColors.primaryOrange,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), width: 4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (status == 'ACTIVE' || status == 'IN-TRANSIT' ? Colors.green : AppColors.primaryOrange).withValues(alpha: 0.5), 
+                          blurRadius: 8
+                        )
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 24.0),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                    ],
+                    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.transparent),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('To $destination', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : AppColors.textDark)),
+                            const SizedBox(height: 4),
+                            Text('Bus: $id  •  $time', style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : AppColors.textLight)),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: status == 'ACTIVE' || status == 'IN-TRANSIT' ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(status, style: TextStyle(color: status == 'ACTIVE' || status == 'IN-TRANSIT' ? Colors.green : Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

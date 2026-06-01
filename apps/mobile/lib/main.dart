@@ -72,7 +72,7 @@ class RideSyncApp extends StatelessWidget {
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/driver-registration': (context) => const DriverRegistrationScreen(),
         '/main': (context) => const PassengerNavigationHub(),
-        '/operator-home': (context) => const BusOperatorNavigationHub(),
+        '/operator-main': (context) => const BusOperatorNavigationHub(),
         '/splash': (context) => const SplashScreen(),
       },
     );

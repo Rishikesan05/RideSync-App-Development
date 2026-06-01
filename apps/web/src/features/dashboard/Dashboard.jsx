@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Grid, Card, CardContent, Typography, useTheme, IconButton, CircularProgress } from '@mui/material';
-import { TrendingUp, DirectionsBus, EventNote, People, Assessment } from '@mui/icons-material';
+import { TrendingUp, TrendingDown, DirectionsBus, EventNote, People, Assessment } from '@mui/icons-material';
 import {
   AreaChart,
   Area,
@@ -15,6 +15,9 @@ import {
 
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '../../api/firebase';
+import { RecentBookings } from './RecentBookings';
+import { UserStats } from './UserStats';
+import { TodaySchedules } from './TodaySchedules';
 
 const StatCard = ({ title, value, icon, trend, color, loading }) => {
   const theme = useTheme();
@@ -43,13 +46,18 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
             {React.cloneElement(icon, { fontSize: 'medium' })}
           </Box>
         </Box>
-        {trend && (
-          <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, color: theme.palette.success.main }}>
-            <TrendingUp fontSize="small" sx={{ mr: 0.5 }} />
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>{trend}</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>vs last week</Typography>
-          </Box>
-        )}
+        {trend && (() => {
+          const isPositive = !trend.startsWith('-');
+          const TrendIcon = isPositive ? TrendingUp : TrendingDown;
+          const trendColor = isPositive ? theme.palette.success.main : theme.palette.error.main;
+          return (
+            <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, color: trendColor }}>
+              <TrendIcon fontSize="small" sx={{ mr: 0.5 }} />
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{trend}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>vs last week</Typography>
+            </Box>
+          );
+        })()}
       </CardContent>
     </Card>
   );
@@ -64,6 +72,8 @@ export const Dashboard = () => {
     activeBuses: 0,
     schedulesToday: 0,
     totalPassengers: 0,
+    revenueTrend: null,
+    bookingsTrend: null,
   });
   const [revenueData, setRevenueData] = useState([]);
   const [bookingsData, setBookingsData] = useState([]);
@@ -95,15 +105,28 @@ export const Dashboard = () => {
         );
         const schedulesToday = schedulesSnapshot.size;
 
-        // Calculate Revenue & Bookings by Class
+        // Calculate Revenue & Bookings by Class + week-over-week trends
         let totalRevenue = 0;
         let acBookings = 0;
         let nonAcBookings = 0;
-        
-        // Simple mock of 7 days revenue for chart based on recent bookings
+
+        // Week boundaries for trend comparison
+        const now = new Date();
+        const thisWeekStart = new Date(now);
+        thisWeekStart.setDate(now.getDate() - 7);
+        thisWeekStart.setHours(0, 0, 0, 0);
+        const lastWeekStart = new Date(now);
+        lastWeekStart.setDate(now.getDate() - 14);
+        lastWeekStart.setHours(0, 0, 0, 0);
+
+        let thisWeekRevenue = 0, lastWeekRevenue = 0;
+        let thisWeekBookings = 0, lastWeekBookings = 0;
+
+        // Last 7 days buckets for the revenue chart
         const last7Days = Array.from({length: 7}, (_, i) => {
           const d = new Date();
           d.setDate(d.getDate() - (6 - i));
+          d.setHours(0, 0, 0, 0);
           return { name: d.toLocaleDateString('en-US', { weekday: 'short' }), revenue: 0, date: d };
         });
 
@@ -111,32 +134,53 @@ export const Dashboard = () => {
           const data = doc.data();
           const fare = data.totalFare || 0;
           totalRevenue += fare;
-          
-          if (data.busClass === 'AC') {
-            acBookings++;
-          } else {
-            // Default or explicitly Non-AC
-            nonAcBookings++;
-          }
-          
-          // Map to daily revenue if within last 7 days
-          if (data.timestamp) {
-            const bookingDate = data.timestamp.toDate();
-            const dayMatch = last7Days.find(d => 
-              d.date.getDate() === bookingDate.getDate() && 
-              d.date.getMonth() === bookingDate.getMonth()
-            );
-            if (dayMatch) {
-              dayMatch.revenue += fare;
+
+          const cls = (data.busClass || data.class || '').toUpperCase();
+          if (cls === 'AC') acBookings++;
+          else nonAcBookings++;
+
+          // Read timestamp — support multiple field names used by the mobile app
+          const rawTs = data.timestamp ?? data.createdAt ?? data.bookedAt ?? null;
+          if (rawTs) {
+            const bookingDate = typeof rawTs.toDate === 'function'
+              ? rawTs.toDate()
+              : new Date(rawTs);
+
+            // Trend buckets
+            if (bookingDate >= thisWeekStart) {
+              thisWeekRevenue  += fare;
+              thisWeekBookings += 1;
+            } else if (bookingDate >= lastWeekStart) {
+              lastWeekRevenue  += fare;
+              lastWeekBookings += 1;
             }
+
+            // Revenue chart bucket
+            const dayMatch = last7Days.find(d =>
+              d.date.getDate()     === bookingDate.getDate() &&
+              d.date.getMonth()    === bookingDate.getMonth() &&
+              d.date.getFullYear() === bookingDate.getFullYear()
+            );
+            if (dayMatch) dayMatch.revenue += fare;
           }
         });
+
+        // Compute trend percentage strings
+        const calcTrend = (curr, prev) => {
+          if (prev === 0) return curr > 0 ? '+100%' : null;
+          const pct = (((curr - prev) / prev) * 100).toFixed(1);
+          return pct >= 0 ? `+${pct}%` : `${pct}%`;
+        };
+        const revenueTrend  = calcTrend(thisWeekRevenue,  lastWeekRevenue);
+        const bookingsTrend = calcTrend(thisWeekBookings, lastWeekBookings);
 
         setStats({
           totalRevenue,
           activeBuses,
           schedulesToday,
-          totalPassengers
+          totalPassengers,
+          revenueTrend,
+          bookingsTrend,
         });
 
         setBookingsData([
@@ -185,7 +229,7 @@ export const Dashboard = () => {
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<TrendingUp />} trend="+12.5%" color={theme.palette.success.main} loading={loading} />
+          <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<TrendingUp />} trend={stats.revenueTrend} color={theme.palette.success.main} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBus />} color={theme.palette.info.main} loading={loading} />
@@ -194,7 +238,7 @@ export const Dashboard = () => {
           <StatCard title="Schedules Today" value={stats.schedulesToday} icon={<EventNote />} color={theme.palette.warning.main} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Total Bookings" value={stats.totalPassengers} icon={<People />} trend="+5.2%" color={theme.palette.primary.main} loading={loading} />
+          <StatCard title="Total Bookings" value={stats.totalPassengers} icon={<People />} trend={stats.bookingsTrend} color={theme.palette.primary.main} loading={loading} />
         </Grid>
       </Grid>
 
@@ -247,6 +291,24 @@ export const Dashboard = () => {
           </Card>
         </Grid>
       </Grid>
+
+      {/* ── Row 3: Today's Schedules (full width) ──────────────────────── */}
+      <Grid container spacing={3} sx={{ mt: 3 }}>
+        <Grid item xs={12}>
+          <TodaySchedules />
+        </Grid>
+      </Grid>
+
+      {/* ── Row 4: UserStats (left) + RecentBookings (right) ───────────── */}
+      <Grid container spacing={3} sx={{ mt: 3 }}>
+        <Grid item xs={12} md={4}>
+          <UserStats />
+        </Grid>
+        <Grid item xs={12} md={8}>
+          <RecentBookings />
+        </Grid>
+      </Grid>
+
     </Box>
   );
 };
