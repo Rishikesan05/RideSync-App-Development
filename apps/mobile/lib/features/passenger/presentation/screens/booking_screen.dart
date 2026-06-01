@@ -119,7 +119,7 @@ class _BookingScreenState extends State<BookingScreen> {
         children: [
           // Orange Background Curve
           Container(
-            height: 160,
+            height: 240,
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
               borderRadius: const BorderRadius.only(

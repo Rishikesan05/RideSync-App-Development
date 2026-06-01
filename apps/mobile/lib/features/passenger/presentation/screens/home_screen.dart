@@ -65,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
           SizedBox(width: 6),
           Padding(
             padding: EdgeInsets.only(right: 16),
-            child: _HomeAccountButton(),
+            child: HomeAccountButton(),
           ),
         ],
       ),
@@ -959,8 +959,8 @@ class _InfoDot extends StatelessWidget {
 }
 
 
-class _HomeAccountButton extends StatelessWidget {
-  const _HomeAccountButton();
+class HomeAccountButton extends StatelessWidget {
+  const HomeAccountButton({super.key});
 
   @override
   Widget build(BuildContext context) {
