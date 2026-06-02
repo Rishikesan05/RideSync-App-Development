@@ -93,7 +93,7 @@ export const TodaySchedules = () => {
       <CardContent sx={{ p: 3 }}>
 
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
           <ScheduleIcon sx={{ color: '#E68D33' }} />
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Today's Schedules
@@ -153,7 +153,7 @@ export const TodaySchedules = () => {
                   }}
                 >
                   {/* Left: bus icon + departure time + bus ID */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Box
                       sx={{
                         backgroundColor: 'rgba(99,102,241,0.1)',

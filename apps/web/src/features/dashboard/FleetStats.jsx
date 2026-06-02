@@ -115,7 +115,7 @@ export const FleetStats = () => {
 
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <DirectionsBus sx={{ color: '#E68D33' }} />
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
               Fleet Overview
@@ -148,7 +148,7 @@ export const FleetStats = () => {
                 <Box sx={{ py: 1.5 }}>
                   {/* Label row */}
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.8 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       <Box
                         sx={{
                           color: row.color,
