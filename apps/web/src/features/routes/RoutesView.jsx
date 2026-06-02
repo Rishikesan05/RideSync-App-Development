@@ -34,6 +34,7 @@ import {
 } from '../../api/routes';
 import { useRoutesFirestore } from './useRoutesFirestore';
 import { RouteFormDialog } from './RouteFormDialog';
+import { RouteStatsBar } from './RouteStatsBar';
 
 export const RoutesView = () => {
   const theme = useTheme();
@@ -129,6 +130,9 @@ export const RoutesView = () => {
           Add Route
         </Button>
       </Box>
+
+      {/* ── Stats summary bar ────────────────────────────────────────────── */}
+      <RouteStatsBar routes={routes} loading={loading} />
 
       {/* ── Search + Filter bar ─────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3, flexWrap: 'wrap' }}>
