@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Grid, Card, CardContent, Typography, useTheme, IconButton, CircularProgress } from '@mui/material';
-import { TrendingUp, TrendingDown, DirectionsBusOutlined, CalendarMonthOutlined, ConfirmationNumberOutlined, MonetizationOnOutlined, Assessment } from '@mui/icons-material';
+import { TrendingUp, TrendingDown, DirectionsBus, EventNote, People, Assessment } from '@mui/icons-material';
 import {
   AreaChart,
   Area,
@@ -22,27 +22,60 @@ import { FleetStats } from './FleetStats';
 
 const StatCard = ({ title, value, icon, trend, color, loading }) => {
   const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   return (
-    <Card sx={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
-      <Box sx={{ position: 'absolute', top: -20, right: -20, opacity: 0.1, transform: 'scale(2)' }}>
+    <Card sx={{ 
+      height: '100%', 
+      position: 'relative', 
+      overflow: 'hidden',
+      background: isDark
+        ? `linear-gradient(135deg, rgba(30, 41, 59, 0.65) 0%, rgba(30, 41, 59, 0.45) 100%)`
+        : `linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.7) 100%)`,
+      backdropFilter: 'blur(16px)',
+      transition: 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease',
+      cursor: 'pointer',
+      border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)'}`,
+      borderRadius: '16px',
+      '&:hover': {
+        transform: 'translateY(-5px)',
+        boxShadow: isDark 
+          ? `0 12px 24px -10px ${color}50, 0 4px 20px rgba(0,0,0,0.3)` 
+          : `0 12px 20px -10px ${color}35, 0 4px 12px rgba(0,0,0,0.04)`,
+        borderColor: `${color}60`,
+      },
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: '120px',
+        height: '120px',
+        background: `radial-gradient(circle at top right, ${color}12, transparent 70%)`,
+        zIndex: 0,
+      }
+    }}>
+      {/* Icon watermark */}
+      <Box sx={{ position: 'absolute', top: -10, right: -10, opacity: isDark ? 0.06 : 0.04, transform: 'scale(1.8)', zIndex: 0, color }}>
         {icon}
       </Box>
-      <CardContent sx={{ p: 3 }}>
+      <CardContent sx={{ p: 3, position: 'relative', zIndex: 1 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, mb: 1 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1.2, mb: 1, fontSize: '0.75rem' }}>
               {title}
             </Typography>
-            <Typography variant="h3" sx={{ fontWeight: 700, color: theme.palette.text.primary }}>
-              {loading ? <CircularProgress size={24} /> : value}
+            <Typography variant="h3" sx={{ fontWeight: 700, color: theme.palette.text.primary, tracking: '-0.5px' }}>
+              {loading ? <CircularProgress size={24} sx={{ color }} /> : value}
             </Typography>
           </Box>
           <Box sx={{ 
-            backgroundColor: `${color}20`, 
-            borderRadius: '50%', 
+            backgroundColor: isDark ? `${color}15` : `${color}10`, 
+            borderRadius: '12px', 
             p: 1.5, 
             display: 'flex', 
-            color: color 
+            color: color,
+            border: `1px solid ${color}20`,
+            boxShadow: `0 4px 12px ${color}15`
           }}>
             {React.cloneElement(icon, { fontSize: 'medium' })}
           </Box>
@@ -52,10 +85,20 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
           const TrendIcon = isPositive ? TrendingUp : TrendingDown;
           const trendColor = isPositive ? theme.palette.success.main : theme.palette.error.main;
           return (
-            <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, color: trendColor }}>
-              <TrendIcon fontSize="small" sx={{ mr: 0.5 }} />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{trend}</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>vs last week</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', mt: 2.5, color: trendColor }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                backgroundColor: isPositive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', 
+                borderRadius: '6px', 
+                px: 0.8, 
+                py: 0.3,
+                mr: 1 
+              }}>
+                <TrendIcon fontSize="small" sx={{ mr: 0.5, fontSize: '0.9rem' }} />
+                <Typography variant="caption" sx={{ fontWeight: 700 }}>{trend}</Typography>
+              </Box>
+              <Typography variant="caption" color="text.secondary">vs last week</Typography>
             </Box>
           );
         })()}
@@ -223,23 +266,23 @@ export const Dashboard = () => {
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>Overview</Typography>
           <Typography variant="body1" color="text.secondary">Welcome back to the RideSync Admin Dashboard.</Typography>
         </Box>
-        <IconButton color="primary" sx={{ backgroundColor: 'rgba(99, 102, 241, 0.1)' }}>
+        <IconButton sx={{ color: '#E68D33', backgroundColor: 'rgba(230, 141, 51, 0.1)' }}>
           <Assessment />
         </IconButton>
       </Box>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<MonetizationOnOutlined />} trend={stats.revenueTrend} color={theme.palette.success.main} loading={loading} />
+          <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<TrendingUp />} trend={stats.revenueTrend} color={theme.palette.success.main} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBusOutlined />} color={theme.palette.info.main} loading={loading} />
+          <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBus />} color={theme.palette.info.main} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Schedules Today" value={stats.schedulesToday} icon={<CalendarMonthOutlined />} color={theme.palette.warning.main} loading={loading} />
+          <StatCard title="Schedules Today" value={stats.schedulesToday} icon={<EventNote />} color={theme.palette.warning.main} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Total Bookings" value={stats.totalPassengers} icon={<ConfirmationNumberOutlined />} trend={stats.bookingsTrend} color={theme.palette.primary.main} loading={loading} />
+          <StatCard title="Total Bookings" value={stats.totalPassengers} icon={<People />} trend={stats.bookingsTrend} color={'#E68D33'} loading={loading} />
         </Grid>
       </Grid>
 

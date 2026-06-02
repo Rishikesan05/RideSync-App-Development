@@ -92,7 +92,7 @@ export const UserStats = () => {
 
         {/* Title */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <PeopleAltOutlined sx={{ color: theme.palette.primary.main }} />
+          <PeopleAltOutlined sx={{ color: '#E68D33' }} />
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Registered Users
           </Typography>

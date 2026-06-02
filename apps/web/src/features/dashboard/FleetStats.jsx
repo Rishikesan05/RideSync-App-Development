@@ -116,7 +116,7 @@ export const FleetStats = () => {
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <DirectionsBus sx={{ color: theme.palette.info.main }} />
+            <DirectionsBus sx={{ color: '#E68D33' }} />
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
               Fleet Overview
             </Typography>

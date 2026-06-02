@@ -93,8 +93,8 @@ export const RecentBookings = () => {
     <Card>
       <CardContent>
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-          <ReceiptLong sx={{ color: theme.palette.primary.main }} />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <ReceiptLong sx={{ color: '#E68D33' }} />
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Recent Bookings
           </Typography>
