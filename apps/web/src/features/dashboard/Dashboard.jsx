@@ -61,10 +61,6 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
         zIndex: 0,
       }
     }}>
-      {/* Icon watermark */}
-      <Box sx={{ position: 'absolute', top: -15, right: -15, opacity: isDark ? 0.07 : 0.04, transform: 'scale(2.2)', zIndex: 0, color }}>
-        {icon}
-      </Box>
       <CardContent sx={{ 
         p: 3, 
         position: 'relative', 
