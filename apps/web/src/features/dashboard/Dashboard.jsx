@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Grid, Card, CardContent, Typography, useTheme, IconButton, CircularProgress } from '@mui/material';
-import { TrendingUp, TrendingDown, DirectionsBus, EventNote, People, Assessment } from '@mui/icons-material';
+import { TrendingUp, TrendingDown, DirectionsBusOutlined, CalendarMonthOutlined, ConfirmationNumberOutlined, MonetizationOnOutlined, Assessment } from '@mui/icons-material';
 import {
   AreaChart,
   Area,
@@ -230,16 +230,16 @@ export const Dashboard = () => {
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<TrendingUp />} trend={stats.revenueTrend} color={theme.palette.success.main} loading={loading} />
+          <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<MonetizationOnOutlined />} trend={stats.revenueTrend} color={theme.palette.success.main} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBus />} color={theme.palette.info.main} loading={loading} />
+          <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBusOutlined />} color={theme.palette.info.main} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Schedules Today" value={stats.schedulesToday} icon={<EventNote />} color={theme.palette.warning.main} loading={loading} />
+          <StatCard title="Schedules Today" value={stats.schedulesToday} icon={<CalendarMonthOutlined />} color={theme.palette.warning.main} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Total Bookings" value={stats.totalPassengers} icon={<People />} trend={stats.bookingsTrend} color={theme.palette.primary.main} loading={loading} />
+          <StatCard title="Total Bookings" value={stats.totalPassengers} icon={<ConfirmationNumberOutlined />} trend={stats.bookingsTrend} color={theme.palette.primary.main} loading={loading} />
         </Grid>
       </Grid>
 
