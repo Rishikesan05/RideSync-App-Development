@@ -287,6 +287,18 @@ export const Dashboard = () => {
       </Grid>
 
       <Grid container spacing={3}>
+        <Grid item xs={12} md={4}>
+          <FleetStats />
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <UserStats />
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <RecentBookings />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={3} sx={{ mt: 3 }}>
         <Grid item xs={12} lg={8}>
           <Card sx={{ height: 400, display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
@@ -336,23 +348,10 @@ export const Dashboard = () => {
         </Grid>
       </Grid>
 
-      {/* ── Row 3: Today's Schedules (full width) ──────────────────────── */}
+      {/* ── Row 4: Today's Schedules (full width) ──────────────────────── */}
       <Grid container spacing={3} sx={{ mt: 3 }}>
         <Grid item xs={12}>
           <TodaySchedules />
-        </Grid>
-      </Grid>
-
-      {/* ── Row 4: FleetStats (md=4) + UserStats (md=4) + RecentBookings (md=4) ─ */}
-      <Grid container spacing={3} sx={{ mt: 3 }}>
-        <Grid item xs={12} md={4}>
-          <FleetStats />
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <UserStats />
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <RecentBookings />
         </Grid>
       </Grid>
 

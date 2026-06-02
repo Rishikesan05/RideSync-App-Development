@@ -90,7 +90,7 @@ export const RecentBookings = () => {
   }, []);
 
   return (
-    <Card>
+    <Card sx={{ height: '100%' }}>
       <CardContent>
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
