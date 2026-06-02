@@ -294,7 +294,16 @@ export const AdminLayout = () => {
         </Drawer>
       </Box>
       
-      <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` }, mt: 10 }}>
+      <Box 
+        component="main" 
+        sx={{ 
+          flexGrow: 1, 
+          p: 3, 
+          width: { sm: `calc(100% - ${drawerWidth}px - 24px)` }, 
+          ml: { sm: '24px' },
+          mt: 10 
+        }}
+      >
         <Outlet />
       </Box>
     </Box>

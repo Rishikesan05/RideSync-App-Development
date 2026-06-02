@@ -63,6 +63,8 @@ const statusColor = (status) => {
 
 export const RecentBookings = () => {
   const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  const borderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading]   = useState(true);
 
@@ -91,7 +93,7 @@ export const RecentBookings = () => {
     <Card>
       <CardContent>
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
           <ReceiptLong sx={{ color: theme.palette.primary.main }} />
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Recent Bookings
@@ -124,8 +126,8 @@ export const RecentBookings = () => {
         {/* Table */}
         {!loading && bookings.length > 0 && (
           <Box sx={{ overflowX: 'auto' }}>
-            <Table size="small">
-              <TableHead>
+            <Table>
+              <TableHead sx={{ backgroundColor: isDark ? 'rgba(255, 255, 255, 0.015)' : 'rgba(0, 0, 0, 0.01)' }}>
                 <TableRow>
                   {['Booking ID', 'Passenger', 'Fare (LKR)', 'Class', 'Date', 'Status'].map(
                     (h) => (
@@ -133,12 +135,14 @@ export const RecentBookings = () => {
                         key={h}
                         sx={{
                           color: theme.palette.text.secondary,
-                          fontWeight: 600,
-                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          fontSize: '0.75rem',
                           textTransform: 'uppercase',
-                          letterSpacing: 0.5,
-                          borderBottom: `1px solid rgba(255,255,255,0.06)`,
+                          letterSpacing: 0.8,
+                          borderBottom: `2px solid ${borderColor}`,
                           whiteSpace: 'nowrap',
+                          py: 1.8,
+                          px: 2
                         }}
                       >
                         {h}
@@ -156,8 +160,12 @@ export const RecentBookings = () => {
                       key={b.id}
                       sx={{
                         transition: 'background 0.15s',
-                        '&:hover': { backgroundColor: 'rgba(255,255,255,0.03)' },
-                        '& td': { borderBottom: '1px solid rgba(255,255,255,0.04)' },
+                        '&:hover': { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.025)' : 'rgba(0, 0, 0, 0.02)' },
+                        '& td': { 
+                          borderBottom: `1px solid ${borderColor}`,
+                          py: 1.8,
+                          px: 2
+                        },
                       }}
                     >
                       {/* Booking ID */}
