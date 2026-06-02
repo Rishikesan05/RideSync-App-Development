@@ -22,26 +22,26 @@ import {
   Block
 } from '@mui/icons-material';
 import { 
-  useRoutesList, 
   useCreateRoute, 
   useUpdateRoute, 
-  useDeactivateRoute 
+  useToggleRouteActive 
 } from '../../api/routes';
+import { useRoutesFirestore } from './useRoutesFirestore';
 import { RouteFormDialog } from './RouteFormDialog';
 
 export const RoutesView = () => {
   const theme = useTheme();
-  const { data: routesResponse, isLoading, error } = useRoutesList();
-  const createRoute = useCreateRoute();
-  const updateRoute = useUpdateRoute();
-  const deactivateRoute = useDeactivateRoute();
+  const { routes, loading, error } = useRoutesFirestore();
+  const createRoute      = useCreateRoute();
+  const updateRoute      = useUpdateRoute();
+  const toggleActive     = useToggleRouteActive();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuRouteId, setMenuRouteId] = useState(null);
 
-  const routes = routesResponse?.data || routesResponse || [];
+
 
   const handleOpenMenu = (event, routeId) => {
     setAnchorEl(event.currentTarget);
@@ -65,15 +65,12 @@ export const RoutesView = () => {
   };
 
   const handleToggleActive = async () => {
-    const routeId = menuRouteId;
+    const route = routes.find(r => r.id === menuRouteId);
     handleCloseMenu();
-    // Use deactivateRoute endpoint (which toggles isActive to false). 
-    // In a real app we might want a toggle endpoint or use updateRoute.
-    // For now we'll just deactivate it.
     try {
-      await deactivateRoute.mutateAsync(routeId);
+      await toggleActive.mutateAsync({ id: menuRouteId, currentIsActive: route?.isActive ?? true });
     } catch (e) {
-      console.error('Failed to deactivate route', e);
+      console.error('Failed to toggle route active state', e);
     }
   };
 
@@ -107,7 +104,7 @@ export const RoutesView = () => {
         </Button>
       </Box>
       
-      {isLoading && (
+      {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
           <CircularProgress />
         </Box>
@@ -119,7 +116,7 @@ export const RoutesView = () => {
         </Alert>
       )}
 
-      {!isLoading && !error && routes.length === 0 && (
+      {!loading && !error && routes.length === 0 && (
         <Card sx={{ p: 5, textAlign: 'center', backgroundColor: 'transparent', border: '1px dashed rgba(255,255,255,0.2)' }}>
           <Typography color="text.secondary" variant="h6">No routes found.</Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>Create your first route to get started.</Typography>
@@ -193,7 +190,7 @@ export const RoutesView = () => {
         </MenuItem>
         <MenuItem onClick={handleToggleActive} sx={{ color: theme.palette.error.main }}>
           <ListItemIcon><Block fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
-          Deactivate
+          Activate / Deactivate
         </MenuItem>
       </Menu>
 

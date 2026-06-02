@@ -1,12 +1,8 @@
 /**
- * routes.js — Firestore SDK layer for the `routes` collection.
+ * routes.js — Firestore SDK write layer for the `routes` collection.
  *
- * Previously called the backend REST API via axios.
- * Now reads/writes Firestore directly — no backend needed.
- *
- * Exported names are kept identical so RoutesView.jsx needs no changes.
- * New exports added: toggleRouteActive, deleteRoute,
- *                    useToggleRouteActive, useDeleteRoute.
+ * READ path  → use useRoutesFirestore() hook (real-time onSnapshot).
+ * WRITE path → use the mutation hooks below (create / update / toggle / delete).
  *
  * Firestore schema (confirmed from backend route.schema.js + seed-routes.js):
  *   routeNumber      string   e.g. "1", "99"
@@ -20,33 +16,20 @@
  *   updatedAt        Timestamp
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   collection,
-  getDocs,
   addDoc,
   doc,
   updateDoc,
   deleteDoc,
   serverTimestamp,
-  query,
-  orderBy,
 } from 'firebase/firestore';
 import { db } from './firebase';
 
 const COLLECTION = 'routes';
 
-// ── Pure async functions ────────────────────────────────────────────────────
-
-/**
- * Fetch all routes ordered by routeNumber ascending.
- * Returns an array of plain objects with `id` injected.
- */
-export const fetchRoutes = async () => {
-  const q = query(collection(db, COLLECTION), orderBy('routeNumber', 'asc'));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-};
+// ── Write functions (create / update / toggle / delete) ───────────────────
 
 /**
  * Create a new route document.
@@ -106,16 +89,8 @@ export const deleteRoute = async (id) => {
   return { id };
 };
 
-// ── React Query hooks ───────────────────────────────────────────────────────
-
-/** Fetch + cache all routes. */
-export const useRoutesList = () =>
-  useQuery({
-    queryKey: ['routes'],
-    queryFn:  fetchRoutes,
-    staleTime: 30_000, // 30 s — Firestore is the source of truth
-  });
-
+// ── React Query mutation hooks ──────────────────────────────────────────────
+// READ: use useRoutesFirestore() from features/routes/useRoutesFirestore.js
 /** Create a route and invalidate cache. */
 export const useCreateRoute = () => {
   const qc = useQueryClient();
