@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Typography, 
   Card, 
@@ -13,13 +13,19 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
+  TextField,
+  InputAdornment,
+  ToggleButtonGroup,
+  ToggleButton,
   useTheme
 } from '@mui/material';
 import { 
   Add, 
   MoreVert, 
   Edit, 
-  Block
+  Block,
+  Search,
+  FilterList
 } from '@mui/icons-material';
 import { 
   useCreateRoute, 
@@ -36,11 +42,30 @@ export const RoutesView = () => {
   const updateRoute      = useUpdateRoute();
   const toggleActive     = useToggleRouteActive();
 
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen]   = useState(false);
   const [selectedRoute, setSelectedRoute] = useState(null);
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [anchorEl, setAnchorEl]       = useState(null);
   const [menuRouteId, setMenuRouteId] = useState(null);
+  const [search, setSearch]           = useState('');
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'inactive'
 
+  // Client-side filter — no extra Firestore reads
+  const filteredRoutes = useMemo(() => {
+    const q = search.toLowerCase();
+    return routes.filter((r) => {
+      const matchesSearch =
+        !q ||
+        (r.name || '').toLowerCase().includes(q) ||
+        (r.routeNumber || '').toString().includes(q) ||
+        (r.startPoint || '').toLowerCase().includes(q) ||
+        (r.endPoint || '').toLowerCase().includes(q);
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'active' && r.isActive) ||
+        (statusFilter === 'inactive' && !r.isActive);
+      return matchesSearch && matchesStatus;
+    });
+  }, [routes, search, statusFilter]);
 
 
   const handleOpenMenu = (event, routeId) => {
@@ -92,7 +117,8 @@ export const RoutesView = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+      {/* ── Header row ─────────────────────────────────────────────────── */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 700 }}>Routes Management</Typography>
         <Button 
           variant="contained" 
@@ -102,6 +128,42 @@ export const RoutesView = () => {
         >
           Add Route
         </Button>
+      </Box>
+
+      {/* ── Search + Filter bar ─────────────────────────────────────────── */}
+      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3, flexWrap: 'wrap' }}>
+        <TextField
+          size="small"
+          placeholder="Search by name, number, origin or destination…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search fontSize="small" sx={{ color: 'text.secondary' }} />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ flex: 1, minWidth: 240 }}
+        />
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <FilterList fontSize="small" sx={{ color: 'text.secondary' }} />
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={statusFilter}
+            onChange={(_, val) => val && setStatusFilter(val)}
+          >
+            <ToggleButton value="all">All ({routes.length})</ToggleButton>
+            <ToggleButton value="active" sx={{ color: 'success.main' }}>
+              Active ({routes.filter(r => r.isActive).length})
+            </ToggleButton>
+            <ToggleButton value="inactive" sx={{ color: 'error.main' }}>
+              Inactive ({routes.filter(r => !r.isActive).length})
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
       </Box>
       
       {loading && (
@@ -126,8 +188,14 @@ export const RoutesView = () => {
         </Card>
       )}
 
+      {!loading && !error && routes.length > 0 && filteredRoutes.length === 0 && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          No routes match your search or filter. Try a different keyword or select "All".
+        </Alert>
+      )}
+
       <Grid container spacing={3}>
-        {routes.map((route) => (
+        {filteredRoutes.map((route) => (
           <Grid item xs={12} lg={6} key={route.id}>
             <Card sx={{ height: '100%', position: 'relative' }}>
               <Box sx={{ position: 'absolute', top: 16, right: 8 }}>
