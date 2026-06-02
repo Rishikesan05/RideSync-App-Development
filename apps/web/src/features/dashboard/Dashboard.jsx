@@ -309,7 +309,7 @@ export const Dashboard = () => {
         </IconButton>
       </Box>
 
-      {/* Row 1: Stat Cards (Modern Designs with Distinct Colors & Spring Animations) */}
+      {/* Row 1: Stat Cards (Modern Designs with Brand Color & Spring Animations) */}
       <Grid 
         container 
         spacing={3} 
@@ -320,13 +320,13 @@ export const Dashboard = () => {
         animate="show"
       >
         <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
-          <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<TrendingUp />} trend={stats.revenueTrend} color={'#10B981'} loading={loading} />
+          <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<TrendingUp />} trend={stats.revenueTrend} color={'#E68D33'} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
-          <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBus />} color={'#3B82F6'} loading={loading} />
+          <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBus />} color={'#E68D33'} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
-          <StatCard title="Schedules Today" value={stats.schedulesToday} icon={<EventNote />} color={'#8B5CF6'} loading={loading} />
+          <StatCard title="Schedules Today" value={stats.schedulesToday} icon={<EventNote />} color={'#E68D33'} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
           <StatCard title="Total Bookings" value={stats.totalPassengers} icon={<People />} trend={stats.bookingsTrend} color={'#E68D33'} loading={loading} />
