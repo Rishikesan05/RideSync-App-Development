@@ -12,6 +12,7 @@ import {
   BarChart,
   Bar
 } from 'recharts';
+import { motion } from 'framer-motion';
 
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '../../api/firebase';
@@ -26,82 +27,103 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
   return (
     <Card sx={{ 
       height: '100%', 
+      display: 'flex',
+      flexDirection: 'column',
       position: 'relative', 
       overflow: 'hidden',
       background: isDark
-        ? `linear-gradient(135deg, rgba(30, 41, 59, 0.65) 0%, rgba(30, 41, 59, 0.45) 100%)`
-        : `linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.7) 100%)`,
-      backdropFilter: 'blur(16px)',
-      transition: 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease',
+        ? `linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.75) 100%)`
+        : `linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%)`,
+      backdropFilter: 'blur(20px)',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       cursor: 'pointer',
-      border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)'}`,
+      border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
+      borderTop: `4px solid ${color}`,
       borderRadius: '16px',
+      boxShadow: isDark 
+        ? '0 4px 20px -2px rgba(0, 0, 0, 0.3)' 
+        : '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
       '&:hover': {
-        transform: 'translateY(-5px)',
+        transform: 'translateY(-6px)',
         boxShadow: isDark 
-          ? `0 12px 24px -10px ${color}50, 0 4px 20px rgba(0,0,0,0.3)` 
-          : `0 12px 20px -10px ${color}35, 0 4px 12px rgba(0,0,0,0.04)`,
-        borderColor: `${color}60`,
+          ? `0 16px 28px -10px ${color}40, 0 8px 30px rgba(0,0,0,0.4)` 
+          : `0 16px 24px -10px ${color}30, 0 6px 20px rgba(0,0,0,0.06)`,
+        borderColor: `${color}50`,
       },
       '&::before': {
         content: '""',
         position: 'absolute',
         top: 0,
         right: 0,
-        width: '120px',
-        height: '120px',
-        background: `radial-gradient(circle at top right, ${color}12, transparent 70%)`,
+        width: '140px',
+        height: '140px',
+        background: `radial-gradient(circle at top right, ${color}15, transparent 70%)`,
         zIndex: 0,
       }
     }}>
       {/* Icon watermark */}
-      <Box sx={{ position: 'absolute', top: -10, right: -10, opacity: isDark ? 0.06 : 0.04, transform: 'scale(1.8)', zIndex: 0, color }}>
+      <Box sx={{ position: 'absolute', top: -15, right: -15, opacity: isDark ? 0.07 : 0.04, transform: 'scale(2.2)', zIndex: 0, color }}>
         {icon}
       </Box>
-      <CardContent sx={{ p: 3, position: 'relative', zIndex: 1 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Box>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1.2, mb: 1, fontSize: '0.75rem' }}>
-              {title}
-            </Typography>
-            <Typography variant="h3" sx={{ fontWeight: 700, color: theme.palette.text.primary, tracking: '-0.5px' }}>
-              {loading ? <CircularProgress size={24} sx={{ color }} /> : value}
-            </Typography>
-          </Box>
-          <Box sx={{ 
-            backgroundColor: isDark ? `${color}15` : `${color}10`, 
-            borderRadius: '12px', 
-            p: 1.5, 
-            display: 'flex', 
-            color: color,
-            border: `1px solid ${color}20`,
-            boxShadow: `0 4px 12px ${color}15`
-          }}>
-            {React.cloneElement(icon, { fontSize: 'medium' })}
+      <CardContent sx={{ 
+        p: 3, 
+        position: 'relative', 
+        zIndex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        flexGrow: 1
+      }}>
+        <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+            <Box>
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, mb: 1, fontSize: '0.72rem' }}>
+                {title}
+              </Typography>
+              <Typography variant="h3" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: '-1px' }}>
+                {loading ? <CircularProgress size={28} sx={{ color }} /> : value}
+              </Typography>
+            </Box>
+            <Box sx={{ 
+              backgroundColor: isDark ? `${color}18` : `${color}10`, 
+              borderRadius: '12px', 
+              p: 1.8, 
+              display: 'flex', 
+              color: color,
+              border: `1px solid ${color}25`,
+              boxShadow: `0 4px 14px ${color}20`
+            }}>
+              {React.cloneElement(icon, { fontSize: 'medium' })}
+            </Box>
           </Box>
         </Box>
-        {trend && (() => {
+        
+        {trend ? (() => {
           const isPositive = !trend.startsWith('-');
           const TrendIcon = isPositive ? TrendingUp : TrendingDown;
-          const trendColor = isPositive ? theme.palette.success.main : theme.palette.error.main;
+          const trendColor = isPositive ? '#10B981' : '#EF4444';
+          const bgOpacity = isPositive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
           return (
-            <Box sx={{ display: 'flex', alignItems: 'center', mt: 2.5, color: trendColor }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mt: 'auto', pt: 2, color: trendColor }}>
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                backgroundColor: isPositive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', 
-                borderRadius: '6px', 
-                px: 0.8, 
-                py: 0.3,
-                mr: 1 
+                backgroundColor: bgOpacity, 
+                borderRadius: '8px', 
+                px: 1, 
+                py: 0.4,
+                mr: 1,
+                border: `1px solid ${isPositive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}`
               }}>
-                <TrendIcon fontSize="small" sx={{ mr: 0.5, fontSize: '0.9rem' }} />
-                <Typography variant="caption" sx={{ fontWeight: 700 }}>{trend}</Typography>
+                <TrendIcon fontSize="small" sx={{ mr: 0.5, fontSize: '1rem' }} />
+                <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.75rem' }}>{trend}</Typography>
               </Box>
-              <Typography variant="caption" color="text.secondary">vs last week</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>vs last week</Typography>
             </Box>
           );
-        })()}
+        })() : (
+          <Box sx={{ height: 32, mt: 'auto' }} />
+        )}
       </CardContent>
     </Card>
   );
@@ -259,6 +281,22 @@ export const Dashboard = () => {
     fetchDashboardData();
   }, []);
 
+  // Motion stagger animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08
+      }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100, damping: 15 } }
+  };
+
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -271,38 +309,48 @@ export const Dashboard = () => {
         </IconButton>
       </Box>
 
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<TrendingUp />} trend={stats.revenueTrend} color={'#E68D33'} loading={loading} />
+      {/* Row 1: Stat Cards (Modern Designs with Distinct Colors & Spring Animations) */}
+      <Grid 
+        container 
+        spacing={3} 
+        sx={{ mb: 4 }}
+        component={motion.div}
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
+        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
+          <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<TrendingUp />} trend={stats.revenueTrend} color={'#10B981'} loading={loading} />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBus />} color={'#E68D33'} loading={loading} />
+        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
+          <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBus />} color={'#3B82F6'} loading={loading} />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Schedules Today" value={stats.schedulesToday} icon={<EventNote />} color={'#E68D33'} loading={loading} />
+        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
+          <StatCard title="Schedules Today" value={stats.schedulesToday} icon={<EventNote />} color={'#8B5CF6'} loading={loading} />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
           <StatCard title="Total Bookings" value={stats.totalPassengers} icon={<People />} trend={stats.bookingsTrend} color={'#E68D33'} loading={loading} />
         </Grid>
       </Grid>
 
+      {/* Row 2: Detailed Overview Cards (Symmetrical lg={3} grid, falling back gracefully to sm={6} on smaller screens) */}
       <Grid container spacing={3}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} lg={3}>
           <FleetStats />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} lg={3}>
           <UserStats />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} lg={3}>
           <RecentBookings />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} lg={3}>
           <TodaySchedules />
         </Grid>
       </Grid>
 
       <Grid container spacing={3} sx={{ mt: 3 }}>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} lg={8}>
           <Card sx={{ height: 400, display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Revenue Trend</Typography>
@@ -329,7 +377,7 @@ export const Dashboard = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} lg={4}>
           <Card sx={{ height: 400, display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Bookings by Class</Typography>
