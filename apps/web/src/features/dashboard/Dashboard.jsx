@@ -273,13 +273,13 @@ export const Dashboard = () => {
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<TrendingUp />} trend={stats.revenueTrend} color={theme.palette.success.main} loading={loading} />
+          <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<TrendingUp />} trend={stats.revenueTrend} color={'#E68D33'} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBus />} color={theme.palette.info.main} loading={loading} />
+          <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBus />} color={'#E68D33'} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Schedules Today" value={stats.schedulesToday} icon={<EventNote />} color={theme.palette.warning.main} loading={loading} />
+          <StatCard title="Schedules Today" value={stats.schedulesToday} icon={<EventNote />} color={'#E68D33'} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard title="Total Bookings" value={stats.totalPassengers} icon={<People />} trend={stats.bookingsTrend} color={'#E68D33'} loading={loading} />
