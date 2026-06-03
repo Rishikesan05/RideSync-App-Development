@@ -71,8 +71,8 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
         flexGrow: 1
       }}>
         <Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-            <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, gap: 2 }}>
+            <Box sx={{ minWidth: 0 }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, mb: 1, fontSize: '0.72rem' }}>
                 {title}
               </Typography>
