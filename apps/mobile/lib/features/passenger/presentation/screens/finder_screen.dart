@@ -167,10 +167,60 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+      appBar: AppBar(
+        title: const Text('Find Bus Routes', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
+        automaticallyImplyLeading: false, // Finder is usually a main tab
+      ),
       resizeToAvoidBottomInset: false,
       body: Stack(
+        clipBehavior: Clip.none,
         children: [
           _buildMap(finder, isDark),
+          
+          // Orange Background Curve
+          IgnorePointer(
+            child: Container(
+              height: 240,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40),
+                ),
+              ),
+            ),
+          ),
+          // Bus Animation
+          Positioned(
+            top: -10,
+            right: 0,
+            child: IgnorePointer(
+              child: TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 200, end: 0),
+                duration: const Duration(milliseconds: 3500),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, child) {
+                  return Transform.translate(
+                    offset: Offset(value, 0),
+                    child: child,
+                  );
+                },
+                child: Opacity(
+                  opacity: 0.4,
+                  child: Image.asset(
+                    'assets/images/bussymbol.png',
+                    height: 120,
+                    color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+                    colorBlendMode: BlendMode.multiply,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
           _buildFloatingSearchHeader(context, finder, isDark),
           _buildMapControls(isDark), // New Side Controls
           if (finder.routes.isNotEmpty) _buildHorizontalResultsPanel(finder, isDark),
@@ -304,19 +354,14 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
             // Search Container
             Container(
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: isDark ? Colors.white10 : Colors.black12, width: 1),
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(24),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 20, offset: const Offset(0, 8))
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 15, offset: const Offset(0, 5))
                 ],
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(30),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Column(
-                    children: [
+              child: Column(
+                children: [
                       // Header Label
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -404,8 +449,6 @@ class _RouteFinderScreenState extends State<RouteFinderScreen> {
                         _buildSuggestionsOverlay(finder, isDark),
                     ],
                   ),
-                ),
-              ),
             ),
             
             // Search Button

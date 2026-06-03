@@ -21,7 +21,7 @@ import {
   InputAdornment
 } from '@mui/material';
 import { CheckCircle, Error as ErrorIcon } from '@mui/icons-material';
-import { useRoutesList } from '../../api/routes';
+import { useRoutesFirestore } from '../routes/useRoutesFirestore';
 import { useBusesList } from '../../api/buses';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../api/firebase';
@@ -35,13 +35,12 @@ const scheduleSchema = z.object({
 
 export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => {
   const theme = useTheme();
-  const { data: routesResponse, isLoading: isLoadingRoutes } = useRoutesList();
+  const { routes, loading: isLoadingRoutes } = useRoutesFirestore();
   const { data: busesResponse, isLoading: isLoadingBuses } = useBusesList();
 
   const [operatorStatus, setOperatorStatus] = useState({ loading: false, valid: false, name: '', error: '' });
 
-  const routesData = routesResponse?.data || routesResponse?.routes || routesResponse || [];
-  const routes = Array.isArray(routesData) ? routesData : [];
+
 
   const busesData = busesResponse?.data || busesResponse?.buses || busesResponse || [];
   const buses = Array.isArray(busesData) ? busesData : [];

@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../api/firebase';
 import { useAuth } from '../../providers/AuthProvider';
+import { useColorMode } from '../../providers/AppProviders';
 import {
   Box,
   Drawer,
@@ -35,6 +36,8 @@ import {
   Logout,
   EventSeat,
   Map,
+  DarkMode,
+  LightMode,
 } from '@mui/icons-material';
 
 const drawerWidth = 260;
@@ -56,6 +59,7 @@ export const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useAuth();
+  const { toggleColorMode } = useColorMode();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [scrolled, setScrolled] = useState(false);
@@ -196,14 +200,19 @@ export const AdminLayout = () => {
             {menuItems.find(m => m.path === location.pathname)?.text || 'Dashboard'}
           </Typography>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0, ml: 'auto', transform: 'translateX(-8px)' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 'auto' }}>
+            <Tooltip title={theme.palette.mode === 'dark' ? "Enable Light Mode" : "Enable Dark Mode"}>
+              <IconButton onClick={toggleColorMode} color="inherit">
+                {theme.palette.mode === 'dark' ? <LightMode /> : <DarkMode />}
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Notifications">
-              <IconButton color="inherit" sx={{ mr: 0, transform: 'translateX(-32px)' }}>
+              <IconButton color="inherit" onClick={() => handleNavigate('/notifications')}>
                 <Notifications />
               </IconButton>
             </Tooltip>
             <Tooltip title={currentUser?.email || 'Admin Profile'}>
-              <IconButton onClick={handleMenuOpen} sx={{ p: 0, ml: 0, transform: 'translateX(-20px)' }}>
+              <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
                 <Avatar sx={{ bgcolor: '#E68D33', color: '#fff', width: 36, height: 36 }}>
                   {currentUser?.email?.charAt(0).toUpperCase() || 'A'}
                 </Avatar>
@@ -294,7 +303,16 @@ export const AdminLayout = () => {
         </Drawer>
       </Box>
       
-      <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` }, mt: 10 }}>
+      <Box 
+        component="main" 
+        sx={{ 
+          flexGrow: 1, 
+          p: 3, 
+          width: { sm: `calc(100% - ${drawerWidth}px - 24px)` }, 
+          ml: { sm: '24px' },
+          mt: 10 
+        }}
+      >
         <Outlet />
       </Box>
     </Box>
