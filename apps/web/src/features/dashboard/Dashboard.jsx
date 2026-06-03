@@ -318,10 +318,10 @@ export const Dashboard = () => {
         <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
           <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<TrendingUp />} trend={stats.revenueTrend} color={'#E68D33'} loading={loading} />
         </Grid>
-        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
+        <Grid item xs={12} sm={6} lg={4} component={motion.div} variants={cardVariants}>
           <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBus />} color={'#E68D33'} loading={loading} />
         </Grid>
-        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
+        <Grid item xs={12} sm={6} lg={2} component={motion.div} variants={cardVariants}>
           <StatCard title="Schedules Today" value={stats.schedulesToday} icon={<EventNote />} color={'#E68D33'} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
@@ -329,12 +329,12 @@ export const Dashboard = () => {
         </Grid>
       </Grid>
 
-      {/* Row 2: Detailed Overview Cards (Symmetrical lg={3} grid, falling back gracefully to sm={6} on smaller screens) */}
+      {/* Row 2: Detailed Overview Cards (Optimized layout making Fleet Overview wider) */}
       <Grid container spacing={3}>
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid item xs={12} sm={6} lg={4}>
           <FleetStats />
         </Grid>
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid item xs={12} sm={6} lg={2}>
           <UserStats />
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
