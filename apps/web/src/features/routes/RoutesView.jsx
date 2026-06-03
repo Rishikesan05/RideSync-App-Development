@@ -3,6 +3,8 @@ import {
   Typography, 
   Card, 
   CardContent, 
+  CardActions,
+  Collapse,
   CircularProgress, 
   Alert, 
   Box, 
@@ -17,6 +19,12 @@ import {
   InputAdornment,
   ToggleButtonGroup,
   ToggleButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Divider,
+  Snackbar,
   useTheme
 } from '@mui/material';
 import { 
@@ -25,12 +33,17 @@ import {
   Edit, 
   Block,
   Search,
-  FilterList
+  FilterList,
+  PowerSettingsNew,
+  DeleteOutlined,
+  ExpandMore,
+  ExpandLess
 } from '@mui/icons-material';
 import { 
   useCreateRoute, 
   useUpdateRoute, 
-  useToggleRouteActive 
+  useToggleRouteActive,
+  useDeleteRoute
 } from '../../api/routes';
 import { useRoutesFirestore } from './useRoutesFirestore';
 import { RouteFormDialog } from './RouteFormDialog';
@@ -42,13 +55,25 @@ export const RoutesView = () => {
   const createRoute      = useCreateRoute();
   const updateRoute      = useUpdateRoute();
   const toggleActive     = useToggleRouteActive();
+  const deleteRoute      = useDeleteRoute();
 
   const [dialogOpen, setDialogOpen]   = useState(false);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [anchorEl, setAnchorEl]       = useState(null);
-  const [menuRouteId, setMenuRouteId] = useState(null);
-  const [search, setSearch]           = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'inactive'
+  const [menuRouteId, setMenuRouteId]           = useState(null);
+  const [search, setSearch]                     = useState('');
+  const [statusFilter, setStatusFilter]         = useState('all');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [routeToDelete, setRouteToDelete]       = useState(null);
+  const [expandedRoutes, setExpandedRoutes]     = useState(new Set());
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  const toggleExpand = (routeId) =>
+    setExpandedRoutes((prev) => {
+      const next = new Set(prev);
+      next.has(routeId) ? next.delete(routeId) : next.add(routeId);
+      return next;
+    });
 
   // Client-side filter — no extra Firestore reads
   const filteredRoutes = useMemo(() => {
@@ -100,19 +125,42 @@ export const RoutesView = () => {
     }
   };
 
+  const handleDeleteClick = () => {
+    const route = routes.find(r => r.id === menuRouteId);
+    setRouteToDelete(route);
+    handleCloseMenu();
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    setDeleteConfirmOpen(false);
+    try {
+      await deleteRoute.mutateAsync(routeToDelete.id);
+    } catch (e) {
+      console.error('Failed to delete route', e);
+    } finally {
+      setRouteToDelete(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmOpen(false);
+    setRouteToDelete(null);
+  };
+
   const handleSubmit = async (formData) => {
     try {
       if (selectedRoute) {
-        // Update
         await updateRoute.mutateAsync({ id: selectedRoute.id, data: formData });
+        setSnackbar({ open: true, message: 'Route updated successfully!', severity: 'success' });
       } else {
-        // Create
         await createRoute.mutateAsync(formData);
+        setSnackbar({ open: true, message: 'Route created successfully!', severity: 'success' });
       }
     } catch (err) {
       console.error('Error saving route', err);
-      // In a real app, you'd show a toast notification here
-      throw err; // throw so dialog stays open if needed
+      setSnackbar({ open: true, message: `Failed to save route: ${err.message}`, severity: 'error' });
+      throw err;
     }
   };
 
@@ -220,59 +268,224 @@ export const RoutesView = () => {
                   />
                 </Box>
                 
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Total Distance: {route.stops[route.stops.length - 1]?.distFromStartKm || 0} km
-                </Typography>
-                
-                <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, color: theme.palette.primary.light }}>
-                  Route Stops ({route.stops?.length || 0})
-                </Typography>
-                
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {route.stops && route.stops.map((stop, index) => (
-                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box sx={{ 
-                        width: 12, 
-                        height: 12, 
-                        borderRadius: '50%', 
-                        backgroundColor: index === 0 ? theme.palette.success.main : 
-                                         index === route.stops.length - 1 ? theme.palette.error.main : 
-                                         theme.palette.text.secondary 
-                      }} />
-                      <Typography variant="body2" sx={{ flexGrow: 1 }}>{stop.name}</Typography>
-                      <Typography variant="body2" color="text.secondary">{stop.distFromStartKm} km</Typography>
-                    </Box>
-                  ))}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {route.startPoint || 'Origin'}
+                  </Typography>
+                  <Typography variant="body2" color="text.disabled">→</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {route.endPoint || 'Destination'}
+                  </Typography>
                 </Box>
+
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Total Distance:{' '}
+                  <strong>
+                    {route.totalDistanceKm
+                      ?? route.stops?.[route.stops.length - 1]?.distFromStartKm
+                      ?? 0} km
+                  </strong>
+                </Typography>
+                
               </CardContent>
+
+              {/* ── Expand toggle ────────────────────────────────── */}
+              {route.stops?.length > 0 && (
+                <>
+                  <CardActions sx={{ px: 2, pt: 0, pb: expandedRoutes.has(route.id) ? 0 : 1 }}>
+                    <Button
+                      size="small"
+                      onClick={() => toggleExpand(route.id)}
+                      endIcon={expandedRoutes.has(route.id) ? <ExpandLess /> : <ExpandMore />}
+                      sx={{ color: 'primary.light', fontWeight: 600, fontSize: '0.75rem' }}
+                    >
+                      {expandedRoutes.has(route.id)
+                        ? 'Hide Stops'
+                        : `Show ${route.stops.length} Stop${route.stops.length !== 1 ? 's' : ''}`}
+                    </Button>
+                  </CardActions>
+
+                  {/* ── Stops timeline panel ────────────────────────── */}
+                  <Collapse in={expandedRoutes.has(route.id)} timeout="auto" unmountOnExit>
+                    <Box
+                      sx={{
+                        mx: 2,
+                        mb: 2,
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                      }}
+                    >
+                      {route.stops.map((stop, idx) => {
+                        const isFirst = idx === 0;
+                        const isLast  = idx === route.stops.length - 1;
+                        const dotColor = isFirst
+                          ? theme.palette.success.main
+                          : isLast
+                          ? theme.palette.error.main
+                          : theme.palette.primary.main;
+                        return (
+                          <Box key={idx} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                            {/* Vertical connector + dot */}
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 16, flexShrink: 0 }}>
+                              <Box sx={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: dotColor, flexShrink: 0, mt: 0.3, boxShadow: `0 0 6px ${dotColor}88` }} />
+                              {!isLast && (
+                                <Box sx={{ width: 2, flex: 1, minHeight: 20, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 1, my: 0.3 }} />
+                              )}
+                            </Box>
+
+                            {/* Stop info */}
+                            <Box sx={{ pb: isLast ? 0 : 1.5, flex: 1 }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: isFirst || isLast ? 700 : 400,
+                                    color: isFirst ? 'success.light' : isLast ? 'error.light' : 'text.primary',
+                                  }}
+                                >
+                                  {stop.name}
+                                </Typography>
+                                <Chip
+                                  label={`${stop.distFromStartKm} km`}
+                                  size="small"
+                                  sx={{
+                                    height: 20,
+                                    fontSize: '0.68rem',
+                                    fontWeight: 700,
+                                    backgroundColor: `${dotColor}18`,
+                                    color: dotColor,
+                                    border: `1px solid ${dotColor}40`,
+                                  }}
+                                />
+                              </Box>
+                              {isFirst && <Typography variant="caption" color="success.dark">Origin</Typography>}
+                              {isLast  && <Typography variant="caption" color="error.dark">Destination</Typography>}
+                            </Box>
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  </Collapse>
+                </>
+              )}
             </Card>
           </Grid>
         ))}
       </Grid>
 
       {/* Action Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleCloseMenu}
-      >
-        <MenuItem onClick={() => handleOpenDialog(routes.find(r => r.id === menuRouteId))}>
-          <ListItemIcon><Edit fontSize="small" /></ListItemIcon>
-          Edit Route
-        </MenuItem>
-        <MenuItem onClick={handleToggleActive} sx={{ color: theme.palette.error.main }}>
-          <ListItemIcon><Block fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
-          Activate / Deactivate
-        </MenuItem>
-      </Menu>
+      {/* menuRoute lets us read isActive of the currently-targeted route */}
+      {(() => {
+        const menuRoute = routes.find(r => r.id === menuRouteId);
+        const isCurrentlyActive = menuRoute?.isActive ?? true;
+        return (
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleCloseMenu}
+          >
+            <MenuItem onClick={() => handleOpenDialog(menuRoute)}>
+              <ListItemIcon><Edit fontSize="small" /></ListItemIcon>
+              Edit Route
+            </MenuItem>
 
-      {/* Form Dialog */}
+            <MenuItem onClick={handleToggleActive}
+              sx={{ color: isCurrentlyActive ? theme.palette.error.main : theme.palette.success.main }}
+            >
+              <ListItemIcon>
+                {isCurrentlyActive
+                  ? <Block fontSize="small" sx={{ color: 'inherit' }} />
+                  : <PowerSettingsNew fontSize="small" sx={{ color: 'inherit' }} />}
+              </ListItemIcon>
+              {isCurrentlyActive ? 'Deactivate Route' : 'Activate Route'}
+            </MenuItem>
+
+            <Divider sx={{ my: 0.5, borderColor: 'rgba(255,255,255,0.06)' }} />
+
+            <MenuItem onClick={handleDeleteClick} sx={{ color: theme.palette.error.main }}>
+              <ListItemIcon>
+                <DeleteOutlined fontSize="small" sx={{ color: 'inherit' }} />
+              </ListItemIcon>
+              Delete Route
+            </MenuItem>
+          </Menu>
+        );
+      })()}
+
+      {/* ── Delete confirmation dialog ─────────────────────────────────── */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={handleDeleteCancel}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            backgroundColor: 'background.paper',
+            backgroundImage: 'none',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 2,
+          }
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: 'error.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <DeleteOutlined />
+          Delete Route
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Are you sure you want to permanently delete:
+          </Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 1 }}>
+            {routeToDelete?.routeNumber ? `R-${routeToDelete.routeNumber}: ` : ''}
+            {routeToDelete?.name || 'this route'}
+          </Typography>
+          <Alert severity="warning" sx={{ mt: 2, fontSize: '0.8rem' }}>
+            This action cannot be undone. All associated data will be lost.
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button onClick={handleDeleteCancel} color="inherit" variant="outlined">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={deleteRoute.isPending}
+            startIcon={<DeleteOutlined />}
+          >
+            {deleteRoute.isPending ? 'Deleting...' : 'Yes, Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Form Dialog ────────────────────────────────────────────────── */}
       <RouteFormDialog
         open={dialogOpen}
         onClose={handleCloseDialog}
         onSubmit={handleSubmit}
         initialData={selectedRoute}
+        isSaving={createRoute.isPending || updateRoute.isPending}
       />
+
+      {/* ── Success / Error snackbar ────────────────────────────────── */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          severity={snackbar.severity}
+          variant="filled"
+          onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+          sx={{ width: '100%', fontWeight: 600 }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

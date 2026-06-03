@@ -97,7 +97,7 @@ const LocationAutocomplete = ({ label, placeholder, onSelect, error, helperText,
   );
 };
 
-export const RouteFormDialog = ({ open, onClose, onSubmit, initialData }) => {
+export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving = false }) => {
   const theme = useTheme();
   const [calculating, setCalculating] = useState(false);
   const [durationText, setDurationText] = useState('');
@@ -683,7 +683,7 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData }) => {
             <Button 
               type="submit" 
               variant="contained" 
-              disabled={isSubmitting || calculating}
+              disabled={isSubmitting || calculating || isSaving}
               size="large"
               startIcon={<RouteIcon />}
               sx={{ 
@@ -697,7 +697,7 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData }) => {
                 boxShadow: '0 8px 24px rgba(255, 152, 0, 0.2)'
               }}
             >
-              {isSubmitting ? 'Saving...' : 'Save Bus Route'}
+              {isSaving ? 'Saving to Firestore...' : isSubmitting ? 'Validating...' : 'Save Bus Route'}
             </Button>
           </Box>
         </DialogActions>
