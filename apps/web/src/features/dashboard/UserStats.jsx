@@ -91,8 +91,8 @@ export const UserStats = () => {
       <CardContent sx={{ p: 3 }}>
 
         {/* Title */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <PeopleAltOutlined sx={{ color: theme.palette.primary.main }} />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+          <PeopleAltOutlined sx={{ color: '#E68D33' }} />
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Registered Users
           </Typography>
@@ -117,7 +117,7 @@ export const UserStats = () => {
                   }}
                 >
                   {/* Icon + label */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Box
                       sx={{
                         backgroundColor: `${row.color}20`,
