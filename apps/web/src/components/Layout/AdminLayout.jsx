@@ -102,8 +102,8 @@ export const AdminLayout = () => {
 
   // Theme-aware colors so nav bars are visible in both light and dark modes
   const appBarBg = theme.palette.mode === 'dark'
-    ? (scrolled ? 'rgba(15, 23, 42, 0.55)' : 'rgba(15, 23, 42, 0.35)')
-    : (scrolled ? 'rgba(255, 255, 255, 0.72)' : 'rgba(255, 255, 255, 0.45)');
+    ? 'rgba(15, 23, 42, 0.5)'
+    : 'rgba(255, 255, 255, 0.5)';
 
   const appBarBorder = theme.palette.mode === 'dark'
     ? '1px solid rgba(255, 255, 255, 0.08)'
