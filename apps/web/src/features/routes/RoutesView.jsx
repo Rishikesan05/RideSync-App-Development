@@ -17,6 +17,11 @@ import {
   InputAdornment,
   ToggleButtonGroup,
   ToggleButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Divider,
   useTheme
 } from '@mui/material';
 import { 
@@ -26,12 +31,14 @@ import {
   Block,
   Search,
   FilterList,
-  PowerSettingsNew
+  PowerSettingsNew,
+  DeleteOutlined
 } from '@mui/icons-material';
 import { 
   useCreateRoute, 
   useUpdateRoute, 
-  useToggleRouteActive 
+  useToggleRouteActive,
+  useDeleteRoute
 } from '../../api/routes';
 import { useRoutesFirestore } from './useRoutesFirestore';
 import { RouteFormDialog } from './RouteFormDialog';
@@ -43,13 +50,16 @@ export const RoutesView = () => {
   const createRoute      = useCreateRoute();
   const updateRoute      = useUpdateRoute();
   const toggleActive     = useToggleRouteActive();
+  const deleteRoute      = useDeleteRoute();
 
   const [dialogOpen, setDialogOpen]   = useState(false);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [anchorEl, setAnchorEl]       = useState(null);
-  const [menuRouteId, setMenuRouteId] = useState(null);
-  const [search, setSearch]           = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'inactive'
+  const [menuRouteId, setMenuRouteId]       = useState(null);
+  const [search, setSearch]                 = useState('');
+  const [statusFilter, setStatusFilter]     = useState('all');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [routeToDelete, setRouteToDelete]   = useState(null);
 
   // Client-side filter — no extra Firestore reads
   const filteredRoutes = useMemo(() => {
@@ -99,6 +109,29 @@ export const RoutesView = () => {
     } catch (e) {
       console.error('Failed to toggle route active state', e);
     }
+  };
+
+  const handleDeleteClick = () => {
+    const route = routes.find(r => r.id === menuRouteId);
+    setRouteToDelete(route);
+    handleCloseMenu();
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    setDeleteConfirmOpen(false);
+    try {
+      await deleteRoute.mutateAsync(routeToDelete.id);
+    } catch (e) {
+      console.error('Failed to delete route', e);
+    } finally {
+      setRouteToDelete(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmOpen(false);
+    setRouteToDelete(null);
   };
 
   const handleSubmit = async (formData) => {
@@ -282,8 +315,7 @@ export const RoutesView = () => {
               Edit Route
             </MenuItem>
 
-            <MenuItem
-              onClick={handleToggleActive}
+            <MenuItem onClick={handleToggleActive}
               sx={{ color: isCurrentlyActive ? theme.palette.error.main : theme.palette.success.main }}
             >
               <ListItemIcon>
@@ -293,11 +325,67 @@ export const RoutesView = () => {
               </ListItemIcon>
               {isCurrentlyActive ? 'Deactivate Route' : 'Activate Route'}
             </MenuItem>
+
+            <Divider sx={{ my: 0.5, borderColor: 'rgba(255,255,255,0.06)' }} />
+
+            <MenuItem onClick={handleDeleteClick} sx={{ color: theme.palette.error.main }}>
+              <ListItemIcon>
+                <DeleteOutlined fontSize="small" sx={{ color: 'inherit' }} />
+              </ListItemIcon>
+              Delete Route
+            </MenuItem>
           </Menu>
         );
       })()}
 
-      {/* Form Dialog */}
+      {/* ── Delete confirmation dialog ─────────────────────────────────── */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={handleDeleteCancel}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            backgroundColor: 'background.paper',
+            backgroundImage: 'none',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 2,
+          }
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: 'error.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <DeleteOutlined />
+          Delete Route
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Are you sure you want to permanently delete:
+          </Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 1 }}>
+            {routeToDelete?.routeNumber ? `R-${routeToDelete.routeNumber}: ` : ''}
+            {routeToDelete?.name || 'this route'}
+          </Typography>
+          <Alert severity="warning" sx={{ mt: 2, fontSize: '0.8rem' }}>
+            This action cannot be undone. All associated data will be lost.
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button onClick={handleDeleteCancel} color="inherit" variant="outlined">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={deleteRoute.isPending}
+            startIcon={<DeleteOutlined />}
+          >
+            {deleteRoute.isPending ? 'Deleting...' : 'Yes, Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Form Dialog ────────────────────────────────────────────────── */}
       <RouteFormDialog
         open={dialogOpen}
         onClose={handleCloseDialog}
