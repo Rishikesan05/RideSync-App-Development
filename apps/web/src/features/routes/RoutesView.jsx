@@ -24,6 +24,7 @@ import {
   DialogContent,
   DialogActions,
   Divider,
+  Snackbar,
   useTheme
 } from '@mui/material';
 import { 
@@ -65,6 +66,7 @@ export const RoutesView = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [routeToDelete, setRouteToDelete]       = useState(null);
   const [expandedRoutes, setExpandedRoutes]     = useState(new Set());
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const toggleExpand = (routeId) =>
     setExpandedRoutes((prev) => {
@@ -149,16 +151,16 @@ export const RoutesView = () => {
   const handleSubmit = async (formData) => {
     try {
       if (selectedRoute) {
-        // Update
         await updateRoute.mutateAsync({ id: selectedRoute.id, data: formData });
+        setSnackbar({ open: true, message: 'Route updated successfully!', severity: 'success' });
       } else {
-        // Create
         await createRoute.mutateAsync(formData);
+        setSnackbar({ open: true, message: 'Route created successfully!', severity: 'success' });
       }
     } catch (err) {
       console.error('Error saving route', err);
-      // In a real app, you'd show a toast notification here
-      throw err; // throw so dialog stays open if needed
+      setSnackbar({ open: true, message: `Failed to save route: ${err.message}`, severity: 'error' });
+      throw err;
     }
   };
 
@@ -465,7 +467,25 @@ export const RoutesView = () => {
         onClose={handleCloseDialog}
         onSubmit={handleSubmit}
         initialData={selectedRoute}
+        isSaving={createRoute.isPending || updateRoute.isPending}
       />
+
+      {/* ── Success / Error snackbar ────────────────────────────────── */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          severity={snackbar.severity}
+          variant="filled"
+          onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+          sx={{ width: '100%', fontWeight: 600 }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
