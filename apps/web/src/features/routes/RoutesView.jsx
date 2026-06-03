@@ -3,6 +3,8 @@ import {
   Typography, 
   Card, 
   CardContent, 
+  CardActions,
+  Collapse,
   CircularProgress, 
   Alert, 
   Box, 
@@ -32,7 +34,9 @@ import {
   Search,
   FilterList,
   PowerSettingsNew,
-  DeleteOutlined
+  DeleteOutlined,
+  ExpandMore,
+  ExpandLess
 } from '@mui/icons-material';
 import { 
   useCreateRoute, 
@@ -55,11 +59,19 @@ export const RoutesView = () => {
   const [dialogOpen, setDialogOpen]   = useState(false);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [anchorEl, setAnchorEl]       = useState(null);
-  const [menuRouteId, setMenuRouteId]       = useState(null);
-  const [search, setSearch]                 = useState('');
-  const [statusFilter, setStatusFilter]     = useState('all');
+  const [menuRouteId, setMenuRouteId]           = useState(null);
+  const [search, setSearch]                     = useState('');
+  const [statusFilter, setStatusFilter]         = useState('all');
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [routeToDelete, setRouteToDelete]   = useState(null);
+  const [routeToDelete, setRouteToDelete]       = useState(null);
+  const [expandedRoutes, setExpandedRoutes]     = useState(new Set());
+
+  const toggleExpand = (routeId) =>
+    setExpandedRoutes((prev) => {
+      const next = new Set(prev);
+      next.has(routeId) ? next.delete(routeId) : next.add(routeId);
+      return next;
+    });
 
   // Client-side filter — no extra Firestore reads
   const filteredRoutes = useMemo(() => {
@@ -273,27 +285,89 @@ export const RoutesView = () => {
                   </strong>
                 </Typography>
                 
-                <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, color: theme.palette.primary.light }}>
-                  Route Stops ({route.stops?.length || 0})
-                </Typography>
-                
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {route.stops && route.stops.map((stop, index) => (
-                    <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box sx={{ 
-                        width: 12, 
-                        height: 12, 
-                        borderRadius: '50%', 
-                        backgroundColor: index === 0 ? theme.palette.success.main : 
-                                         index === route.stops.length - 1 ? theme.palette.error.main : 
-                                         theme.palette.text.secondary 
-                      }} />
-                      <Typography variant="body2" sx={{ flexGrow: 1 }}>{stop.name}</Typography>
-                      <Typography variant="body2" color="text.secondary">{stop.distFromStartKm} km</Typography>
-                    </Box>
-                  ))}
-                </Box>
               </CardContent>
+
+              {/* ── Expand toggle ────────────────────────────────── */}
+              {route.stops?.length > 0 && (
+                <>
+                  <CardActions sx={{ px: 2, pt: 0, pb: expandedRoutes.has(route.id) ? 0 : 1 }}>
+                    <Button
+                      size="small"
+                      onClick={() => toggleExpand(route.id)}
+                      endIcon={expandedRoutes.has(route.id) ? <ExpandLess /> : <ExpandMore />}
+                      sx={{ color: 'primary.light', fontWeight: 600, fontSize: '0.75rem' }}
+                    >
+                      {expandedRoutes.has(route.id)
+                        ? 'Hide Stops'
+                        : `Show ${route.stops.length} Stop${route.stops.length !== 1 ? 's' : ''}`}
+                    </Button>
+                  </CardActions>
+
+                  {/* ── Stops timeline panel ────────────────────────── */}
+                  <Collapse in={expandedRoutes.has(route.id)} timeout="auto" unmountOnExit>
+                    <Box
+                      sx={{
+                        mx: 2,
+                        mb: 2,
+                        p: 2,
+                        borderRadius: 2,
+                        backgroundColor: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                      }}
+                    >
+                      {route.stops.map((stop, idx) => {
+                        const isFirst = idx === 0;
+                        const isLast  = idx === route.stops.length - 1;
+                        const dotColor = isFirst
+                          ? theme.palette.success.main
+                          : isLast
+                          ? theme.palette.error.main
+                          : theme.palette.primary.main;
+                        return (
+                          <Box key={idx} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+                            {/* Vertical connector + dot */}
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 16, flexShrink: 0 }}>
+                              <Box sx={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: dotColor, flexShrink: 0, mt: 0.3, boxShadow: `0 0 6px ${dotColor}88` }} />
+                              {!isLast && (
+                                <Box sx={{ width: 2, flex: 1, minHeight: 20, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 1, my: 0.3 }} />
+                              )}
+                            </Box>
+
+                            {/* Stop info */}
+                            <Box sx={{ pb: isLast ? 0 : 1.5, flex: 1 }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: isFirst || isLast ? 700 : 400,
+                                    color: isFirst ? 'success.light' : isLast ? 'error.light' : 'text.primary',
+                                  }}
+                                >
+                                  {stop.name}
+                                </Typography>
+                                <Chip
+                                  label={`${stop.distFromStartKm} km`}
+                                  size="small"
+                                  sx={{
+                                    height: 20,
+                                    fontSize: '0.68rem',
+                                    fontWeight: 700,
+                                    backgroundColor: `${dotColor}18`,
+                                    color: dotColor,
+                                    border: `1px solid ${dotColor}40`,
+                                  }}
+                                />
+                              </Box>
+                              {isFirst && <Typography variant="caption" color="success.dark">Origin</Typography>}
+                              {isLast  && <Typography variant="caption" color="error.dark">Destination</Typography>}
+                            </Box>
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  </Collapse>
+                </>
+              )}
             </Card>
           </Grid>
         ))}
