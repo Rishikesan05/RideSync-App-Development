@@ -355,8 +355,8 @@ export const Dashboard = () => {
                   <AreaChart data={revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0}/>
+                        <stop offset="5%" stopColor={'#E68D33'} stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor={'#E68D33'} stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -364,9 +364,9 @@ export const Dashboard = () => {
                     <YAxis stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} />
                     <Tooltip 
                        contentStyle={{ backgroundColor: theme.palette.background.paper, border: 'none', borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}
-                      itemStyle={{ color: theme.palette.primary.light }}
+                      itemStyle={{ color: '#E68D33' }}
                     />
-                    <Area type="monotone" dataKey="revenue" stroke={theme.palette.primary.main} strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                    <Area type="monotone" dataKey="revenue" stroke={'#E68D33'} strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </Box>
@@ -386,7 +386,7 @@ export const Dashboard = () => {
                       cursor={{fill: 'rgba(255,255,255,0.05)'}}
                       contentStyle={{ backgroundColor: theme.palette.background.paper, border: 'none', borderRadius: 8 }}
                     />
-                    <Bar dataKey="count" fill={theme.palette.secondary.main} radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="count" fill={'#E68D33'} radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </Box>
