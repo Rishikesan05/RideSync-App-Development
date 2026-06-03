@@ -93,8 +93,8 @@ export const TodaySchedules = () => {
       <CardContent sx={{ p: 3 }}>
 
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <ScheduleIcon sx={{ color: theme.palette.warning.main }} />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+          <ScheduleIcon sx={{ color: '#E68D33' }} />
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Today's Schedules
           </Typography>
@@ -153,7 +153,7 @@ export const TodaySchedules = () => {
                   }}
                 >
                   {/* Left: bus icon + departure time + bus ID */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Box
                       sx={{
                         backgroundColor: 'rgba(99,102,241,0.1)',
@@ -183,7 +183,7 @@ export const TodaySchedules = () => {
                     <Chip
                       label={(s.status || 'Scheduled').toUpperCase()}
                       size="small"
-                      color={statusColor(s.status)}
+                      color={(s.status || '').toLowerCase() === 'active' ? undefined : statusColor(s.status)}
                       variant="filled"
                       sx={{
                         height: 20,
@@ -191,6 +191,11 @@ export const TodaySchedules = () => {
                         fontWeight: 700,
                         mb: 0.5,
                         display: 'block',
+                        ...((s.status || '').toLowerCase() === 'active' ? {
+                          backgroundColor: 'rgba(230, 141, 51, 0.15)',
+                          color: '#E68D33',
+                          border: '1px solid rgba(230, 141, 51, 0.3)',
+                        } : {})
                       }}
                     />
                     <Typography
