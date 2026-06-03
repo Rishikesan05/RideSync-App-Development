@@ -101,9 +101,17 @@ export const AdminLayout = () => {
   }, []);
 
   // Theme-aware colors so nav bars are visible in both light and dark modes
-  const appBarBg = scrolled
-    ? (theme.palette.mode === 'dark' ? 'rgba(15,23,42,0.6)' : 'rgba(255,255,255,0.92)')
-    : (theme.palette.mode === 'dark' ? 'rgba(15,23,42,0.45)' : 'rgba(255,255,255,0.85)');
+  const appBarBg = theme.palette.mode === 'dark'
+    ? 'rgba(15, 23, 42, 0.5)'
+    : 'rgba(255, 255, 255, 0.5)';
+
+  const appBarBorder = theme.palette.mode === 'dark'
+    ? '1px solid rgba(255, 255, 255, 0.08)'
+    : '1px solid rgba(0, 0, 0, 0.06)';
+
+  const appBarShadow = theme.palette.mode === 'dark'
+    ? '0 8px 32px 0 rgba(2, 6, 23, 0.5)'
+    : '0 8px 32px 0 rgba(31, 38, 135, 0.06)';
 
   const drawerBg = scrolled
     ? (theme.palette.mode === 'dark' ? 'rgba(15,23,42,0.72)' : 'rgba(255,255,255,0.96)')
@@ -178,11 +186,13 @@ export const AdminLayout = () => {
           mr: { xs: '16px', sm: '16px' },
           backgroundColor: appBarBg,
           color: '#E68D33',
-          backdropFilter: scrolled ? 'blur(12px)' : 'blur(6px)',
-          borderBottom: 'none',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: appBarBorder,
           borderRadius: '999px',
-          boxShadow: '0 10px 30px rgba(2,6,23,0.6)',
+          boxShadow: appBarShadow,
           zIndex: 1200,
+          transition: 'background-color 0.3s, box-shadow 0.3s, border-color 0.3s',
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between' }}>
