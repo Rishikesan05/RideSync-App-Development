@@ -25,7 +25,8 @@ import {
   Edit, 
   Block,
   Search,
-  FilterList
+  FilterList,
+  PowerSettingsNew
 } from '@mui/icons-material';
 import { 
   useCreateRoute, 
@@ -251,20 +252,35 @@ export const RoutesView = () => {
       </Grid>
 
       {/* Action Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleCloseMenu}
-      >
-        <MenuItem onClick={() => handleOpenDialog(routes.find(r => r.id === menuRouteId))}>
-          <ListItemIcon><Edit fontSize="small" /></ListItemIcon>
-          Edit Route
-        </MenuItem>
-        <MenuItem onClick={handleToggleActive} sx={{ color: theme.palette.error.main }}>
-          <ListItemIcon><Block fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
-          Activate / Deactivate
-        </MenuItem>
-      </Menu>
+      {/* menuRoute lets us read isActive of the currently-targeted route */}
+      {(() => {
+        const menuRoute = routes.find(r => r.id === menuRouteId);
+        const isCurrentlyActive = menuRoute?.isActive ?? true;
+        return (
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleCloseMenu}
+          >
+            <MenuItem onClick={() => handleOpenDialog(menuRoute)}>
+              <ListItemIcon><Edit fontSize="small" /></ListItemIcon>
+              Edit Route
+            </MenuItem>
+
+            <MenuItem
+              onClick={handleToggleActive}
+              sx={{ color: isCurrentlyActive ? theme.palette.error.main : theme.palette.success.main }}
+            >
+              <ListItemIcon>
+                {isCurrentlyActive
+                  ? <Block fontSize="small" sx={{ color: 'inherit' }} />
+                  : <PowerSettingsNew fontSize="small" sx={{ color: 'inherit' }} />}
+              </ListItemIcon>
+              {isCurrentlyActive ? 'Deactivate Route' : 'Activate Route'}
+            </MenuItem>
+          </Menu>
+        );
+      })()}
 
       {/* Form Dialog */}
       <RouteFormDialog
