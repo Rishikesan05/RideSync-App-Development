@@ -221,8 +221,23 @@ export const RoutesView = () => {
                   />
                 </Box>
                 
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {route.startPoint || 'Origin'}
+                  </Typography>
+                  <Typography variant="body2" color="text.disabled">→</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {route.endPoint || 'Destination'}
+                  </Typography>
+                </Box>
+
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Total Distance: {route.stops[route.stops.length - 1]?.distFromStartKm || 0} km
+                  Total Distance:{' '}
+                  <strong>
+                    {route.totalDistanceKm
+                      ?? route.stops?.[route.stops.length - 1]?.distFromStartKm
+                      ?? 0} km
+                  </strong>
                 </Typography>
                 
                 <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, color: theme.palette.primary.light }}>
