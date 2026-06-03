@@ -22,8 +22,6 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
   Map<String, dynamic>? _activeTrip;
 
   late AnimationController _animController;
-  late Animation<Color?> _colorAnim1;
-  late Animation<Color?> _colorAnim2;
   late AnimationController _radarAnimController;
 
   @override
@@ -33,16 +31,6 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
       vsync: this,
       duration: const Duration(seconds: 4),
     )..repeat(reverse: true);
-
-    _colorAnim1 = ColorTween(
-      begin: AppColors.primaryOrange.withValues(alpha: 0.2),
-      end: AppColors.primaryNavy.withValues(alpha: 0.2),
-    ).animate(_animController);
-
-    _colorAnim2 = ColorTween(
-      begin: AppColors.primaryNavy.withValues(alpha: 0.2),
-      end: AppColors.primaryOrange.withValues(alpha: 0.2),
-    ).animate(_animController);
 
     _radarAnimController = AnimationController(
       vsync: this,
