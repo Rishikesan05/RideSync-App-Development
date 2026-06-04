@@ -45,62 +45,38 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
-      body: CustomScrollView(
-        slivers: [
-          _buildSliverAppBar(isDark),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSearchBar(isDark),
-                  const SizedBox(height: 24),
-                  Text('My Assigned Routes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
-                  const SizedBox(height: 16),
-                  ..._mockRoutes.where((r) => r['isAssigned'] == true).map((route) => _buildRouteCard(route, isDark)),
-                  const SizedBox(height: 24),
-                  Text('Other Fleet Routes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
-                  const SizedBox(height: 16),
-                  ..._mockRoutes.where((r) => r['isAssigned'] == false).map((route) => _buildRouteCard(route, isDark)),
-                  const SizedBox(height: 80),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSliverAppBar(bool isDark) {
-    return SliverAppBar(
-      expandedHeight: 140.0,
-      floating: false,
-      pinned: true,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : AppColors.primaryNavy,
-      elevation: 0,
-      flexibleSpace: FlexibleSpaceBar(
-        titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
+      appBar: AppBar(
+        backgroundColor: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+        elevation: 0,
         title: const Text(
-          'Routes',
+          'My Routes',
           style: TextStyle(
             color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
           ),
         ),
-        background: Stack(
-          children: [
-            Positioned(
-              right: -20,
-              top: -20,
-              child: Opacity(
-                opacity: 0.2,
-                child: const Icon(Icons.map_outlined, size: 160, color: Colors.white),
-              ),
-            ),
-          ],
+      ),
+      body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 120, top: 24),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSearchBar(isDark),
+              const SizedBox(height: 24),
+              Text('My Assigned Routes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+              const SizedBox(height: 16),
+              ..._mockRoutes.where((r) => r['isAssigned'] == true).map((route) => _buildRouteCard(route, isDark)),
+              const SizedBox(height: 24),
+              Text('Other Fleet Routes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+              const SizedBox(height: 16),
+              ..._mockRoutes.where((r) => r['isAssigned'] == false).map((route) => _buildRouteCard(route, isDark)),
+            ],
+          ),
         ),
       ),
     );
