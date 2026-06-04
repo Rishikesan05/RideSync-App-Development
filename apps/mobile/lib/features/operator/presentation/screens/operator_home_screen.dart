@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
+import 'package:ridesync/core/widgets/ridesync_ui.dart';
+import 'package:ridesync/core/widgets/notification_tab.dart';
 
 class OperatorHomeScreen extends StatefulWidget {
   const OperatorHomeScreen({super.key});
@@ -127,58 +129,95 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
     final operatorName = auth.user?.name ?? 'Marcus';
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-      body: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            top: -100,
-            right: -100,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    AppColors.primaryOrange.withValues(alpha: 0.2),
-                    Colors.transparent,
-                  ],
-                ),
+      backgroundColor: isDark ? AppColors.backgroundDark : const Color(0xFFF0F2F5),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+        elevation: 0,
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/images/logo.jpeg',
+                height: 36,
+                width: 36,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.directions_bus, color: Colors.white),
               ),
             ),
-          ),
-          SafeArea(
-            child: RefreshIndicator(
-              onRefresh: _fetchOperatorData,
-              color: AppColors.primaryOrange,
-              child: _isLoading
-                  ? _buildSkeletonLoading(isDark)
-                  : SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildHeader(operatorName, isDark),
-                          const SizedBox(height: 24),
-                          _buildSummaryCards(isDark),
-                          const SizedBox(height: 24),
-                          _buildQuickActions(isDark),
-                          const SizedBox(height: 24),
-                          if (_activeTrip != null) ...[
-                            _buildActiveTripCard(_activeTrip!, isDark),
-                            const SizedBox(height: 24),
-                          ],
-                          _buildSectionHeader('Today\'s Schedule', isDark),
-                          const SizedBox(height: 16),
-                          _buildScheduleList(isDark),
-                        ],
-                      ),
-                    ),
+            const SizedBox(width: 12),
+            const Text(
+              'RideSync Operator',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
             ),
+          ],
+        ),
+        actions: const [
+          NotificationTab(),
+          SizedBox(width: 6),
+          Padding(
+            padding: EdgeInsets.only(right: 16),
+            child: _OperatorAccountButton(),
           ),
         ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _fetchOperatorData,
+        color: AppColors.primaryOrange,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 120),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                height: 240,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(40),
+                    bottomRight: Radius.circular(40),
+                  ),
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _CurvedHeaderText(isDark: isDark, operatorName: operatorName),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_isLoading)
+                          _buildSkeletonLoading(isDark)
+                        else ...[
+                          _buildSummaryCards(isDark),
+                          const SizedBox(height: 18),
+                          _buildQuickActions(isDark),
+                          const SizedBox(height: AppStyles.sectionSpacing),
+                          if (_activeTrip != null) ...[
+                            _buildActiveTripCard(_activeTrip!, isDark),
+                            const SizedBox(height: AppStyles.sectionSpacing),
+                          ],
+                          const RideSyncSectionHeader(title: 'Today\'s Schedule'),
+                          const SizedBox(height: 16),
+                          _buildScheduleList(isDark),
+                        ]
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -217,21 +256,24 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
   }
 
   Widget _buildQuickActions(bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader('Quick Actions', isDark),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _quickActionBtn(Icons.qr_code_scanner, 'Scan Ticket', Colors.blue, isDark),
-            _quickActionBtn(Icons.groups_outlined, 'Passengers', Colors.purple, isDark),
-            _quickActionBtn(Icons.car_crash_outlined, 'Emergency', Colors.red, isDark),
-            _quickActionBtn(Icons.assignment_turned_in_outlined, 'Check', Colors.teal, isDark),
-          ],
-        ),
-      ],
+    return RideSyncSurfaceCard(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const RideSyncSectionHeader(title: 'Quick Actions'),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _quickActionBtn(Icons.qr_code_scanner, 'Scan Ticket', Colors.blue, isDark),
+              _quickActionBtn(Icons.groups_outlined, 'Passengers', Colors.purple, isDark),
+              _quickActionBtn(Icons.car_crash_outlined, 'Emergency', Colors.red, isDark),
+              _quickActionBtn(Icons.assignment_turned_in_outlined, 'Check', Colors.teal, isDark),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -269,39 +311,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
     );
   }
 
-  Widget _buildHeader(String name, bool isDark) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Bus Operator Dashboard',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primaryOrange,
-              ),
-            ),
-            Text(
-              'Good Morning, $name',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : AppColors.textDark,
-              ),
-            ),
-          ],
-        ),
-        CircleAvatar(
-          radius: 24,
-          backgroundColor: isDark ? Colors.white10 : AppColors.primaryNavy.withValues(alpha: 0.1),
-          child: Icon(Icons.notifications_outlined, color: isDark ? Colors.white : AppColors.primaryNavy),
-        ),
-      ],
-    );
-  }
+  // _buildHeader replaced by _CurvedHeaderText and AppBar
 
   Widget _buildSummaryCards(bool isDark) {
     return Row(
@@ -954,6 +964,182 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
           ],
         ),
       ],
+    );
+  }
+}
+
+class _CurvedHeaderText extends StatelessWidget {
+  const _CurvedHeaderText({required this.isDark, required this.operatorName});
+  final bool isDark;
+  final String operatorName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.only(top: 10, left: 24, right: 24, bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  'Hello,\n$operatorName',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 200, end: 0),
+                duration: const Duration(milliseconds: 3500),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, child) {
+                  return Transform.translate(
+                    offset: Offset(value, 0),
+                    child: child,
+                  );
+                },
+                child: Opacity(
+                  opacity: 0.4,
+                  child: Image.asset(
+                    'assets/images/bussymbol.png',
+                    height: 100,
+                    color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+                    colorBlendMode: BlendMode.multiply,
+                    errorBuilder: (context, error, stackTrace) => const SizedBox(height: 100, width: 100),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Manage your daily routes, coordinate with co-operators, and track your fleet.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OperatorAccountButton extends StatelessWidget {
+  const _OperatorAccountButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: () => _showAccountCard(context),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isDark ? Colors.transparent : Colors.white,
+          border: Border.all(
+            color: isDark ? Colors.white12 : Colors.grey.shade300,
+            width: 1,
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.person_outline_rounded,
+            size: 20,
+            color: isDark ? Colors.white : AppColors.primaryNavy,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAccountCard(BuildContext context) {
+    final auth = context.read<AuthProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final user = auth.user;
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        elevation: 10,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: AppColors.primaryOrange.withValues(alpha: 0.1),
+                child: const Icon(Icons.person, color: AppColors.primaryOrange, size: 30),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                user?.name ?? 'Operator User',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                user?.email ?? 'Not signed in',
+                style: TextStyle(color: isDark ? Colors.white60 : Colors.black54, fontSize: 13),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDark ? Colors.white : Colors.black,
+                        side: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Settings'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        if (auth.isAuthenticated) {
+                          auth.logout();
+                          Navigator.pushNamedAndRemoveUntil(context, '/splash', (route) => false);
+                        } else {
+                          Navigator.pushNamed(context, '/login');
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: auth.isAuthenticated ? Colors.redAccent : AppColors.primaryOrange,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(auth.isAuthenticated ? 'Sign Out' : 'Sign In'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
