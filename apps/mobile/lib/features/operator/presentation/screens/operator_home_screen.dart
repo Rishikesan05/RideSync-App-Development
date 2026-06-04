@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
@@ -280,7 +279,13 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
   Widget _quickActionBtn(IconData icon, String label, Color color, bool isDark) {
     return InkWell(
       onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label Screen Coming Soon')));
+        if (label == 'Scan Ticket') {
+          _showScanTicketSheet(isDark);
+        } else if (label == 'Passengers') {
+          _showManifestDialog(isDark);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label Screen Coming Soon')));
+        }
       },
       borderRadius: BorderRadius.circular(16),
       child: Column(
@@ -327,9 +332,9 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
     return Expanded(
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.6),
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white),
+          border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade200),
           boxShadow: [
             if (!isDark)
               BoxShadow(
@@ -339,44 +344,38 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
               ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(icon, color: color, size: 24),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : AppColors.textDark,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? Colors.white70 : AppColors.textLight,
-                    ),
-                  ),
-                ],
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 24),
               ),
-            ),
+              const SizedBox(height: 16),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : AppColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white70 : AppColors.textLight,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -401,9 +400,9 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.primaryNavy.withValues(alpha: 0.9),
+        color: isDark ? const Color(0xFF1E293B) : AppColors.primaryNavy,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(color: isDark ? Colors.white12 : AppColors.primaryNavy),
         boxShadow: [
           BoxShadow(
             color: AppColors.primaryNavy.withValues(alpha: 0.2),
@@ -412,13 +411,9 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -477,14 +472,23 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text('Occupancy', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                              Text('24 / $capacity', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                              if (isTransit) Row(
+                                children: [
+                                  GestureDetector(onTap: () => _updateWalkInCount(trip['id'], -1), child: Container(padding: const EdgeInsets.all(2), decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(4)), child: const Icon(Icons.remove, size: 14, color: Colors.white))),
+                                  const SizedBox(width: 6),
+                                  Text('${24 + (trip['walkInCount'] ?? 0)} / $capacity', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                  const SizedBox(width: 6),
+                                  GestureDetector(onTap: () => _updateWalkInCount(trip['id'], 1), child: Container(padding: const EdgeInsets.all(2), decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(4)), child: const Icon(Icons.add, size: 14, color: Colors.white))),
+                                ],
+                              ) else
+                                Text('24 / $capacity', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                             ],
                           ),
                           const SizedBox(height: 6),
                           ClipRRect(
                             borderRadius: BorderRadius.circular(10),
                             child: LinearProgressIndicator(
-                              value: isTransit ? 0.65 : 24 / capacity,
+                              value: (24 + (trip['walkInCount'] ?? 0)) / capacity,
                               backgroundColor: Colors.white.withValues(alpha: 0.1),
                               valueColor: AlwaysStoppedAnimation<Color>(isTransit ? Colors.greenAccent : AppColors.primaryOrange),
                               minHeight: 6,
@@ -513,15 +517,28 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text('Next Stop: Town Hall', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                              Text('3 Boarding • 1 Alighting', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                            children: [
+                              Text('Next Stop: ${trip['currentStop'] ?? 'Town Hall'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                              const Text('3 Boarding • 1 Alighting', style: TextStyle(color: Colors.white70, fontSize: 11)),
                             ],
                           ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => _advanceStop(trip['id']),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryOrange,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(60, 32),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('Arrive', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  _buildMiniManifest(),
                   const SizedBox(height: 20),
                   Row(
                     children: [
@@ -572,8 +589,6 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                 ],
               ],
             ),
-          ),
-        ),
       ),
     );
   }
@@ -830,21 +845,6 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
     );
   }
 
-  Widget _buildSectionHeader(String title, bool isDark) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white : AppColors.textDark,
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildScheduleList(bool isDark) {
     if (_todaySchedules.isEmpty) {
@@ -964,6 +964,126 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
           ],
         ),
       ],
+    );
+  }
+
+  void _showScanTicketSheet(bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: 300,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.qr_code_scanner, size: 64, color: AppColors.primaryOrange),
+            const SizedBox(height: 16),
+            Text('Scan Passenger Ticket', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+            const SizedBox(height: 12),
+            const Text('Camera integration goes here.', style: TextStyle(color: Colors.grey)),
+            const Spacer(),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 16)),
+                child: const Text('Close', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showManifestDialog(bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Passenger Manifest', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+              const SizedBox(height: 16),
+              const Text('Full list of passengers for this trip will appear here.', style: TextStyle(color: Colors.grey)),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                child: const Text('Close', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updateWalkInCount(String tripId, int delta) async {
+    try {
+      final tripRef = FirebaseFirestore.instance.collection('schedules').doc(tripId);
+      await tripRef.set({
+        'walkInCount': FieldValue.increment(delta),
+      }, SetOptions(merge: true));
+      await _fetchOperatorData();
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update capacity: $e')));
+    }
+  }
+
+  Future<void> _advanceStop(String tripId) async {
+    try {
+      // In a real app, this would advance to the next stop in the route's stop list.
+      // We'll just hardcode an update for demonstration.
+      await FirebaseFirestore.instance.collection('schedules').doc(tripId).update({
+        'currentStop': 'Colombo Fort',
+      });
+      await _fetchOperatorData();
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Arrived at Next Stop!')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update stop: $e')));
+    }
+  }
+
+  Widget _buildMiniManifest() {
+    return Container(
+      height: 48,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: 4,
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final isBoarding = index < 3;
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 12,
+                  backgroundColor: isBoarding ? Colors.green.shade200 : Colors.red.shade200,
+                  child: Icon(Icons.person, size: 16, color: isBoarding ? Colors.green.shade800 : Colors.red.shade800),
+                ),
+                const SizedBox(width: 8),
+                Text('Passenger ${index + 1}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
