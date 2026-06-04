@@ -101,7 +101,8 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
           alignItems: 'center', 
           justifyContent: 'space-between', 
           height: '50%',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          gap: 2
         }}>
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, fontSize: '0.68rem' }}>
@@ -135,7 +136,8 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
           alignItems: 'center', 
           justifyContent: 'space-between', 
           height: '50%',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          gap: 2
         }}>
           <Typography variant="h4" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: '-0.5px' }}>
             {loading ? <CircularProgress size={24} sx={{ color }} /> : value}
