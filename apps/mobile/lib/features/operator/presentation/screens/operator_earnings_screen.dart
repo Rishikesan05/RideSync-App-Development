@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:ridesync/core/constants.dart';
 
@@ -73,38 +74,76 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
   Widget _buildBalanceHeader(bool isDark) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(32), bottomRight: Radius.circular(32)),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFE65100), // Deep Orange
+            Color(0xFFBF360C), // Darker Deep Orange
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: const Color(0xFFE65100).withValues(alpha: 0.3),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text('Today\'s Earnings', style: TextStyle(color: isDark ? Colors.white70 : Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('LKR', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 16, fontWeight: FontWeight.bold, height: 2.5)),
+              Icon(Icons.account_balance_wallet_outlined, color: Colors.white.withValues(alpha: 0.8), size: 18),
               const SizedBox(width: 8),
-              Text('14,500', style: TextStyle(color: isDark ? Colors.white : AppColors.primaryNavy, fontSize: 48, fontWeight: FontWeight.w900, letterSpacing: -1)),
+              Text(
+                'TODAY\'S EARNINGS', 
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.8), 
+                  fontSize: 12, 
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.5,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildStatCard('Trips', '$_tripsCompleted', Icons.route_outlined, isDark),
-              Container(width: 1, height: 40, color: isDark ? Colors.white12 : Colors.grey.shade200),
-              _buildStatCard('Hours', '$_hoursOnline', Icons.schedule, isDark),
-              Container(width: 1, height: 40, color: isDark ? Colors.white12 : Colors.grey.shade200),
-              _buildStatCard('Balance', 'Available', Icons.account_balance_wallet_outlined, isDark),
-            ],
+          const SizedBox(height: 16),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('LKR', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 18, fontWeight: FontWeight.bold, height: 2.2)),
+                const SizedBox(width: 8),
+                const Text('14,500', style: TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.w900)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildStatCard('Trips', '$_tripsCompleted', Icons.route_outlined, isDark),
+                Container(width: 1, height: 30, color: Colors.white.withValues(alpha: 0.2)),
+                _buildStatCard('Hours', '$_hoursOnline', Icons.schedule, isDark),
+                Container(width: 1, height: 30, color: Colors.white.withValues(alpha: 0.2)),
+                _buildStatCard('Status', 'Active', Icons.check_circle_outline, isDark),
+              ],
+            ),
           ),
         ],
       ),
@@ -114,11 +153,11 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
   Widget _buildStatCard(String label, String value, IconData icon, bool isDark) {
     return Column(
       children: [
-        Icon(icon, color: AppColors.primaryOrange, size: 24),
+        Icon(icon, color: Colors.white, size: 20),
         const SizedBox(height: 8),
-        Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
         const SizedBox(height: 2),
-        Text(label, style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey.shade600)),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.8))),
       ],
     );
   }

@@ -255,63 +255,143 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
   }
 
   Widget _buildQuickActions(bool isDark) {
-    return RideSyncSurfaceCard(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const RideSyncSectionHeader(title: 'Quick Actions'),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _quickActionBtn(Icons.qr_code_scanner, 'Scan Ticket', Colors.blue, isDark),
-              _quickActionBtn(Icons.groups_outlined, 'Passengers', Colors.purple, isDark),
-              _quickActionBtn(Icons.car_crash_outlined, 'Emergency', Colors.red, isDark),
-              _quickActionBtn(Icons.assignment_turned_in_outlined, 'Check', Colors.teal, isDark),
-            ],
-          ),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const RideSyncSectionHeader(
+          title: 'Quick Actions',
+          subtitle: 'Essential operator tools.',
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          mainAxisSpacing: 14,
+          crossAxisSpacing: 14,
+          childAspectRatio: 1.12,
+          children: [
+            _quickActionGridBtn(
+              Icons.qr_code_scanner, 
+              'Scan Ticket', 
+              'Validate passenger QR', 
+              const LinearGradient(colors: [Color(0xFFFFA726), Color(0xFFFF7043)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            ),
+            _quickActionGridBtn(
+              Icons.groups_outlined, 
+              'Passengers', 
+              'View bus manifest', 
+              const LinearGradient(colors: [Color(0xFF42A5F5), Color(0xFF5C6BC0)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            ),
+            _quickActionGridBtn(
+              Icons.car_crash_outlined, 
+              'Emergency', 
+              'Report an incident', 
+              const LinearGradient(colors: [Color(0xFFEF5350), Color(0xFFC62828)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            ),
+            _quickActionGridBtn(
+              Icons.assignment_turned_in_outlined, 
+              'Check', 
+              'Routine fleet check', 
+              const LinearGradient(colors: [Color(0xFF26A69A), Color(0xFF00897B)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
-  Widget _quickActionBtn(IconData icon, String label, Color color, bool isDark) {
-    return InkWell(
+  Widget _quickActionGridBtn(IconData icon, String title, String subtitle, LinearGradient gradient) {
+    return GestureDetector(
       onTap: () {
-        if (label == 'Scan Ticket') {
-          _showScanTicketSheet(isDark);
-        } else if (label == 'Passengers') {
-          _showManifestDialog(isDark);
+        if (title == 'Scan Ticket') {
+          _showScanTicketSheet(Theme.of(context).brightness == Brightness.dark);
+        } else if (title == 'Passengers') {
+          _showManifestDialog(Theme.of(context).brightness == Brightness.dark);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label Screen Coming Soon')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$title Screen Coming Soon')));
         }
       },
-      borderRadius: BorderRadius.circular(16),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark 
-                    ? [color.withValues(alpha: 0.2), color.withValues(alpha: 0.05)]
-                    : [color.withValues(alpha: 0.15), color.withValues(alpha: 0.05)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: color.withValues(alpha: isDark ? 0.2 : 0.3)),
-              boxShadow: [
-                if (!isDark)
-                  BoxShadow(color: color.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4)),
-              ],
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: gradient,
+          boxShadow: [
+            BoxShadow(
+              color: gradient.colors.first.withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
             ),
-            child: Icon(icon, color: color, size: 28),
-          ),
-          const SizedBox(height: 8),
-          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : AppColors.textDark)),
-        ],
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Glassmorphism shine overlay
+            Positioned(
+              top: -20,
+              right: -20,
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.2),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -30,
+              left: -10,
+              child: Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle.toUpperCase(),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      letterSpacing: 0.5,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

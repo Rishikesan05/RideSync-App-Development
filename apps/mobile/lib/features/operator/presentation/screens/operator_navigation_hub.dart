@@ -4,6 +4,7 @@ import 'package:ridesync/features/operator/presentation/screens/operator_home_sc
 import 'package:ridesync/features/operator/presentation/screens/operator_profile_screen.dart';
 import 'package:ridesync/features/operator/presentation/screens/operator_routes_screen.dart';
 import 'package:ridesync/features/operator/presentation/screens/operator_earnings_screen.dart';
+import 'package:ridesync/features/operator/presentation/screens/operator_fleet_screen.dart';
 import 'package:ridesync/core/placeholder_screen.dart';
 
 class BusOperatorNavigationHub extends StatefulWidget {
@@ -20,7 +21,7 @@ class _BusOperatorNavigationHubState extends State<BusOperatorNavigationHub> {
     const OperatorHomeScreen(),
     const OperatorRoutesScreen(),
     const OperatorEarningsScreen(),
-    PlaceholderScreen(title: 'Fleet', onBack: () => setState(() => _currentIndex = 0)),
+    const OperatorFleetScreen(),
     const OperatorProfileScreen(),
   ];
 
