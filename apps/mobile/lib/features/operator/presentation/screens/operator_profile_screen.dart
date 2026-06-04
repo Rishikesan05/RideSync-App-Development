@@ -17,17 +17,29 @@ class OperatorProfileScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              _buildProfileHeader(context, auth, isDark),
-              _buildQuickStats(auth, isDark),
-              _buildProfessionalInfo(context, isDark),
-              _buildSettingsSection(context, settings, auth, isDark),
-              const SizedBox(height: 32),
-            ],
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+        elevation: 0,
+        title: const Text(
+          'My Profile',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
           ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            _buildProfileHeader(context, auth, isDark),
+            const SizedBox(height: 16),
+            _buildQuickStats(auth, isDark),
+            _buildProfessionalInfo(context, isDark),
+            _buildSettingsSection(context, settings, auth, isDark),
+            const SizedBox(height: 32),
+          ],
         ),
       ),
     );
@@ -35,7 +47,15 @@ class OperatorProfileScreen extends StatelessWidget {
 
   Widget _buildProfileHeader(BuildContext context, AuthProvider auth, bool isDark) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      width: double.infinity,
+      padding: const EdgeInsets.only(bottom: 40, top: 20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(40),
+          bottomRight: Radius.circular(40),
+        ),
+      ),
       child: Column(
         children: [
           Stack(
@@ -55,11 +75,11 @@ class OperatorProfileScreen extends StatelessWidget {
                 ),
                 child: CircleAvatar(
                   radius: 55,
-                  backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  backgroundColor: isDark ? Colors.grey[800] : Colors.white,
                   child: Icon(
                     Icons.person,
                     size: 70,
-                    color: isDark ? Colors.white : AppColors.primaryNavy,
+                    color: isDark ? Colors.white : AppColors.primaryOrange,
                   ),
                 ),
               ),
@@ -76,25 +96,25 @@ class OperatorProfileScreen extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             auth.user?.name ?? 'Marcus Thompson',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : AppColors.textDark,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 4),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.primaryOrange.withValues(alpha: 0.1),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Text(
+            child: const Text(
               'Senior Bus Operator',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: AppColors.primaryOrange,
+                color: Colors.white,
               ),
             ),
           ),
