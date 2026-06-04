@@ -71,8 +71,8 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
         flexGrow: 1
       }}>
         <Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-            <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, gap: 2 }}>
+            <Box sx={{ minWidth: 0 }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, mb: 1, fontSize: '0.72rem' }}>
                 {title}
               </Typography>
@@ -318,10 +318,10 @@ export const Dashboard = () => {
         <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
           <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<TrendingUp />} trend={stats.revenueTrend} color={'#E68D33'} loading={loading} />
         </Grid>
-        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
+        <Grid item xs={12} sm={6} lg={4} component={motion.div} variants={cardVariants}>
           <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBus />} color={'#E68D33'} loading={loading} />
         </Grid>
-        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
+        <Grid item xs={12} sm={6} lg={2} component={motion.div} variants={cardVariants}>
           <StatCard title="Schedules Today" value={stats.schedulesToday} icon={<EventNote />} color={'#E68D33'} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
@@ -329,12 +329,12 @@ export const Dashboard = () => {
         </Grid>
       </Grid>
 
-      {/* Row 2: Detailed Overview Cards (Symmetrical lg={3} grid, falling back gracefully to sm={6} on smaller screens) */}
+      {/* Row 2: Detailed Overview Cards (Optimized layout making Fleet Overview wider) */}
       <Grid container spacing={3}>
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid item xs={12} sm={6} lg={4}>
           <FleetStats />
         </Grid>
-        <Grid item xs={12} sm={6} lg={3}>
+        <Grid item xs={12} sm={6} lg={2}>
           <UserStats />
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
@@ -346,7 +346,7 @@ export const Dashboard = () => {
       </Grid>
 
       <Grid container spacing={3} sx={{ mt: 3 }}>
-        <Grid item xs={12} lg={8}>
+        <Grid item xs={12} md={6}>
           <Card sx={{ height: 400, display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Revenue Trend</Typography>
@@ -355,8 +355,8 @@ export const Dashboard = () => {
                   <AreaChart data={revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0}/>
+                        <stop offset="5%" stopColor={'#E68D33'} stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor={'#E68D33'} stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -364,16 +364,16 @@ export const Dashboard = () => {
                     <YAxis stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} />
                     <Tooltip 
                        contentStyle={{ backgroundColor: theme.palette.background.paper, border: 'none', borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}
-                      itemStyle={{ color: theme.palette.primary.light }}
+                      itemStyle={{ color: '#E68D33' }}
                     />
-                    <Area type="monotone" dataKey="revenue" stroke={theme.palette.primary.main} strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                    <Area type="monotone" dataKey="revenue" stroke={'#E68D33'} strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </Box>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} lg={4}>
+        <Grid item xs={12} md={6}>
           <Card sx={{ height: 400, display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Bookings by Class</Typography>
@@ -386,7 +386,7 @@ export const Dashboard = () => {
                       cursor={{fill: 'rgba(255,255,255,0.05)'}}
                       contentStyle={{ backgroundColor: theme.palette.background.paper, border: 'none', borderRadius: 8 }}
                     />
-                    <Bar dataKey="count" fill={theme.palette.secondary.main} radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="count" fill={'#E68D33'} radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </Box>
