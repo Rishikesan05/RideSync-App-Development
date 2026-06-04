@@ -361,28 +361,33 @@ export const Dashboard = () => {
       </Box>
 
       {/* Row 1: Stat Cards (Modern Designs with Brand Color & Spring Animations) */}
-      <Grid 
-        container 
-        spacing={3} 
-        sx={{ mb: 4 }}
+      <Box 
         component={motion.div}
         variants={containerVariants}
         initial="hidden"
         animate="show"
+        sx={{ 
+          display: 'flex', 
+          justifyContent: { xs: 'center', md: 'space-between' }, 
+          alignItems: 'center', 
+          flexWrap: 'wrap',
+          gap: 3,
+          mb: 4
+        }}
       >
-        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Box component={motion.div} variants={cardVariants} sx={{ display: 'flex', justifyContent: 'center' }}>
           <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<TrendingUp />} trend={stats.revenueTrend} color={'#E68D33'} loading={loading} isCircle />
-        </Grid>
-        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        </Box>
+        <Box component={motion.div} variants={cardVariants} sx={{ display: 'flex', justifyContent: 'center' }}>
           <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBus />} color={'#E68D33'} loading={loading} isCircle />
-        </Grid>
-        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        </Box>
+        <Box component={motion.div} variants={cardVariants} sx={{ display: 'flex', justifyContent: 'center' }}>
           <StatCard title="Schedules Today" value={stats.schedulesToday} icon={<EventNote />} color={'#E68D33'} loading={loading} isCircle />
-        </Grid>
-        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        </Box>
+        <Box component={motion.div} variants={cardVariants} sx={{ display: 'flex', justifyContent: 'center' }}>
           <StatCard title="Total Bookings" value={stats.totalPassengers} icon={<People />} trend={stats.bookingsTrend} color={'#E68D33'} loading={loading} isCircle />
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* Row 2: Detailed Overview Cards (Optimized layout making Fleet Overview wider) */}
       <Grid container spacing={3}>
