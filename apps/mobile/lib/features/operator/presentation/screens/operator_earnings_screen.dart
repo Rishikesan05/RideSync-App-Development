@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:ridesync/core/constants.dart';
 
@@ -11,7 +10,6 @@ class OperatorEarningsScreen extends StatefulWidget {
 
 class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
   // Mock Data
-  final double _todayEarnings = 14500.00;
   final int _tripsCompleted = 4;
   final double _hoursOnline = 6.5;
 

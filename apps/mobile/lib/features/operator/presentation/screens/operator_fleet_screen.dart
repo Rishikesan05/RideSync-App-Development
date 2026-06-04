@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:ridesync/core/constants.dart';
-import 'package:ridesync/features/operator/presentation/widgets/ridesync_surface_card.dart';
 
 class OperatorFleetScreen extends StatefulWidget {
   const OperatorFleetScreen({super.key});
@@ -204,9 +203,13 @@ class _OperatorFleetScreenState extends State<OperatorFleetScreen> {
 
   Widget _buildBusCard(Map<String, dynamic> bus, bool isDark) {
     Color statusColor;
-    if (bus['status'] == 'Active') statusColor = Colors.green;
-    else if (bus['status'] == 'Maintenance') statusColor = Colors.red;
-    else statusColor = Colors.orange;
+    if (bus['status'] == 'Active') {
+      statusColor = Colors.green;
+    } else if (bus['status'] == 'Maintenance') {
+      statusColor = Colors.red;
+    } else {
+      statusColor = Colors.orange;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
