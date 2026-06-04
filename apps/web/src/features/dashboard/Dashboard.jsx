@@ -38,7 +38,7 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
       backdropFilter: 'blur(20px)',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       cursor: 'pointer',
-      border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
+      border: `1.5px solid ${color}40`,
       borderTop: `4px solid ${color}`,
       borderRadius: '16px',
       boxShadow: isDark 
@@ -49,42 +49,53 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
         boxShadow: isDark 
           ? `0 16px 28px -10px ${color}40, 0 8px 30px rgba(0,0,0,0.4)` 
           : `0 16px 24px -10px ${color}30, 0 6px 20px rgba(0,0,0,0.06)`,
-        borderColor: `${color}50`,
+        borderColor: color,
+        '& .ticket-notch': {
+          borderColor: color,
+        }
       },
     }}>
       {/* Left Ticket Notch */}
-      <Box sx={{
-        position: 'absolute',
-        left: '-10px',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        width: '20px',
-        height: '20px',
-        borderRadius: '50%',
-        backgroundColor: theme.palette.background.default,
-        border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
-        borderLeftColor: 'transparent',
-        borderTopColor: 'transparent',
-        borderBottomColor: 'transparent',
-        zIndex: 2,
-      }} />
+      <Box 
+        className="ticket-notch"
+        sx={{
+          position: 'absolute',
+          left: '-10px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: '20px',
+          height: '20px',
+          borderRadius: '50%',
+          backgroundColor: theme.palette.background.default,
+          border: `1.5px solid ${color}40`,
+          borderLeftColor: 'transparent',
+          borderTopColor: 'transparent',
+          borderBottomColor: 'transparent',
+          zIndex: 2,
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }} 
+      />
       
       {/* Right Ticket Notch */}
-      <Box sx={{
-        position: 'absolute',
-        right: '-10px',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        width: '20px',
-        height: '20px',
-        borderRadius: '50%',
-        backgroundColor: theme.palette.background.default,
-        border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
-        borderRightColor: 'transparent',
-        borderTopColor: 'transparent',
-        borderBottomColor: 'transparent',
-        zIndex: 2,
-      }} />
+      <Box 
+        className="ticket-notch"
+        sx={{
+          position: 'absolute',
+          right: '-10px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: '20px',
+          height: '20px',
+          borderRadius: '50%',
+          backgroundColor: theme.palette.background.default,
+          border: `1.5px solid ${color}40`,
+          borderRightColor: 'transparent',
+          borderTopColor: 'transparent',
+          borderBottomColor: 'transparent',
+          zIndex: 2,
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }} 
+      />
 
       <CardContent sx={{ 
         p: 0, 
