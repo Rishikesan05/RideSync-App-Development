@@ -21,12 +21,14 @@ import { UserStats } from './UserStats';
 import { TodaySchedules } from './TodaySchedules';
 import { FleetStats } from './FleetStats';
 
-const StatCard = ({ title, value, icon, trend, color, loading }) => {
+const StatCard = ({ title, value, icon, trend, color, loading, isCircle }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   return (
     <Card sx={{ 
-      height: '100%', 
+      height: isCircle ? '240px' : '100%', 
+      width: isCircle ? '240px' : '100%',
+      margin: isCircle ? 'auto' : '0',
       display: 'flex',
       flexDirection: 'column',
       position: 'relative', 
@@ -37,9 +39,11 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
       backdropFilter: 'blur(20px)',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       cursor: 'pointer',
-      border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
-      borderTop: `4px solid ${color}`,
-      borderRadius: '16px',
+      border: isCircle 
+        ? `2px solid ${color}` 
+        : `1px solid ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
+      borderTop: isCircle ? `2px solid ${color}` : `4px solid ${color}`,
+      borderRadius: isCircle ? '50%' : '16px',
       boxShadow: isDark 
         ? '0 4px 20px -2px rgba(0, 0, 0, 0.3)' 
         : '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
@@ -62,63 +66,114 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
       }
     }}>
       <CardContent sx={{ 
-        p: 3, 
+        p: isCircle ? 2 : 3, 
         position: 'relative', 
         zIndex: 1,
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
-        flexGrow: 1
+        justifyContent: isCircle ? 'center' : 'space-between',
+        alignItems: isCircle ? 'center' : 'stretch',
+        flexGrow: 1,
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
-        <Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, gap: 2 }}>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, mb: 1, fontSize: '0.72rem' }}>
-                {title}
-              </Typography>
-              <Typography variant="h3" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: '-1px' }}>
-                {loading ? <CircularProgress size={28} sx={{ color }} /> : value}
-              </Typography>
-            </Box>
+        {isCircle ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
             <Box sx={{ 
               backgroundColor: isDark ? `${color}18` : `${color}10`, 
-              borderRadius: '12px', 
-              p: 1.8, 
+              borderRadius: '50%', 
+              p: 1.5, 
               display: 'flex', 
               color: color,
               border: `1px solid ${color}25`,
-              boxShadow: `0 4px 14px ${color}20`
+              boxShadow: `0 4px 14px ${color}20`,
+              mb: 0.5
             }}>
               {React.cloneElement(icon, { fontSize: 'medium' })}
             </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, fontSize: '0.68rem' }}>
+              {title}
+            </Typography>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: '-0.5px' }}>
+              {loading ? <CircularProgress size={24} sx={{ color }} /> : value}
+            </Typography>
+            
+            {trend && (() => {
+              const isPositive = !trend.startsWith('-');
+              const TrendIcon = isPositive ? TrendingUp : TrendingDown;
+              const trendColor = isPositive ? '#10B981' : '#EF4444';
+              const bgOpacity = isPositive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+              return (
+                <Box sx={{ display: 'flex', alignItems: 'center', color: trendColor, mt: 0.5 }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    backgroundColor: bgOpacity, 
+                    borderRadius: '8px', 
+                    px: 0.8, 
+                    py: 0.2,
+                    border: `1px solid ${isPositive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}`
+                  }}>
+                    <TrendIcon fontSize="small" sx={{ mr: 0.3, fontSize: '0.9rem' }} />
+                    <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.7rem' }}>{trend}</Typography>
+                  </Box>
+                </Box>
+              );
+            })()}
           </Box>
-        </Box>
-        
-        {trend ? (() => {
-          const isPositive = !trend.startsWith('-');
-          const TrendIcon = isPositive ? TrendingUp : TrendingDown;
-          const trendColor = isPositive ? '#10B981' : '#EF4444';
-          const bgOpacity = isPositive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
-          return (
-            <Box sx={{ display: 'flex', alignItems: 'center', mt: 'auto', pt: 2, color: trendColor }}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                backgroundColor: bgOpacity, 
-                borderRadius: '8px', 
-                px: 1, 
-                py: 0.4,
-                mr: 1,
-                border: `1px solid ${isPositive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}`
-              }}>
-                <TrendIcon fontSize="small" sx={{ mr: 0.5, fontSize: '1rem' }} />
-                <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.75rem' }}>{trend}</Typography>
+        ) : (
+          <>
+            <Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, gap: 2 }}>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, mb: 1, fontSize: '0.72rem' }}>
+                    {title}
+                  </Typography>
+                  <Typography variant="h3" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: '-1px' }}>
+                    {loading ? <CircularProgress size={28} sx={{ color }} /> : value}
+                  </Typography>
+                </Box>
+                <Box sx={{ 
+                  backgroundColor: isDark ? `${color}18` : `${color}10`, 
+                  borderRadius: '12px', 
+                  p: 1.8, 
+                  display: 'flex', 
+                  color: color,
+                  border: `1px solid ${color}25`,
+                  boxShadow: `0 4px 14px ${color}20`
+                }}>
+                  {React.cloneElement(icon, { fontSize: 'medium' })}
+                </Box>
               </Box>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>vs last week</Typography>
             </Box>
-          );
-        })() : (
-          <Box sx={{ height: 32, mt: 'auto' }} />
+            
+            {trend ? (() => {
+              const isPositive = !trend.startsWith('-');
+              const TrendIcon = isPositive ? TrendingUp : TrendingDown;
+              const trendColor = isPositive ? '#10B981' : '#EF4444';
+              const bgOpacity = isPositive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+              return (
+                <Box sx={{ display: 'flex', alignItems: 'center', mt: 'auto', pt: 2, color: trendColor }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    backgroundColor: bgOpacity, 
+                    borderRadius: '8px', 
+                    px: 1, 
+                    py: 0.4,
+                    mr: 1,
+                    border: `1px solid ${isPositive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}`
+                  }}>
+                    <TrendIcon fontSize="small" sx={{ mr: 0.5, fontSize: '1rem' }} />
+                    <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.75rem' }}>{trend}</Typography>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>vs last week</Typography>
+                </Box>
+              );
+            })() : (
+              <Box sx={{ height: 32, mt: 'auto' }} />
+            )}
+          </>
         )}
       </CardContent>
     </Card>
@@ -315,8 +370,8 @@ export const Dashboard = () => {
         initial="hidden"
         animate="show"
       >
-        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
-          <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<TrendingUp />} trend={stats.revenueTrend} color={'#E68D33'} loading={loading} />
+        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<TrendingUp />} trend={stats.revenueTrend} color={'#E68D33'} loading={loading} isCircle />
         </Grid>
         <Grid item xs={12} sm={6} lg={4} component={motion.div} variants={cardVariants}>
           <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBus />} color={'#E68D33'} loading={loading} />
