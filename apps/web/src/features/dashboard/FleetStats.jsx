@@ -114,10 +114,10 @@ export const FleetStats = () => {
       <CardContent sx={{ p: 3 }}>
 
         {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
             <DirectionsBus sx={{ color: '#E68D33' }} />
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            <Typography variant="h6" noWrap sx={{ fontWeight: 600 }}>
               Fleet Overview
             </Typography>
           </Box>
