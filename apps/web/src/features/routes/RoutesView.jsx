@@ -217,6 +217,16 @@ export const RoutesView = () => {
           </ToggleButtonGroup>
         </Box>
       </Box>
+
+      {/* ── Result count badge ────────────────────────────────────────────── */}
+      {!loading && !error && routes.length > 0 && (
+        <Typography variant="caption" color="text.disabled" sx={{ mb: 2, display: 'block' }}>
+          Showing <strong style={{ color: 'inherit' }}>{filteredRoutes.length}</strong> of{' '}
+          <strong style={{ color: 'inherit' }}>{routes.length}</strong> route{routes.length !== 1 ? 's' : ''}
+          {search && ` matching "${search}"`}
+          {statusFilter !== 'all' && ` · ${statusFilter} only`}
+        </Typography>
+      )}
       
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
@@ -231,13 +241,46 @@ export const RoutesView = () => {
       )}
 
       {!loading && !error && routes.length === 0 && (
-        <Card sx={{ p: 5, textAlign: 'center', backgroundColor: 'transparent', border: '1px dashed rgba(255,255,255,0.2)' }}>
-          <Typography color="text.secondary" variant="h6">No routes found.</Typography>
-          <Typography color="text.secondary" sx={{ mb: 3 }}>Create your first route to get started.</Typography>
-          <Button variant="outlined" startIcon={<Add />} onClick={() => handleOpenDialog()}>
-            Create Route
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            py: 10,
+            gap: 2,
+            borderRadius: 3,
+            border: '1px dashed rgba(255,255,255,0.1)',
+            backgroundColor: 'rgba(255,255,255,0.01)',
+          }}
+        >
+          {/* SVG illustration */}
+          <Box sx={{ opacity: 0.25, mb: 1 }}>
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 16V6C4 4.9 4.9 4 6 4H18C19.1 4 20 4.9 20 6V16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M2 16H22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <circle cx="7.5" cy="18.5" r="1.5" stroke="currentColor" strokeWidth="1.5"/>
+              <circle cx="16.5" cy="18.5" r="1.5" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M4 10H20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M8 4V10" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M16 4V10" stroke="currentColor" strokeWidth="1.5"/>
+            </svg>
+          </Box>
+          <Typography variant="h6" sx={{ fontWeight: 700 }} color="text.secondary">
+            No Routes Yet
+          </Typography>
+          <Typography variant="body2" color="text.disabled" sx={{ maxWidth: 300, textAlign: 'center' }}>
+            Get started by creating your first bus route. Routes define where buses travel and the stops they serve.
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenDialog()}
+            sx={{ mt: 1, borderRadius: 2, px: 4 }}
+          >
+            Create First Route
           </Button>
-        </Card>
+        </Box>
       )}
 
       {!loading && !error && routes.length > 0 && filteredRoutes.length === 0 && (
