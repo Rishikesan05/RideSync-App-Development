@@ -104,11 +104,8 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
           boxSizing: 'border-box'
         }}>
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, fontSize: '0.68rem', mb: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, fontSize: '0.68rem' }}>
               {title}
-            </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: '-0.5px' }}>
-              {loading ? <CircularProgress size={24} sx={{ color }} /> : value}
             </Typography>
           </Box>
           <Box sx={{ 
@@ -136,17 +133,20 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
           p: 2.5, 
           display: 'flex', 
           alignItems: 'center', 
-          justifyContent: trend ? 'space-between' : 'center',
+          justifyContent: 'space-between', 
           height: '50%',
           boxSizing: 'border-box'
         }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: theme.palette.text.primary, letterSpacing: '-0.5px' }}>
+            {loading ? <CircularProgress size={24} sx={{ color }} /> : value}
+          </Typography>
           {trend ? (() => {
             const isPositive = !trend.startsWith('-');
             const TrendIcon = isPositive ? TrendingUp : TrendingDown;
             const trendColor = isPositive ? '#10B981' : '#EF4444';
             const bgOpacity = isPositive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
             return (
-              <>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Box sx={{ 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -159,8 +159,8 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
                   <TrendIcon fontSize="small" sx={{ mr: 0.3, fontSize: '0.9rem', color: trendColor }} />
                   <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.7rem', color: trendColor }}>{trend}</Typography>
                 </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>vs last week</Typography>
-              </>
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, display: { xs: 'none', sm: 'block' } }}>vs last week</Typography>
+              </Box>
             );
           })() : null}
         </Box>
