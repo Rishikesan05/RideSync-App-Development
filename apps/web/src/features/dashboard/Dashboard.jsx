@@ -105,7 +105,7 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
           gap: 2
         }}>
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, fontSize: '0.68rem' }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, fontSize: '0.85rem' }}>
               {title}
             </Typography>
           </Box>
