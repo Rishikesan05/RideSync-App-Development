@@ -373,14 +373,14 @@ export const Dashboard = () => {
         <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <StatCard title="Total Revenue" value={`LKR ${(stats.totalRevenue / 1000).toFixed(1)}K`} icon={<TrendingUp />} trend={stats.revenueTrend} color={'#E68D33'} loading={loading} isCircle />
         </Grid>
-        <Grid item xs={12} sm={6} lg={4} component={motion.div} variants={cardVariants}>
-          <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBus />} color={'#E68D33'} loading={loading} />
+        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <StatCard title="Active Buses" value={stats.activeBuses} icon={<DirectionsBus />} color={'#E68D33'} loading={loading} isCircle />
         </Grid>
-        <Grid item xs={12} sm={6} lg={2} component={motion.div} variants={cardVariants}>
-          <StatCard title="Schedules Today" value={stats.schedulesToday} icon={<EventNote />} color={'#E68D33'} loading={loading} />
+        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <StatCard title="Schedules Today" value={stats.schedulesToday} icon={<EventNote />} color={'#E68D33'} loading={loading} isCircle />
         </Grid>
-        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants}>
-          <StatCard title="Total Bookings" value={stats.totalPassengers} icon={<People />} trend={stats.bookingsTrend} color={'#E68D33'} loading={loading} />
+        <Grid item xs={12} sm={6} lg={3} component={motion.div} variants={cardVariants} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <StatCard title="Total Bookings" value={stats.totalPassengers} icon={<People />} trend={stats.bookingsTrend} color={'#E68D33'} loading={loading} isCircle />
         </Grid>
       </Grid>
 
