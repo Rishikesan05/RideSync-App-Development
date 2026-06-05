@@ -15,7 +15,7 @@
     "test": "jest --coverage --forceExit"
   },
   "dependencies": {
-    "@google-cloud/dialogflow": "^7.6.1",
+    "@google/generative-ai": "^0.21.0",
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "express-rate-limit": "^7.4.1",
