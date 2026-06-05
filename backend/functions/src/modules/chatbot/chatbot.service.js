@@ -18,12 +18,10 @@ if (!apiKey && process.env.NODE_ENV === 'production') {
 }
 
 let genAI;
-let geminiModel;
 
 try {
   if (apiKey) {
-    genAI = new GoogleGenerativeAI(apiKey);
-    geminiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    genAI = new GoogleGenerativeAI(apiKey, { apiVersion: 'v1' });
   }
 } catch (error) {
   console.error('[ChatbotService] Failed to initialise Gemini client:', error.message);
@@ -117,7 +115,7 @@ Now answer the user's question helpfully based on the data above.`;
  * @returns {Object} { fulfillmentText, intent, confidence, action, parameters }
  */
 exports.detectIntent = async (sessionId, text) => {
-  if (!geminiModel) {
+  if (!genAI) {
     throw new Error(
       'Chatbot service is currently unavailable. GEMINI_API_KEY may be missing from environment variables.'
     );
@@ -130,10 +128,14 @@ exports.detectIntent = async (sessionId, text) => {
     // Step 2: Build the system prompt with live data injected
     const systemPrompt = buildSystemPrompt(context);
 
-    // Step 3: Send to Gemini with system instruction + user message
-    const chat = geminiModel.startChat({
+    // Step 3: Create a personalised model instance and send to Gemini
+    const userSpecificModel = genAI.getGenerativeModel({ 
+      model: 'gemini-flash-latest',
+      systemInstruction: systemPrompt
+    });
+
+    const chat = userSpecificModel.startChat({
       history: [],
-      systemInstruction: systemPrompt,
     });
 
     const result = await chat.sendMessage(text);
