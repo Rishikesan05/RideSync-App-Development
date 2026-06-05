@@ -16,6 +16,8 @@ class OperatorHomeScreen extends StatefulWidget {
 }
 
 class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProviderStateMixin {
+  static const _blue = Color(0xFF3B82F6);
+
   bool _isLoading = true;
   double _totalRevenue = 0;
   int _tripsToday = 0;
@@ -477,6 +479,10 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
 
     final formattedTime = departure != null ? DateFormat('hh:mm a').format(departure) : '--:--';
 
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final isDriver = auth.user?.operatorType == 'driver';
+    final isPaired = trip['driverId'] == auth.user?.id || trip['conductorId'] == auth.user?.id;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -636,36 +642,73 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => _endJourney(trip['id']),
-                          icon: const Icon(Icons.stop_circle_outlined, color: Colors.white, size: 18),
-                          label: const Text('End Trip', style: TextStyle(color: Colors.white, fontSize: 13)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.withValues(alpha: 0.8),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      if (isDriver) ...[
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _endJourney(trip['id']),
+                            icon: const Icon(Icons.stop_circle_outlined, color: Colors.white, size: 18),
+                            label: const Text('End Trip', style: TextStyle(color: Colors.white, fontSize: 13)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.withValues(alpha: 0.8),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ] else if (status == 'scheduled') ...[
                   const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _showStartJourneyModal(trip, isDark),
-                      icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-                      label: const Text('Start Journey', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryOrange,
+                  if (isPaired) ...[
+                    if (isDriver)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _startJourney(trip['id']),
+                          icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+                          label: const Text('Start Journey', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryOrange,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      )
+                    else
+                      Container(
+                        width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.orange, strokeWidth: 2)),
+                            SizedBox(width: 12),
+                            Text('Waiting for Driver to start...', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                  ] else ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showPairTripModal(trip, isDark),
+                        icon: const Icon(Icons.link_rounded, color: Colors.white),
+                        label: const Text('Pair with Trip', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _blue,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ],
             ),
@@ -673,9 +716,8 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
     );
   }
 
-  void _showStartJourneyModal(Map<String, dynamic> trip, bool isDark) {
-    final coOpNameController = TextEditingController();
-    final coOpIdController = TextEditingController();
+  void _showPairTripModal(Map<String, dynamic> trip, bool isDark) {
+    final tripCodeController = TextEditingController();
     bool isSubmitting = false;
 
     showModalBottomSheet(
@@ -702,87 +744,74 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Start Journey', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                    Text('Enter Trip Code', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
                     IconButton(
                       icon: Icon(Icons.close, color: isDark ? Colors.white54 : Colors.black54),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                
-                // Read-only Details
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _detailRow('Bus Plate', trip['plateNumber'] ?? 'N/A', isDark),
-                      const SizedBox(height: 8),
-                      _detailRow('Capacity', '${trip['capacity'] ?? 40} Seats', isDark),
-                      const SizedBox(height: 8),
-                      _detailRow('Start Time', DateFormat('hh:mm a').format(DateTime.now()), isDark),
-                      const SizedBox(height: 8),
-                      _detailRow('Location', 'GPS (Auto-detect)', isDark),
-                    ],
-                  ),
-                ),
+                const SizedBox(height: 8),
+                Text('Get the 4-digit code from your depot manager to take responsibility for this trip.', style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black54)),
                 const SizedBox(height: 24),
-
-                // Form
-                Text('Co-Operator Details', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
-                const SizedBox(height: 12),
                 TextField(
-                  controller: coOpNameController,
+                  controller: tripCodeController,
+                  maxLength: 6,
+                  textCapitalization: TextCapitalization.characters,
                   decoration: InputDecoration(
-                    labelText: 'Co-Operator Name',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    filled: true,
-                    fillColor: isDark ? Colors.black12 : Colors.grey.shade50,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: coOpIdController,
-                  decoration: InputDecoration(
-                    labelText: 'Co-Operator ID',
+                    labelText: 'Trip Code',
+                    counterText: '',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     filled: true,
                     fillColor: isDark ? Colors.black12 : Colors.grey.shade50,
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // Submit
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: isSubmitting ? null : () async {
-                      if (coOpNameController.text.trim().isEmpty || coOpIdController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
-                        return;
-                      }
+                      if (tripCodeController.text.trim().isEmpty) return;
+
+                      final scaffoldMessenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
 
                       setStateModal(() => isSubmitting = true);
-                      await _startJourney(trip['id'], coOpNameController.text.trim(), coOpIdController.text.trim());
-                      setStateModal(() => isSubmitting = false);
                       
-                      if (context.mounted) {
-                        Navigator.pop(context);
+                      try {
+                        // Verify Code
+                        final code = tripCodeController.text.trim().toUpperCase();
+                        if (trip['tripCode'] != null && trip['tripCode'] != code) {
+                          throw Exception('Invalid Trip Code. Please try again.');
+                        }
+
+                        // Pair
+                        final auth = Provider.of<AuthProvider>(this.context, listen: false);
+                        final roleField = auth.user?.operatorType == 'conductor' ? 'conductorId' : 'driverId';
+                        
+                        await FirebaseFirestore.instance.collection('schedules').doc(trip['id']).update({
+                          roleField: auth.user?.id,
+                        });
+                        
+                        if (mounted) {
+                          navigator.pop();
+                          scaffoldMessenger.showSnackBar(const SnackBar(content: Text('Successfully paired with trip!')));
+                          _fetchOperatorData();
+                        }
+                      } catch (e) {
+                        if (mounted) scaffoldMessenger.showSnackBar(SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))));
+                      } finally {
+                        if (mounted) setStateModal(() => isSubmitting = false);
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryOrange,
+                      backgroundColor: _blue,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: isSubmitting
                         ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text('Confirm & Start', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                        : const Text('Pair Trip', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
                 ),
               ],
@@ -793,17 +822,9 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
     );
   }
 
-  Widget _detailRow(String label, String value, bool isDark) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 12)),
-        Text(value, style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontWeight: FontWeight.bold, fontSize: 13)),
-      ],
-    );
-  }
 
-  Future<void> _startJourney(String scheduleId, String coOpName, String coOpId) async {
+
+  Future<void> _startJourney(String scheduleId) async {
     try {
       // 1. Get GPS Location
       LocationPermission permission = await Geolocator.checkPermission();
@@ -820,8 +841,6 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
       await FirebaseFirestore.instance.collection('schedules').doc(scheduleId).update({
         'status': 'in-transit',
         'actualStartTime': FieldValue.serverTimestamp(),
-        'coOperatorName': coOpName,
-        'coOperatorId': coOpId,
         'startLocationLat': position.latitude,
         'startLocationLng': position.longitude,
       });
