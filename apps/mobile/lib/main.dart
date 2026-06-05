@@ -21,6 +21,8 @@ import 'package:ridesync/features/passenger/presentation/providers/finder_provid
 import 'package:ridesync/features/passenger/presentation/providers/home_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/live_journey_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/chatbot_provider.dart';
+import 'package:ridesync/features/passenger/presentation/screens/chatbot_screen.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -37,6 +39,7 @@ void main() async {
         ChangeNotifierProvider(create: (context) => FinderProvider()),
         ChangeNotifierProvider(create: (context) => HomeProvider()),
         ChangeNotifierProvider(create: (context) => BookingProvider()),
+        ChangeNotifierProvider(create: (context) => ChatbotProvider()),
         ChangeNotifierProxyProvider<AuthProvider, LiveJourneyProvider>(
           create: (context) => LiveJourneyProvider(),
           update: (context, auth, previous) {
@@ -74,6 +77,7 @@ class RideSyncApp extends StatelessWidget {
         '/main': (context) => const PassengerNavigationHub(),
         '/operator-main': (context) => const BusOperatorNavigationHub(),
         '/splash': (context) => const SplashScreen(),
+        '/chatbot': (context) => const ChatbotScreen(),
       },
     );
   }

@@ -169,6 +169,17 @@ class AuthProvider with ChangeNotifier {
     await user.updatePassword(newPassword);
   }
 
+  /// Returns the current user's Firebase ID token for backend API calls.
+  /// Returns null if no user is signed in.
+  Future<String?> getIdToken() async {
+    try {
+      return await _auth.currentUser?.getIdToken();
+    } catch (e) {
+      debugPrint('Error getting ID token: $e');
+      return null;
+    }
+  }
+
   // Used to manually refresh user document and listeners
   Future<void> refreshUser() async {
     if (_auth.currentUser != null) {
