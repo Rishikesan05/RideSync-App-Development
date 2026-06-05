@@ -180,7 +180,12 @@ export const RoutesView = () => {
       </Box>
 
       {/* ── Stats summary bar ────────────────────────────────────────────── */}
-      <RouteStatsBar routes={routes} loading={loading} />
+      <RouteStatsBar 
+        routes={routes} 
+        loading={loading} 
+        activeFilter={statusFilter}
+        onFilterChange={setStatusFilter}
+      />
 
       {/* ── Search + Filter bar ─────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3, flexWrap: 'wrap' }}>
