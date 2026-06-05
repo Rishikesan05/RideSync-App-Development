@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/operator/presentation/screens/operator_home_screen.dart';
 import 'package:ridesync/features/operator/presentation/screens/operator_profile_screen.dart';
-import 'package:ridesync/core/placeholder_screen.dart';
-
+import 'package:ridesync/features/operator/presentation/screens/operator_routes_screen.dart';
+import 'package:ridesync/features/operator/presentation/screens/operator_earnings_screen.dart';
+import 'package:ridesync/features/operator/presentation/screens/operator_fleet_screen.dart';
 class BusOperatorNavigationHub extends StatefulWidget {
   const BusOperatorNavigationHub({super.key});
 
@@ -16,9 +17,9 @@ class _BusOperatorNavigationHubState extends State<BusOperatorNavigationHub> {
 
   late final List<Widget> _screens = [
     const OperatorHomeScreen(),
-    PlaceholderScreen(title: 'My Routes', onBack: () => setState(() => _currentIndex = 0)),
-    PlaceholderScreen(title: 'Earnings', onBack: () => setState(() => _currentIndex = 0)),
-    PlaceholderScreen(title: 'Fleet', onBack: () => setState(() => _currentIndex = 0)),
+    const OperatorRoutesScreen(),
+    const OperatorEarningsScreen(),
+    const OperatorFleetScreen(),
     const OperatorProfileScreen(),
   ];
 
