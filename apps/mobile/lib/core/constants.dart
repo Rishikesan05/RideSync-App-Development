@@ -33,3 +33,12 @@ class AppStyles {
   static const double padding = 20.0;
   static const double sectionSpacing = 28.0;
 }
+
+// App-wide constants
+class AppConstants {
+  /// Backend base URL — change to your Firebase Functions URL when deployed.
+  /// For local emulator: 'http://10.0.2.2:5001/YOUR_PROJECT_ID/us-central1/api'
+  static const String backendBaseUrl =
+      'https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net';
+}
+
