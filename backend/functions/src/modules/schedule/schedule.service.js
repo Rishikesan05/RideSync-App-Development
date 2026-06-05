@@ -77,8 +77,12 @@ async function createSchedule(data) {
     throw err;
   }
 
+  // Generate a random 4-character alphanumeric trip code
+  const tripCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+
   const scheduleData = {
     ...data,
+    tripCode,
     departureTime: departureDate,
     capacity: data.capacity || bus.capacity || 54,
     plateNumber: data.plateNumber || bus.plateNumber || 'N/A',
