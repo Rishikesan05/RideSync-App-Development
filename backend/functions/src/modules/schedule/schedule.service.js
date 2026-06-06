@@ -80,9 +80,13 @@ async function createSchedule(data) {
   // Generate a random 4-character alphanumeric trip code
   const tripCode = Math.random().toString(36).substring(2, 6).toUpperCase();
 
+  // Strip driver/conductor IDs as operator assignment is now manual at the depot
+  const { driverId, conductorId, ...cleanedData } = data;
+
   const scheduleData = {
-    ...data,
+    ...cleanedData,
     tripCode,
+    operatorIds: [], // Operators will enter their IDs when starting the journey
     departureTime: departureDate,
     capacity: data.capacity || bus.capacity || 54,
     plateNumber: data.plateNumber || bus.plateNumber || 'N/A',
