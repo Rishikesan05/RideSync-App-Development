@@ -24,25 +24,23 @@ import {
   Schedule as ScheduleIcon
 } from '@mui/icons-material';
 import { 
-  useSchedulesList, 
   useCreateSchedule, 
   useCancelSchedule 
 } from '../../api/schedules';
+import { useSchedulesFirestore } from './useSchedulesFirestore';
 import { ScheduleFormDialog } from './ScheduleFormDialog';
 import { format, isValid } from 'date-fns';
 
 export const SchedulesView = () => {
   const theme = useTheme();
-  const { data: schedulesResponse, isLoading, error } = useSchedulesList();
+  // Real-time Firestore listener — replaces React Query polling
+  const { schedules, loading: isLoading, error } = useSchedulesFirestore();
   const createSchedule = useCreateSchedule();
   const cancelSchedule = useCancelSchedule();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuScheduleId, setMenuScheduleId] = useState(null);
-
-  const schedulesData = schedulesResponse?.data || schedulesResponse?.schedules || schedulesResponse || [];
-  const schedules = Array.isArray(schedulesData) ? schedulesData : [];
 
   const formatDateTime = (timeStr) => {
     try {
