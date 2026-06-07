@@ -22,7 +22,6 @@ import {
 
 const StatPill = ({ icon, label, value, color, loading, onClick, isActive }) => {
   const theme = useTheme();
-  const isSpecificActiveCard = label === 'Active';
 
   return (
     <Tooltip title={onClick ? `Click to filter by ${label}` : ''} placement="top" arrow>
@@ -40,27 +39,25 @@ const StatPill = ({ icon, label, value, color, loading, onClick, isActive }) => 
           borderRadius:    2,
           flex:            1,
           minWidth:        130,
-          backgroundColor: isActive
-            ? (isSpecificActiveCard ? 'transparent' : `${color}25`)
-            : `${color}12`,
+          backgroundColor: isActive ? 'transparent' : `${color}12`,
           border:          isActive
-            ? `2px solid ${color}80`
+            ? `2px solid ${color}`
             : `1px solid ${color}30`,
           transition:      'all 0.2s ease',
           cursor:          onClick ? 'pointer' : 'default',
           userSelect:      'none',
           transform:       isActive ? 'translateY(-1px)' : 'none',
-          boxShadow:       isActive && !isSpecificActiveCard ? `0 4px 16px ${color}30` : 'none',
+          boxShadow:       'none',
           '&:hover': onClick
             ? {
-                backgroundColor: isSpecificActiveCard ? 'rgba(255,255,255,0.03)' : `${color}20`,
+                backgroundColor: isActive ? 'transparent' : `${color}20`,
                 transform:       'translateY(-2px)',
-                boxShadow:       isSpecificActiveCard ? 'none' : `0 6px 20px ${color}35`,
-                border:          `2px solid ${color}60`,
+                boxShadow:       isActive ? 'none' : `0 6px 20px ${color}35`,
+                border:          isActive ? `2px solid ${color}` : `2px solid ${color}60`,
               }
             : {},
           '&:active': onClick
-            ? { transform: 'translateY(0)', boxShadow: `0 2px 8px ${color}25` }
+            ? { transform: 'translateY(0)', boxShadow: isActive ? 'none' : `0 2px 8px ${color}25` }
             : {},
           '&:focus-visible': {
             outline: `2px solid ${color}`,
@@ -73,7 +70,7 @@ const StatPill = ({ icon, label, value, color, loading, onClick, isActive }) => 
             color,
             display:         'flex',
             alignItems:      'center',
-            backgroundColor: isActive ? `${color}30` : `${color}20`,
+            backgroundColor: `${color}20`,
             borderRadius:    '50%',
             p:               0.8,
             transition:      'background 0.2s',
