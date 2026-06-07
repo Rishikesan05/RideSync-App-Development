@@ -319,7 +319,6 @@ export const RoutesView = () => {
         {filteredRoutes.map((route) => (
           <Grid item xs={12} lg={6} key={route.id}>
             <Card 
-              onClick={route.stops?.length > 0 ? () => toggleExpand(route.id) : undefined}
               sx={{ 
                 height: '100%', 
                 position: 'relative',
@@ -330,12 +329,13 @@ export const RoutesView = () => {
                 '&:hover': {
                   borderColor: '#E68D33',
                   boxShadow: '0 4px 20px rgba(230, 141, 51, 0.15)',
-                  transform: route.stops?.length > 0 ? 'translateY(-2px)' : 'none',
+                  transform: 'translateY(-2px)',
                   '& .ticket-notch': {
                     borderColor: '#E68D33',
                   }
                 }
               }}
+              onClick={route.stops?.length > 0 ? () => toggleExpand(route.id) : undefined}
             >
               {/* Left Ticket Notch */}
               <Box 
@@ -379,7 +379,7 @@ export const RoutesView = () => {
                 }} 
               />
 
-              <Box sx={{ position: 'absolute', top: 16, right: 8, zIndex: 3 }}>
+              <Box sx={{ position: 'absolute', top: 16, right: 8 }}>
                 <IconButton onClick={(e) => {
                   e.stopPropagation();
                   handleOpenMenu(e, route.id);
@@ -451,6 +451,7 @@ export const RoutesView = () => {
                   {/* ── Stops timeline panel ────────────────────────── */}
                   <Collapse in={expandedRoutes.has(route.id)} timeout="auto" unmountOnExit>
                     <Box
+                      onClick={(e) => e.stopPropagation()}
                       sx={{
                         mx: 2,
                         mb: 2,
