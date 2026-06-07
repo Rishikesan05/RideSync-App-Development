@@ -70,7 +70,7 @@ export const RoutesView = () => {
   const statusFilter = searchParams.get('filter') || 'all';
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [routeToDelete, setRouteToDelete]       = useState(null);
-  const [expandedRoutes, setExpandedRoutes]     = useState(new Set());
+  const [expandedRouteId, setExpandedRouteId] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   // Handler for RouteStatsBar pill clicks — update URL param and scroll to grid
@@ -91,11 +91,7 @@ export const RoutesView = () => {
   };
 
   const toggleExpand = (routeId) =>
-    setExpandedRoutes((prev) => {
-      const next = new Set(prev);
-      next.has(routeId) ? next.delete(routeId) : next.add(routeId);
-      return next;
-    });
+    setExpandedRouteId((prev) => (prev === routeId ? null : routeId));
 
   // Client-side filter — no extra Firestore reads
   const filteredRoutes = useMemo(() => {
@@ -316,27 +312,39 @@ export const RoutesView = () => {
       )}
 
       <Grid ref={gridRef} container spacing={3}>
-        {filteredRoutes.map((route) => (
-          <Grid item xs={12} lg={6} key={route.id}>
-            <Card 
-              sx={{ 
-                height: '100%', 
-                position: 'relative',
-                overflow: 'visible', // Allow notches to bleed off edges
-                border: '1.5px solid rgba(230, 141, 51, 0.3)',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                cursor: route.stops?.length > 0 ? 'pointer' : 'default',
-                '&:hover': {
-                  borderColor: '#E68D33',
-                  boxShadow: '0 4px 20px rgba(230, 141, 51, 0.15)',
-                  transform: 'translateY(-2px)',
+        {filteredRoutes.map((route) => {
+          const isExpanded = expandedRouteId === route.id;
+          return (
+            <Grid item xs={12} lg={6} key={route.id}>
+              <Card 
+                sx={{ 
+                  height: '100%', 
+                  position: 'relative',
+                  overflow: 'visible', // Allow notches to bleed off edges
+                  border: isExpanded ? '2px solid #E68D33' : '1.5px solid rgba(230, 141, 51, 0.3)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  cursor: route.stops?.length > 0 ? 'pointer' : 'default',
+                  zIndex: isExpanded ? 10 : 1,
+                  transform: isExpanded ? 'translateY(-4px)' : 'none',
+                  boxShadow: isExpanded 
+                    ? '0 12px 30px rgba(230, 141, 51, 0.2), 0 4px 20px rgba(0,0,0,0.3)' 
+                    : 'none',
                   '& .ticket-notch': {
+                    borderColor: isExpanded ? '#E68D33' : 'rgba(230, 141, 51, 0.3)',
+                  },
+                  '&:hover': {
                     borderColor: '#E68D33',
+                    boxShadow: isExpanded 
+                      ? '0 16px 36px rgba(230, 141, 51, 0.25), 0 8px 30px rgba(0,0,0,0.4)' 
+                      : '0 4px 20px rgba(230, 141, 51, 0.15)',
+                    transform: isExpanded ? 'translateY(-6px)' : 'translateY(-2px)',
+                    '& .ticket-notch': {
+                      borderColor: '#E68D33',
+                    }
                   }
-                }
-              }}
-              onClick={route.stops?.length > 0 ? () => toggleExpand(route.id) : undefined}
-            >
+                }}
+                onClick={route.stops?.length > 0 ? () => toggleExpand(route.id) : undefined}
+              >
               {/* Left Ticket Notch */}
               <Box 
                 className="ticket-notch"
@@ -432,24 +440,24 @@ export const RoutesView = () => {
               {/* ── Expand toggle ────────────────────────────────── */}
               {route.stops?.length > 0 && (
                 <>
-                  <CardActions sx={{ px: 2, pt: 0, pb: expandedRoutes.has(route.id) ? 0 : 1 }}>
+                  <CardActions sx={{ px: 2, pt: 0, pb: isExpanded ? 0 : 1 }}>
                     <Button
                       size="small"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleExpand(route.id);
                       }}
-                      endIcon={expandedRoutes.has(route.id) ? <ExpandLess /> : <ExpandMore />}
+                      endIcon={isExpanded ? <ExpandLess /> : <ExpandMore />}
                       sx={{ color: 'primary.light', fontWeight: 600, fontSize: '0.75rem' }}
                     >
-                      {expandedRoutes.has(route.id)
+                      {isExpanded
                         ? 'Hide Stops'
                         : `Show ${route.stops.length} Stop${route.stops.length !== 1 ? 's' : ''}`}
                     </Button>
                   </CardActions>
 
                   {/* ── Stops timeline panel ────────────────────────── */}
-                  <Collapse in={expandedRoutes.has(route.id)} timeout="auto" unmountOnExit>
+                  <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                     <Box
                       onClick={(e) => e.stopPropagation()}
                       sx={{
@@ -516,7 +524,7 @@ export const RoutesView = () => {
               )}
             </Card>
           </Grid>
-        ))}
+        ); })}
       </Grid>
 
       {/* Action Menu */}
