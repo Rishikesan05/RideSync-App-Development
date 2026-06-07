@@ -318,7 +318,19 @@ export const RoutesView = () => {
       <Grid ref={gridRef} container spacing={3}>
         {filteredRoutes.map((route) => (
           <Grid item xs={12} lg={6} key={route.id}>
-            <Card sx={{ height: '100%', position: 'relative' }}>
+            <Card 
+              sx={{ 
+                height: '100%', 
+                position: 'relative',
+                border: '1.5px solid rgba(230, 141, 51, 0.3)',
+                transition: 'all 0.3s ease-in-out',
+                '&:hover': {
+                  borderColor: '#E68D33',
+                  boxShadow: '0 4px 20px rgba(230, 141, 51, 0.15)',
+                  transform: 'translateY(-2px)'
+                }
+              }}
+            >
               <Box sx={{ position: 'absolute', top: 16, right: 8 }}>
                 <IconButton onClick={(e) => handleOpenMenu(e, route.id)}>
                   <MoreVert />
