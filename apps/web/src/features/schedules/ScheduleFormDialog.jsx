@@ -28,6 +28,7 @@ import {
   CalendarToday,
   AccessTime,
   ConfirmationNumber,
+  Person,
 } from '@mui/icons-material';
 import { useRoutesFirestore } from '../routes/useRoutesFirestore';
 import { useBusesList } from '../../api/buses';
@@ -36,6 +37,7 @@ import { useBusesList } from '../../api/buses';
 const scheduleSchema = z.object({
   routeId:       z.string().min(1, 'Please select a route'),
   busId:         z.string().min(1, 'Please select a bus'),
+  opId:          z.string().min(1, 'Operator ID is required'),
   departureDate: z.string().min(1, 'Departure date is required'),
   departureTime: z.string().min(1, 'Departure time is required'),
 });
@@ -64,19 +66,19 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
     handleSubmit,
     reset,
     watch,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(scheduleSchema),
     defaultValues: {
       routeId:       '',
       busId:         '',
+      opId:          '',
       departureDate: '',
       departureTime: '',
     },
   });
 
-  // Watch busId to derive the auto-filled Bus ID display and selected bus details
+  // Watch fields to derive the auto-filled displays and previews
   const watchedBusId    = watch('busId');
   const selectedBus     = buses.find((b) => b.id === watchedBusId);
   const watchedRouteId  = watch('routeId');
@@ -90,11 +92,12 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
         reset({
           routeId:       initialData.routeId       || '',
           busId:         initialData.busId         || '',
+          opId:          initialData.opId          || '',
           departureDate: dt ? dt.toISOString().slice(0, 10) : '',
           departureTime: dt ? dt.toTimeString().slice(0, 5)  : '',
         });
       } else {
-        reset({ routeId: '', busId: '', departureDate: '', departureTime: '' });
+        reset({ routeId: '', busId: '', opId: '', departureDate: '', departureTime: '' });
       }
     }
   }, [open, initialData, reset]);
@@ -107,13 +110,14 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
     const formattedData = {
       routeId:       data.routeId,
       busId:         data.busId,
+      opId:          data.opId,
       departureTime: combinedDateTime,
-      // Denormalized fields for quick reads
-      plateNumber:   selectedBus?.plateNumber  || 'N/A',
-      busClass:      selectedBus?.class        || 'N/A',
+      // Denormalized fields requested
       capacity:      selectedBus?.capacity     || 54,
       routeName:     selectedRoute?.name       || selectedRoute?.routeName || 'Unnamed Route',
-      routeNumber:   selectedRoute?.routeNumber || '',
+      createdDate:   new Date().toISOString(),
+      startPoint:    selectedRoute?.startPoint ? selectedRoute.startPoint.split(',')[0] : 'N/A',
+      endPoint:      selectedRoute?.endPoint   ? selectedRoute.endPoint.split(',')[0] : 'N/A',
       status:        'scheduled',
     };
 
@@ -313,6 +317,26 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
               </Box>
             )}
 
+            {/* ── OPERATOR SECTION ──────────────────────────────────────── */}
+            <SectionLabel icon={<Person fontSize="small" />} text="Operator" />
+            <Controller
+              name="opId"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  fullWidth
+                  label="Operator ID (opId)"
+                  variant="outlined"
+                  margin="dense"
+                  error={!!errors.opId}
+                  helperText={errors.opId?.message}
+                  disabled={!!initialData}
+                  InputLabelProps={{ shrink: true }}
+                />
+              )}
+            />
+
             {/* ── DATE & TIME SECTION ──────────────────────────────────── */}
             <SectionLabel icon={<AccessTime fontSize="small" />} text="Date & Time" />
 
@@ -389,6 +413,11 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
                       day: 'numeric', hour: '2-digit', minute: '2-digit',
                     })}
                   </Typography>
+                  {watch('opId') && (
+                    <Typography variant="body2">
+                      <strong>Operator ID:</strong> {watch('opId')}
+                    </Typography>
+                  )}
                 </Box>
               </Box>
             )}
