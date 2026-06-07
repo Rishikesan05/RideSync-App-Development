@@ -39,7 +39,7 @@ const StatPill = ({ icon, label, value, color, loading, onClick, isActive }) => 
           borderRadius:    2,
           flex:            1,
           minWidth:        130,
-          backgroundColor: isActive ? 'transparent' : `${color}12`,
+          backgroundColor: 'transparent',
           border:          isActive
             ? `2px solid ${color}`
             : `1px solid ${color}30`,
@@ -50,14 +50,14 @@ const StatPill = ({ icon, label, value, color, loading, onClick, isActive }) => 
           boxShadow:       'none',
           '&:hover': onClick
             ? {
-                backgroundColor: isActive ? 'transparent' : `${color}20`,
+                backgroundColor: 'transparent',
                 transform:       'translateY(-2px)',
-                boxShadow:       isActive ? 'none' : `0 6px 20px ${color}35`,
+                boxShadow:       'none',
                 border:          isActive ? `2px solid ${color}` : `2px solid ${color}60`,
               }
             : {},
           '&:active': onClick
-            ? { transform: 'translateY(0)', boxShadow: isActive ? 'none' : `0 2px 8px ${color}25` }
+            ? { transform: 'translateY(0)', boxShadow: 'none' }
             : {},
           '&:focus-visible': {
             outline: `2px solid ${color}`,
