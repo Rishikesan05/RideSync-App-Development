@@ -16,6 +16,8 @@ class OperatorHomeScreen extends StatefulWidget {
 }
 
 class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProviderStateMixin {
+  static const _blue = Color(0xFF3B82F6);
+
   bool _isLoading = true;
   double _totalRevenue = 0;
   int _tripsToday = 0;
@@ -669,8 +671,8 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                 ],
               ],
             ),
-      ),
-    );
+          ),
+        );
   }
 
   void _showStartJourneyModal(Map<String, dynamic> trip, bool isDark) {
@@ -702,7 +704,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Start Journey', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                    Text('Enter Trip Code', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
                     IconButton(
                       icon: Icon(Icons.close, color: isDark ? Colors.white54 : Colors.black54),
                       onPressed: () => Navigator.pop(context),
@@ -756,17 +758,10 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // Submit
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: isSubmitting ? null : () async {
-                      if (coOpNameController.text.trim().isEmpty || coOpIdController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
-                        return;
-                      }
-
                       setStateModal(() => isSubmitting = true);
                       await _startJourney(trip['id'], coOpNameController.text.trim(), coOpIdController.text.trim());
                       setStateModal(() => isSubmitting = false);
@@ -776,13 +771,13 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryOrange,
+                      backgroundColor: _blue,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: isSubmitting
                         ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text('Confirm & Start', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                        : const Text('Pair Trip', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
                 ),
               ],
@@ -797,11 +792,13 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 12)),
-        Text(value, style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontWeight: FontWeight.bold, fontSize: 13)),
+        Text(label, style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 13)),
+        Text(value, style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.w600, fontSize: 13)),
       ],
     );
   }
+
+
 
   Future<void> _startJourney(String scheduleId, String coOpName, String coOpId) async {
     try {
@@ -817,14 +814,19 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
       final position = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
 
       // 2. Update Firestore
-      await FirebaseFirestore.instance.collection('schedules').doc(scheduleId).update({
+      final updateData = <String, dynamic>{
         'status': 'in-transit',
         'actualStartTime': FieldValue.serverTimestamp(),
-        'coOperatorName': coOpName,
-        'coOperatorId': coOpId,
         'startLocationLat': position.latitude,
         'startLocationLng': position.longitude,
-      });
+      };
+
+      if (coOpName.isNotEmpty || coOpId.isNotEmpty) {
+        updateData['coOperatorName'] = coOpName;
+        updateData['coOperatorId'] = coOpId;
+      }
+
+      await FirebaseFirestore.instance.collection('schedules').doc(scheduleId).update(updateData);
 
       // 3. Refresh Screen
       await _fetchOperatorData();

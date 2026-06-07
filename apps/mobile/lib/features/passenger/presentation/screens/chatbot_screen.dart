@@ -71,6 +71,8 @@ class _ChatbotScreenState extends State<ChatbotScreen>
     final authProvider = context.read<AuthProvider>();
     final token = await authProvider.getIdToken();
 
+    if (!mounted) return;
+
     if (token == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please log in to use the AI assistant.')),

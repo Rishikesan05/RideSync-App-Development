@@ -5,12 +5,14 @@
  * showing live counts derived from the Firestore routes snapshot.
  *
  * Props:
- *   routes  — array of route objects from useRoutesFirestore()
- *   loading — boolean
+ *   routes       — array of route objects from useRoutesFirestore()
+ *   loading      — boolean
+ *   activeFilter — 'all' | 'active' | 'inactive'  (currently selected filter)
+ *   onFilter     — (filterValue: string) => void  (called when a pill is clicked)
  */
 
 import React from 'react';
-import { Box, Card, Typography, Skeleton, Divider, useTheme } from '@mui/material';
+import { Box, Card, Typography, Skeleton, Divider, useTheme, Tooltip } from '@mui/material';
 import {
   Route as RouteIcon,
   CheckCircleOutlined,
@@ -18,61 +20,94 @@ import {
   AltRoute,
 } from '@mui/icons-material';
 
-const StatPill = ({ icon, label, value, color, loading, onClick, active }) => {
+const StatPill = ({ icon, label, value, color, loading, onClick, isActive }) => {
   const theme = useTheme();
+  const isSpecificActiveCard = label === 'Active';
+
   return (
-    <Box
-      onClick={onClick}
-      sx={{
-        display:        'flex',
-        alignItems:     'center',
-        gap:            1.5,
-        px:             2.5,
-        py:             1.5,
-        borderRadius:   2,
-        flex:           1,
-        minWidth:       130,
-        backgroundColor: active ? `${color}22` : `${color}12`,
-        border:         active ? `1px solid ${color}` : `1px solid ${color}30`,
-        boxShadow:      active ? `0 0 12px ${color}44` : 'none',
-        transition:     'all 0.2s ease-in-out',
-        cursor:         onClick ? 'pointer' : 'default',
-        '&:hover': onClick ? { 
-          backgroundColor: active ? `${color}28` : `${color}20`,
-          border: active ? `1px solid ${color}` : `1px solid ${color}80`,
-          boxShadow: active ? `0 0 14px ${color}55` : `0 0 10px ${color}22`,
-        } : {},
-      }}
-    >
+    <Tooltip title={onClick ? `Click to filter by ${label}` : ''} placement="top" arrow>
       <Box
+        onClick={onClick}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyDown={onClick ? (e) => (e.key === 'Enter' || e.key === ' ') && onClick() : undefined}
         sx={{
-          color,
           display:         'flex',
           alignItems:      'center',
-          backgroundColor: `${color}20`,
-          borderRadius:    '50%',
-          p:               0.8,
+          gap:             1.5,
+          px:              2.5,
+          py:              1.5,
+          borderRadius:    2,
+          flex:            1,
+          minWidth:        130,
+          backgroundColor: isActive
+            ? (isSpecificActiveCard ? 'transparent' : `${color}25`)
+            : `${color}12`,
+          border:          isActive
+            ? `2px solid ${color}80`
+            : `1px solid ${color}30`,
+          transition:      'all 0.2s ease',
+          cursor:          onClick ? 'pointer' : 'default',
+          userSelect:      'none',
+          transform:       isActive ? 'translateY(-1px)' : 'none',
+          boxShadow:       isActive && !isSpecificActiveCard ? `0 4px 16px ${color}30` : 'none',
+          '&:hover': onClick
+            ? {
+                backgroundColor: isSpecificActiveCard ? 'rgba(255,255,255,0.03)' : `${color}20`,
+                transform:       'translateY(-2px)',
+                boxShadow:       isSpecificActiveCard ? 'none' : `0 6px 20px ${color}35`,
+                border:          `2px solid ${color}60`,
+              }
+            : {},
+          '&:active': onClick
+            ? { transform: 'translateY(0)', boxShadow: `0 2px 8px ${color}25` }
+            : {},
+          '&:focus-visible': {
+            outline: `2px solid ${color}`,
+            outlineOffset: '2px',
+          },
         }}
       >
-        {icon}
-      </Box>
-      <Box>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2 }}>
-          {label}
-        </Typography>
-        {loading ? (
-          <Skeleton width={32} height={24} />
-        ) : (
-          <Typography variant="h6" sx={{ fontWeight: 800, color, lineHeight: 1.2 }}>
-            {value}
+        <Box
+          sx={{
+            color,
+            display:         'flex',
+            alignItems:      'center',
+            backgroundColor: isActive ? `${color}30` : `${color}20`,
+            borderRadius:    '50%',
+            p:               0.8,
+            transition:      'background 0.2s',
+          }}
+        >
+          {icon}
+        </Box>
+        <Box>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: 'block', lineHeight: 1.2, fontWeight: isActive ? 700 : 400 }}
+          >
+            {label}
           </Typography>
-        )}
+          {loading ? (
+            <Skeleton width={32} height={24} />
+          ) : (
+            <Typography variant="h6" sx={{ fontWeight: 800, color, lineHeight: 1.2 }}>
+              {value}
+            </Typography>
+          )}
+        </Box>
       </Box>
-    </Box>
+    </Tooltip>
   );
 };
 
-export const RouteStatsBar = ({ routes = [], loading = false, activeFilter = 'all', onFilterChange }) => {
+export const RouteStatsBar = ({
+  routes       = [],
+  loading      = false,
+  activeFilter = 'all',
+  onFilter     = null,
+}) => {
   const theme = useTheme();
 
   const total    = routes.length;
@@ -82,27 +117,28 @@ export const RouteStatsBar = ({ routes = [], loading = false, activeFilter = 'al
 
   const stats = [
     {
+      key:   'all',
       icon:  <RouteIcon fontSize="small" />,
       label: 'Total Routes',
       value: total,
       color: theme.palette.primary.main,
-      filterType: 'all',
     },
     {
+      key:   'active',
       icon:  <CheckCircleOutlined fontSize="small" />,
       label: 'Active',
       value: active,
       color: theme.palette.success.main,
-      filterType: 'active',
     },
     {
+      key:   'inactive',
       icon:  <HighlightOff fontSize="small" />,
       label: 'Inactive',
       value: inactive,
       color: theme.palette.error.main,
-      filterType: 'inactive',
     },
     {
+      key:   null,          // not filterable — informational only
       icon:  <AltRoute fontSize="small" />,
       label: 'Total Stops',
       value: stops,
@@ -128,26 +164,30 @@ export const RouteStatsBar = ({ routes = [], loading = false, activeFilter = 'al
           flexWrap:   'wrap',
         }}
       >
-        {stats.map((s, i) => {
-          const isClickable = s.filterType !== undefined;
-          return (
-            <React.Fragment key={s.label}>
-              <StatPill
-                {...s}
-                loading={loading}
-                onClick={isClickable && onFilterChange ? () => onFilterChange(s.filterType) : undefined}
-                active={isClickable && activeFilter === s.filterType}
+        {stats.map((s, i) => (
+          <React.Fragment key={s.label}>
+            <StatPill
+              icon={s.icon}
+              label={s.label}
+              value={s.value}
+              color={s.color}
+              loading={loading}
+              isActive={s.key !== null && activeFilter === s.key}
+              onClick={
+                s.key !== null && onFilter
+                  ? () => onFilter(activeFilter === s.key ? 'all' : s.key)
+                  : undefined
+              }
+            />
+            {i < stats.length - 1 && (
+              <Divider
+                orientation="vertical"
+                flexItem
+                sx={{ borderColor: 'rgba(255,255,255,0.06)', display: { xs: 'none', sm: 'block' } }}
               />
-              {i < stats.length - 1 && (
-                <Divider
-                  orientation="vertical"
-                  flexItem
-                  sx={{ borderColor: 'rgba(255,255,255,0.06)', display: { xs: 'none', sm: 'block' } }}
-                />
-              )}
-            </React.Fragment>
-          );
-        })}
+            )}
+          </React.Fragment>
+        ))}
       </Box>
     </Card>
   );

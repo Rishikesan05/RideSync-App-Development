@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   Typography, 
   Card, 
@@ -57,16 +58,37 @@ export const RoutesView = () => {
   const toggleActive     = useToggleRouteActive();
   const deleteRoute      = useDeleteRoute();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const gridRef = useRef(null);
+
   const [dialogOpen, setDialogOpen]   = useState(false);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [anchorEl, setAnchorEl]       = useState(null);
   const [menuRouteId, setMenuRouteId]           = useState(null);
   const [search, setSearch]                     = useState('');
-  const [statusFilter, setStatusFilter]         = useState('all');
+  // statusFilter is driven by the URL ?filter= param so it's bookmarkable
+  const statusFilter = searchParams.get('filter') || 'all';
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [routeToDelete, setRouteToDelete]       = useState(null);
   const [expandedRoutes, setExpandedRoutes]     = useState(new Set());
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  // Handler for RouteStatsBar pill clicks — update URL param and scroll to grid
+  const handleStatFilter = (newFilter) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (newFilter === 'all') {
+        next.delete('filter');
+      } else {
+        next.set('filter', newFilter);
+      }
+      return next;
+    }, { replace: true });
+    // Smooth scroll to the route cards after a brief tick
+    setTimeout(() => {
+      gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  };
 
   const toggleExpand = (routeId) =>
     setExpandedRoutes((prev) => {
@@ -179,12 +201,11 @@ export const RoutesView = () => {
         </Button>
       </Box>
 
-      {/* ── Stats summary bar ────────────────────────────────────────────── */}
-      <RouteStatsBar 
-        routes={routes} 
-        loading={loading} 
+      <RouteStatsBar
+        routes={routes}
+        loading={loading}
         activeFilter={statusFilter}
-        onFilterChange={setStatusFilter}
+        onFilter={handleStatFilter}
       />
 
       {/* ── Search + Filter bar ─────────────────────────────────────────── */}
@@ -210,7 +231,7 @@ export const RoutesView = () => {
             size="small"
             exclusive
             value={statusFilter}
-            onChange={(_, val) => val && setStatusFilter(val)}
+            onChange={(_, val) => val && handleStatFilter(val)}
           >
             <ToggleButton value="all">All ({routes.length})</ToggleButton>
             <ToggleButton value="active" sx={{ color: 'success.main' }}>
@@ -294,7 +315,7 @@ export const RoutesView = () => {
         </Alert>
       )}
 
-      <Grid container spacing={3}>
+      <Grid ref={gridRef} container spacing={3}>
         {filteredRoutes.map((route) => (
           <Grid item xs={12} lg={6} key={route.id}>
             <Card sx={{ height: '100%', position: 'relative' }}>

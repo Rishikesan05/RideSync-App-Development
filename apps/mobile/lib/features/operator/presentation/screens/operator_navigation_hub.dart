@@ -5,6 +5,7 @@ import 'package:ridesync/features/operator/presentation/screens/operator_profile
 import 'package:ridesync/features/operator/presentation/screens/operator_routes_screen.dart';
 import 'package:ridesync/features/operator/presentation/screens/operator_earnings_screen.dart';
 import 'package:ridesync/features/operator/presentation/screens/operator_fleet_screen.dart';
+
 class BusOperatorNavigationHub extends StatefulWidget {
   const BusOperatorNavigationHub({super.key});
 
