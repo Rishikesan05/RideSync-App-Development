@@ -331,7 +331,7 @@ export const RoutesView = () => {
                   </Typography>
                   <Chip 
                     label={route.isActive ? 'Active' : 'Inactive'} 
-                    color={route.isActive ? 'success' : 'default'} 
+                    color={route.isActive ? 'success' : 'error'} 
                     size="small" 
                     variant={route.isActive ? "filled" : "outlined"}
                   />
