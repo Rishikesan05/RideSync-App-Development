@@ -82,14 +82,14 @@ const StatPill = ({ icon, label, value, color, loading, onClick, isActive }) => 
           <Typography
             variant="caption"
             color="text.secondary"
-            sx={{ display: 'block', lineHeight: 1.2, fontWeight: isActive ? 700 : 400 }}
+            sx={{ display: 'block', lineHeight: 1.2, fontWeight: isActive ? 700 : 400, fontSize: '0.85rem' }}
           >
             {label}
           </Typography>
           {loading ? (
             <Skeleton width={32} height={24} />
           ) : (
-            <Typography variant="h6" sx={{ fontWeight: 800, color, lineHeight: 1.2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, color, lineHeight: 1.2, fontSize: '1.5rem' }}>
               {value}
             </Typography>
           )}
