@@ -319,16 +319,18 @@ export const RoutesView = () => {
         {filteredRoutes.map((route) => (
           <Grid item xs={12} lg={6} key={route.id}>
             <Card 
+              onClick={route.stops?.length > 0 ? () => toggleExpand(route.id) : undefined}
               sx={{ 
                 height: '100%', 
                 position: 'relative',
                 overflow: 'visible', // Allow notches to bleed off edges
                 border: '1.5px solid rgba(230, 141, 51, 0.3)',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                cursor: route.stops?.length > 0 ? 'pointer' : 'default',
                 '&:hover': {
                   borderColor: '#E68D33',
                   boxShadow: '0 4px 20px rgba(230, 141, 51, 0.15)',
-                  transform: 'translateY(-2px)',
+                  transform: route.stops?.length > 0 ? 'translateY(-2px)' : 'none',
                   '& .ticket-notch': {
                     borderColor: '#E68D33',
                   }
@@ -377,8 +379,11 @@ export const RoutesView = () => {
                 }} 
               />
 
-              <Box sx={{ position: 'absolute', top: 16, right: 8 }}>
-                <IconButton onClick={(e) => handleOpenMenu(e, route.id)}>
+              <Box sx={{ position: 'absolute', top: 16, right: 8, zIndex: 3 }}>
+                <IconButton onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenMenu(e, route.id);
+                }}>
                   <MoreVert />
                 </IconButton>
               </Box>
@@ -430,7 +435,10 @@ export const RoutesView = () => {
                   <CardActions sx={{ px: 2, pt: 0, pb: expandedRoutes.has(route.id) ? 0 : 1 }}>
                     <Button
                       size="small"
-                      onClick={() => toggleExpand(route.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpand(route.id);
+                      }}
                       endIcon={expandedRoutes.has(route.id) ? <ExpandLess /> : <ExpandMore />}
                       sx={{ color: 'primary.light', fontWeight: 600, fontSize: '0.75rem' }}
                     >
