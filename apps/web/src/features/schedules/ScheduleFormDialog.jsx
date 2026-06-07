@@ -106,19 +106,22 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
   const handleFormSubmit = async (data) => {
     // Combine separate date + time into a single ISO string
     const combinedDateTime = new Date(`${data.departureDate}T${data.departureTime}:00`).toISOString();
+    const now = new Date().toISOString();
 
     const formattedData = {
-      routeId:       data.routeId,
       busId:         data.busId,
-      opId:          data.opId,
-      departureTime: combinedDateTime,
-      // Denormalized fields requested
-      capacity:      selectedBus?.capacity     || 54,
+      busCapacity:   selectedBus?.capacity     || 54,
+      busPlateNumber:selectedBus?.plateNumber  || 'N/A',
+      routeId:       data.routeId,
       routeName:     selectedRoute?.name       || selectedRoute?.routeName || 'Unnamed Route',
-      createdDate:   new Date().toISOString(),
-      startPoint:    selectedRoute?.startPoint ? selectedRoute.startPoint.split(',')[0] : 'N/A',
-      endPoint:      selectedRoute?.endPoint   ? selectedRoute.endPoint.split(',')[0] : 'N/A',
+      startingPoint: selectedRoute?.startPoint ? selectedRoute.startPoint.split(',')[0] : 'N/A',
+      departureTime: combinedDateTime,
+      operatorId:    data.opId,
       status:        'scheduled',
+      createdAt:     now,
+      updatedAt:     now,
+      delayMinutes:  0,
+      eta:           null
     };
 
     await onSubmit(formattedData);
