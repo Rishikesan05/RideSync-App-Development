@@ -322,21 +322,67 @@ export const RoutesView = () => {
               sx={{ 
                 height: '100%', 
                 position: 'relative',
+                overflow: 'visible', // Allow notches to bleed off edges
                 border: '1.5px solid rgba(230, 141, 51, 0.3)',
-                transition: 'all 0.3s ease-in-out',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:hover': {
                   borderColor: '#E68D33',
                   boxShadow: '0 4px 20px rgba(230, 141, 51, 0.15)',
-                  transform: 'translateY(-2px)'
+                  transform: 'translateY(-2px)',
+                  '& .ticket-notch': {
+                    borderColor: '#E68D33',
+                  }
                 }
               }}
             >
+              {/* Left Ticket Notch */}
+              <Box 
+                className="ticket-notch"
+                sx={{
+                  position: 'absolute',
+                  left: '-10px',
+                  top: '124px',
+                  transform: 'translateY(-50%)',
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  backgroundColor: theme.palette.background.default,
+                  border: '1.5px solid rgba(230, 141, 51, 0.3)',
+                  borderLeftColor: 'transparent',
+                  borderTopColor: 'transparent',
+                  borderBottomColor: 'transparent',
+                  zIndex: 2,
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                }} 
+              />
+              
+              {/* Right Ticket Notch */}
+              <Box 
+                className="ticket-notch"
+                sx={{
+                  position: 'absolute',
+                  right: '-10px',
+                  top: '124px',
+                  transform: 'translateY(-50%)',
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  backgroundColor: theme.palette.background.default,
+                  border: '1.5px solid rgba(230, 141, 51, 0.3)',
+                  borderRightColor: 'transparent',
+                  borderTopColor: 'transparent',
+                  borderBottomColor: 'transparent',
+                  zIndex: 2,
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                }} 
+              />
+
               <Box sx={{ position: 'absolute', top: 16, right: 8 }}>
                 <IconButton onClick={(e) => handleOpenMenu(e, route.id)}>
                   <MoreVert />
                 </IconButton>
               </Box>
-              <CardContent sx={{ p: 3 }}>
+              <CardContent sx={{ p: 3, pb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1, pr: 4 }}>
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>
                     {route.routeNumber ? `R-${route.routeNumber}: ` : ''}{route.name}
@@ -359,7 +405,7 @@ export const RoutesView = () => {
                   </Typography>
                 </Box>
 
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                   Total Distance:{' '}
                   <strong>
                     {route.totalDistanceKm
@@ -369,6 +415,14 @@ export const RoutesView = () => {
                 </Typography>
                 
               </CardContent>
+
+              {/* Perforation dashed line */}
+              <Box sx={{
+                width: '100%',
+                borderTop: `1px dashed ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)'}`,
+                height: 0,
+                mb: 1,
+              }} />
 
               {/* ── Expand toggle ────────────────────────────────── */}
               {route.stops?.length > 0 && (
