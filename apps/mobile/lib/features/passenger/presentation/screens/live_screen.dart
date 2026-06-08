@@ -246,6 +246,22 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
                         const Text('Kaduwela', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                       ],
                     ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.blueAccent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.person_pin_circle, size: 14, color: Colors.blueAccent),
+                          const SizedBox(width: 6),
+                          const Text('Your Stop: Nugegoda', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.blueAccent)),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
                 Container(
@@ -326,19 +342,19 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
                   myLocationButtonEnabled: false,
                 ),
 
-          // Bottom info card (Figma-style)
+          // Bottom info card (Compact)
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
                 child: Container(
                   padding: EdgeInsets.only(
-                    left: 24, right: 24, top: 24,
-                    bottom: MediaQuery.of(context).padding.bottom + 16,
+                    left: 16, right: 16, top: 12,
+                    bottom: MediaQuery.of(context).padding.bottom + 8,
                   ),
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFFD84315).withValues(alpha: 0.9) : AppColors.primaryOrange.withValues(alpha: 0.9),
@@ -360,43 +376,37 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
                                 children: [
                                   Text(
                                     _kmToGo,
-                                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white),
+                                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white),
                                   ),
                                   const SizedBox(width: 4),
                                   const Padding(
-                                    padding: EdgeInsets.only(bottom: 5),
-                                    child: Text('KM', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white70)),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Padding(
-                                    padding: EdgeInsets.only(bottom: 5),
-                                    child: Text('TO GO', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white70)),
+                                    padding: EdgeInsets.only(bottom: 2),
+                                    child: Text('KM TO GO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white70)),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 2),
-                              const Text('BOUND FOR: KADUWELA', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white70, letterSpacing: 0.5)),
+                              const Text('BOUND FOR: KADUWELA', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white70, letterSpacing: 0.5)),
                             ],
                           ),
                           const Spacer(),
-                          const Icon(Icons.route, color: Colors.white, size: 28),
+                          const Icon(Icons.route, color: Colors.white, size: 20),
                         ],
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
 
                       // Progress bar
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: (_currentPointIndex + _progress) / (_routePoints.length - 1),
-                          minHeight: 6,
+                          minHeight: 4,
                           backgroundColor: Colors.white.withValues(alpha: 0.3),
                           valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       ),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 8),
 
                       // ETA & Status
                       Row(
@@ -408,13 +418,28 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
                             Colors.black54, 
                             Colors.black87,
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 8),
                           _buildInfoTile(
                             'OPTIMIZER', 
                             _statusText, 
                             Colors.white, 
                             Colors.black54, 
                             Colors.green[700]!,
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 6),
+                      
+                      // Your Stop ETA
+                      Row(
+                        children: [
+                          _buildInfoTile(
+                            'ETA AT YOUR STOP (NUGEGODA)', 
+                            '10:15 AM', 
+                            Colors.white, 
+                            Colors.blueAccent[700]!, 
+                            Colors.blueAccent[700]!,
                           ),
                         ],
                       ),
@@ -441,7 +466,7 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
   ) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(14),
