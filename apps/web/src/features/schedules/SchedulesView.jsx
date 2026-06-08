@@ -179,6 +179,7 @@ export const SchedulesView = () => {
                 height: '100%', 
                 position: 'relative', 
                 borderTop: `4px solid ${colorMain}`,
+                opacity: status === 'cancelled' ? 0.6 : 1,
                 transition: 'transform 0.2s',
                 '&:hover': { transform: 'translateY(-4px)' }
               }}>
@@ -193,7 +194,7 @@ export const SchedulesView = () => {
                       label={status.toUpperCase()} 
                       color={statusColor} 
                       size="small" 
-                      variant="filled"
+                      variant={status === 'cancelled' ? 'outlined' : 'filled'}
                       sx={{ fontWeight: 600 }}
                     />
                     <Typography variant="caption" color="text.secondary">
