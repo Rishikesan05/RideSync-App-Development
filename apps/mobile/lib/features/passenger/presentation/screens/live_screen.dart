@@ -341,8 +341,8 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
                     bottom: MediaQuery.of(context).padding.bottom + 16,
                   ),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.75) : Colors.white.withValues(alpha: 0.8),
-                    border: Border(top: BorderSide(color: isDark ? Colors.white12 : Colors.white, width: 1.5)),
+                    color: isDark ? const Color(0xFFD84315).withValues(alpha: 0.9) : AppColors.primaryOrange.withValues(alpha: 0.9),
+                    border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1.5)),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -360,26 +360,26 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
                                 children: [
                                   Text(
                                     _kmToGo,
-                                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900),
+                                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white),
                                   ),
                                   const SizedBox(width: 4),
                                   const Padding(
                                     padding: EdgeInsets.only(bottom: 5),
-                                    child: Text('KM', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textLight)),
+                                    child: Text('KM', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white70)),
                                   ),
                                   const SizedBox(width: 4),
                                   const Padding(
                                     padding: EdgeInsets.only(bottom: 5),
-                                    child: Text('TO GO', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textLight)),
+                                    child: Text('TO GO', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white70)),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 2),
-                              const Text('BOUND FOR: KADUWELA', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textLight, letterSpacing: 0.5)),
+                              const Text('BOUND FOR: KADUWELA', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white70, letterSpacing: 0.5)),
                             ],
                           ),
                           const Spacer(),
-                          Icon(Icons.route, color: AppColors.primaryOrange, size: 28),
+                          const Icon(Icons.route, color: Colors.white, size: 28),
                         ],
                       ),
 
@@ -391,8 +391,8 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
                         child: LinearProgressIndicator(
                           value: (_currentPointIndex + _progress) / (_routePoints.length - 1),
                           minHeight: 6,
-                          backgroundColor: isDark ? Colors.white10 : Colors.grey.shade300,
-                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryOrange),
+                          backgroundColor: Colors.white.withValues(alpha: 0.3),
+                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       ),
 
@@ -425,21 +425,21 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.4),
+          color: Colors.white.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: isDark ? Colors.white10 : Colors.white),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textLight, letterSpacing: 0.5)),
+            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white70, letterSpacing: 0.5)),
             const SizedBox(height: 6),
             Text(
               value,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: isStatus ? Colors.green : null,
+                color: isStatus && value != 'ARRIVED' ? Colors.greenAccent : Colors.white,
               ),
             ),
           ],
