@@ -239,6 +239,10 @@ export const SchedulesView = () => {
         open={Boolean(anchorEl)}
         onClose={handleCloseMenu}
       >
+        <MenuItem onClick={handleActivateSchedule} sx={{ color: theme.palette.success.main }}>
+          <ListItemIcon><CheckCircle fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
+          Activate Schedule
+        </MenuItem>
         <MenuItem onClick={handleCancelSchedule} sx={{ color: theme.palette.warning.main }}>
           <ListItemIcon><Block fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
           Cancel Schedule
