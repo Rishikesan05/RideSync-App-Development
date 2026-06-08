@@ -438,7 +438,7 @@ export const RoutesView = () => {
               }} />
 
               {/* ── Expand toggle ────────────────────────────────── */}
-              {route.stops?.length > 0 && (
+              {route.stops?.length > 0 ? (
                 <>
                   <CardActions sx={{ px: 2, pt: 0, pb: isExpanded ? 0 : 1 }}>
                     <Button
@@ -521,6 +521,21 @@ export const RoutesView = () => {
                     </Box>
                   </Collapse>
                 </>
+              ) : (
+                <CardActions sx={{ px: 2, pt: 0, pb: 1 }}>
+                  <Button
+                    size="small"
+                    disabled
+                    sx={{
+                      color: 'text.disabled',
+                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                      '&.Mui-disabled': { color: 'text.disabled' }
+                    }}
+                  >
+                    No Stops
+                  </Button>
+                </CardActions>
               )}
             </Card>
           </Grid>
