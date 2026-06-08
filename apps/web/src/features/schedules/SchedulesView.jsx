@@ -128,6 +128,9 @@ export const SchedulesView = () => {
     }
   };
 
+  const selectedMenuSchedule = schedules.find(s => s.id === menuScheduleId);
+  const menuScheduleStatus = selectedMenuSchedule?.status || '';
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
@@ -240,14 +243,18 @@ export const SchedulesView = () => {
         open={Boolean(anchorEl)}
         onClose={handleCloseMenu}
       >
-        <MenuItem onClick={handleActivateSchedule} sx={{ color: theme.palette.success.main }}>
-          <ListItemIcon><CheckCircle fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
-          Activate Schedule
-        </MenuItem>
-        <MenuItem onClick={handleCancelSchedule} sx={{ color: theme.palette.warning.main }}>
-          <ListItemIcon><Block fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
-          Cancel Schedule
-        </MenuItem>
+        {menuScheduleStatus !== 'active' && (
+          <MenuItem onClick={handleActivateSchedule} sx={{ color: theme.palette.success.main }}>
+            <ListItemIcon><CheckCircle fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
+            Activate Schedule
+          </MenuItem>
+        )}
+        {menuScheduleStatus !== 'cancelled' && (
+          <MenuItem onClick={handleCancelSchedule} sx={{ color: theme.palette.warning.main }}>
+            <ListItemIcon><Block fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
+            Cancel Schedule
+          </MenuItem>
+        )}
         <MenuItem onClick={handleDeleteSchedule} sx={{ color: theme.palette.error.main }}>
           <ListItemIcon><Delete fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
           Delete Schedule
