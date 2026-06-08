@@ -157,7 +157,7 @@ export const AdminLayout = () => {
                   primary={item.text} 
                   primaryTypographyProps={{ 
                     fontWeight: isActive ? 600 : 500,
-                    fontSize: '0.95rem',
+                    fontSize: '0.8rem',
                     textTransform: 'uppercase'
                   }} 
                 />
@@ -171,7 +171,7 @@ export const AdminLayout = () => {
         <ListItem disablePadding>
           <ListItemButton onClick={() => handleNavigate('/settings')} sx={{ borderRadius: 2, color: '#000000' }}>
             <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}><Settings /></ListItemIcon>
-            <ListItemText primary="Settings" primaryTypographyProps={{ fontSize: '0.95rem' }} />
+            <ListItemText primary="Settings" primaryTypographyProps={{ fontSize: '0.8rem' }} />
           </ListItemButton>
         </ListItem>
       </Box>
