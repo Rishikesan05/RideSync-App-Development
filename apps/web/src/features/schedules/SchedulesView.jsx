@@ -247,6 +247,10 @@ export const SchedulesView = () => {
           <ListItemIcon><Block fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
           Cancel Schedule
         </MenuItem>
+        <MenuItem onClick={handleDeleteSchedule} sx={{ color: theme.palette.error.main }}>
+          <ListItemIcon><Delete fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
+          Delete Schedule
+        </MenuItem>
       </Menu>
 
       {/* Form Dialog */}
