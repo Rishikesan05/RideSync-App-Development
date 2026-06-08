@@ -21,7 +21,9 @@ import {
   MoreVert, 
   Block, 
   DirectionsBus,
-  Schedule as ScheduleIcon
+  Schedule as ScheduleIcon,
+  CheckCircle,
+  Delete
 } from '@mui/icons-material';
 import { 
   useCreateSchedule, 
@@ -30,7 +32,7 @@ import {
 import { useSchedulesFirestore } from './useSchedulesFirestore';
 import { ScheduleFormDialog } from './ScheduleFormDialog';
 import { format, isValid } from 'date-fns';
-import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../api/firebase';
 
 export const SchedulesView = () => {
@@ -81,6 +83,28 @@ export const SchedulesView = () => {
       await updateDoc(scheduleRef, { status: 'cancelled' });
     } catch (e) {
       console.error('Failed to cancel schedule', e);
+    }
+  };
+
+  const handleActivateSchedule = async () => {
+    const scheduleId = menuScheduleId;
+    handleCloseMenu();
+    try {
+      const scheduleRef = doc(db, 'schedules', scheduleId);
+      await updateDoc(scheduleRef, { status: 'active' });
+    } catch (e) {
+      console.error('Failed to activate schedule', e);
+    }
+  };
+
+  const handleDeleteSchedule = async () => {
+    const scheduleId = menuScheduleId;
+    handleCloseMenu();
+    try {
+      const scheduleRef = doc(db, 'schedules', scheduleId);
+      await deleteDoc(scheduleRef);
+    } catch (e) {
+      console.error('Failed to delete schedule', e);
     }
   };
 
@@ -215,7 +239,7 @@ export const SchedulesView = () => {
         open={Boolean(anchorEl)}
         onClose={handleCloseMenu}
       >
-        <MenuItem onClick={handleCancelSchedule} sx={{ color: theme.palette.error.main }}>
+        <MenuItem onClick={handleCancelSchedule} sx={{ color: theme.palette.warning.main }}>
           <ListItemIcon><Block fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
           Cancel Schedule
         </MenuItem>
