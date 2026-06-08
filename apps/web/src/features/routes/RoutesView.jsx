@@ -311,14 +311,14 @@ export const RoutesView = () => {
         </Alert>
       )}
 
-      <Grid ref={gridRef} container spacing={3}>
+      <Grid ref={gridRef} container spacing={3} alignItems="flex-start">
         {filteredRoutes.map((route) => {
           const isExpanded = expandedRouteId === route.id;
           return (
             <Grid item xs={12} lg={6} key={route.id}>
               <Card 
                 sx={{ 
-                  height: '100%', 
+                  height: 'auto', 
                   position: 'relative',
                   overflow: 'visible', // Allow notches to bleed off edges
                   border: isExpanded ? '2px solid #E68D33' : '1.5px solid rgba(230, 141, 51, 0.3)',
