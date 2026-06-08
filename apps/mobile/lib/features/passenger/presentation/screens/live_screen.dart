@@ -401,9 +401,21 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
                       // ETA & Status
                       Row(
                         children: [
-                          _buildInfoTile('EST. ARRIVAL', _eta, isDark),
+                          _buildInfoTile(
+                            'EST. ARRIVAL', 
+                            _eta, 
+                            Colors.white, 
+                            Colors.black54, 
+                            Colors.black87,
+                          ),
                           const SizedBox(width: 16),
-                          _buildInfoTile('OPTIMIZER', _statusText, isDark, isStatus: true),
+                          _buildInfoTile(
+                            'OPTIMIZER', 
+                            _statusText, 
+                            Colors.white, 
+                            Colors.black54, 
+                            Colors.green[700]!,
+                          ),
                         ],
                       ),
                     ],
@@ -420,26 +432,38 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildInfoTile(String label, String value, bool isDark, {bool isStatus = false}) {
+  Widget _buildInfoTile(
+    String label, 
+    String value, 
+    Color bgColor, 
+    Color labelColor, 
+    Color valueColor,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.15),
+          color: bgColor,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white70, letterSpacing: 0.5)),
+            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: labelColor, letterSpacing: 0.5)),
             const SizedBox(height: 6),
             Text(
               value,
               style: TextStyle(
                 fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: isStatus && value != 'ARRIVED' ? Colors.greenAccent : Colors.white,
+                fontWeight: FontWeight.w900,
+                color: valueColor,
               ),
             ),
           ],
