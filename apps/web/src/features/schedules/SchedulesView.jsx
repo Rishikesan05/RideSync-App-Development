@@ -30,13 +30,16 @@ import {
 import { useSchedulesFirestore } from './useSchedulesFirestore';
 import { ScheduleFormDialog } from './ScheduleFormDialog';
 import { format, isValid } from 'date-fns';
+import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../api/firebase';
 
 export const SchedulesView = () => {
   const theme = useTheme();
   // Real-time Firestore listener — replaces React Query polling
   const { schedules, loading: isLoading, error } = useSchedulesFirestore();
-  const createSchedule = useCreateSchedule();
-  const cancelSchedule = useCancelSchedule();
+  // We now use direct Firestore calls instead of the REST hooks below:
+  // const createSchedule = useCreateSchedule();
+  // const cancelSchedule = useCancelSchedule();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -74,7 +77,8 @@ export const SchedulesView = () => {
     const scheduleId = menuScheduleId;
     handleCloseMenu();
     try {
-      await cancelSchedule.mutateAsync(scheduleId);
+      const scheduleRef = doc(db, 'schedules', scheduleId);
+      await updateDoc(scheduleRef, { status: 'cancelled' });
     } catch (e) {
       console.error('Failed to cancel schedule', e);
     }
@@ -82,7 +86,8 @@ export const SchedulesView = () => {
 
   const handleSubmit = async (formData) => {
     try {
-      await createSchedule.mutateAsync(formData);
+      const schedulesRef = collection(db, 'schedules');
+      await addDoc(schedulesRef, formData);
     } catch (err) {
       console.error('Error creating schedule', err);
       throw err; 
