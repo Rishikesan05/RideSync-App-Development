@@ -117,6 +117,10 @@ export const AdminLayout = () => {
     ? (theme.palette.mode === 'dark' ? 'rgba(15,23,42,0.72)' : 'rgba(255,255,255,0.96)')
     : (theme.palette.mode === 'dark' ? 'rgba(15,23,42,0.5)' : 'rgba(255,255,255,0.92)');
 
+  const drawerShadow = theme.palette.mode === 'dark'
+    ? '0 4px 20px rgba(0, 0, 0, 0.25)'
+    : '0 4px 20px rgba(0, 0, 0, 0.04)';
+
   const navBorder = theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
   const navText = theme.palette.text.primary;
 
@@ -278,7 +282,7 @@ export const AdminLayout = () => {
                 borderRight: `1px solid ${navBorder}`,
                 backdropFilter: scrolled ? 'blur(12px)' : 'blur(6px)',
                 WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'blur(6px)',
-                boxShadow: '0 8px 30px rgba(2,6,23,0.6)',
+                boxShadow: drawerShadow,
                 borderRadius: '32px',
                 overflow: 'hidden'
               },
@@ -302,7 +306,7 @@ export const AdminLayout = () => {
                 borderRight: `1px solid ${navBorder}`,
                 backdropFilter: scrolled ? 'blur(12px)' : 'blur(6px)',
                 WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'blur(6px)',
-                boxShadow: '0 8px 30px rgba(2,6,23,0.6)',
+                boxShadow: drawerShadow,
                 borderRadius: '32px',
                 overflow: 'hidden'
               },
