@@ -21,13 +21,44 @@ async function getAll(filters = {}) {
   }
 
   const snapshot = await query.get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  const now = new Date();
+  
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+    let status = data.status;
+
+    // Check if the schedule has expired based on departureTime
+    if (data.departureTime && data.departureTime.toDate) {
+      const departureTime = data.departureTime.toDate();
+      // Only expire if it's still 'scheduled' and the departure time is in the past
+      if (departureTime < now && status === 'scheduled') {
+        status = 'expired';
+        // Fire and forget update to firestore
+        doc.ref.update({ status: 'expired', updatedAt: now }).catch(console.error);
+      }
+    }
+
+    return { id: doc.id, ...data, status };
+  });
 }
 
 async function getById(scheduleId) {
   const doc = await collection.doc(scheduleId).get();
   if (!doc.exists) return null;
-  return { id: doc.id, ...doc.data() };
+  
+  const data = doc.data();
+  let status = data.status;
+  const now = new Date();
+
+  if (data.departureTime && data.departureTime.toDate) {
+    const departureTime = data.departureTime.toDate();
+    if (departureTime < now && status === 'scheduled') {
+      status = 'expired';
+      doc.ref.update({ status: 'expired', updatedAt: now }).catch(console.error);
+    }
+  }
+
+  return { id: doc.id, ...data, status };
 }
 
 async function create(data) {
