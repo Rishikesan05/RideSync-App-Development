@@ -196,66 +196,79 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
     }
 
     return Scaffold(
-      body: Stack(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+      body: Column(
         children: [
-          // Google Map
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: _busPosition,
-              zoom: 13.5,
+          // Top Header Area
+          Container(
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 16,
+              left: 20,
+              right: 20,
+              bottom: 16,
             ),
-            onMapCreated: (controller) => _mapController = controller,
-            markers: {
-              Marker(
-                markerId: const MarkerId('bus'),
-                position: _busPosition,
-                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-                infoWindow: const InfoWindow(title: 'RS-EX-01', snippet: 'In Transit'),
-              ),
-              // Start marker
-              Marker(
-                markerId: const MarkerId('start'),
-                position: _routePoints.first,
-                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-                infoWindow: const InfoWindow(title: 'Pettah', snippet: 'Start'),
-              ),
-              // End marker
-              Marker(
-                markerId: const MarkerId('end'),
-                position: _routePoints.last,
-                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-                infoWindow: const InfoWindow(title: 'Kaduwela', snippet: 'Destination'),
-              ),
-            },
-            polylines: {
-              Polyline(
-                polylineId: const PolylineId('route'),
-                color: AppColors.primaryOrange,
-                width: 4,
-                points: _routePoints,
-                patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-              ),
-            },
-            mapToolbarEnabled: false,
-            zoomControlsEnabled: false,
-            myLocationButtonEnabled: false,
-          ),
-
-          // Top bar: Hub name + status
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 10,
-            left: 16,
-            right: 16,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.directions_bus, size: 20, color: AppColors.primaryOrange),
+                        const SizedBox(width: 8),
+                        const Text('Route 154', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 0.5)),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const Icon(Icons.trip_origin, size: 14, color: AppColors.textLight),
+                        const SizedBox(width: 6),
+                        const Text('Pettah', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          child: Icon(Icons.arrow_right_alt, size: 18, color: AppColors.textLight),
+                        ),
+                        const Icon(Icons.location_on, size: 14, color: AppColors.primaryOrange),
+                        const SizedBox(width: 4),
+                        const Text('Kaduwela', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.blueAccent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.person_pin_circle, size: 14, color: Colors.blueAccent),
+                          const SizedBox(width: 6),
+                          const Text('Your Stop: Nugegoda', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.blueAccent)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.75),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: isDark ? Colors.white12 : Colors.white, width: 1.2),
+                    color: Colors.green.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     children: [
@@ -273,48 +286,79 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      const Text('LIVE SYNC', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1, color: AppColors.textLight)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _nearestHub,
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text('ACTIVE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.green)),
-                      ),
+                      const SizedBox(width: 6),
+                      const Text('ACTIVE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green, letterSpacing: 0.5)),
                     ],
                   ),
                 ),
-              ),
+              ],
             ),
           ),
 
-          // Bottom info card (Figma-style)
+          // Map and Bottom Card
+          Expanded(
+            child: Stack(
+              children: [
+                // Google Map
+                GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: _busPosition,
+                    zoom: 13.5,
+                  ),
+                  onMapCreated: (controller) => _mapController = controller,
+                  markers: {
+                    Marker(
+                      markerId: const MarkerId('bus'),
+                      position: _busPosition,
+                      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+                      infoWindow: const InfoWindow(title: 'RS-EX-01', snippet: 'In Transit'),
+                    ),
+                    // Start marker
+                    Marker(
+                      markerId: const MarkerId('start'),
+                      position: _routePoints.first,
+                      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+                      infoWindow: const InfoWindow(title: 'Pettah', snippet: 'Start'),
+                    ),
+                    // End marker
+                    Marker(
+                      markerId: const MarkerId('end'),
+                      position: _routePoints.last,
+                      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+                      infoWindow: const InfoWindow(title: 'Kaduwela', snippet: 'Destination'),
+                    ),
+                  },
+                  polylines: {
+                    Polyline(
+                      polylineId: const PolylineId('route'),
+                      color: AppColors.primaryOrange,
+                      width: 4,
+                      points: _routePoints,
+                      patterns: [PatternItem.dash(20), PatternItem.gap(10)],
+                    ),
+                  },
+                  mapToolbarEnabled: false,
+                  zoomControlsEnabled: false,
+                  myLocationButtonEnabled: false,
+                ),
+
+          // Bottom info card (Compact)
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
                 child: Container(
                   padding: EdgeInsets.only(
-                    left: 24, right: 24, top: 24,
-                    bottom: MediaQuery.of(context).padding.bottom + 16,
+                    left: 16, right: 16, top: 12,
+                    bottom: MediaQuery.of(context).padding.bottom + 8,
                   ),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.75) : Colors.white.withValues(alpha: 0.8),
-                    border: Border(top: BorderSide(color: isDark ? Colors.white12 : Colors.white, width: 1.5)),
+                    color: isDark ? const Color(0xFFD84315).withValues(alpha: 0.9) : AppColors.primaryOrange.withValues(alpha: 0.9),
+                    border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1.5)),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -332,50 +376,71 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
                                 children: [
                                   Text(
                                     _kmToGo,
-                                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900),
+                                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white),
                                   ),
                                   const SizedBox(width: 4),
                                   const Padding(
-                                    padding: EdgeInsets.only(bottom: 5),
-                                    child: Text('KM', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textLight)),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Padding(
-                                    padding: EdgeInsets.only(bottom: 5),
-                                    child: Text('TO GO', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textLight)),
+                                    padding: EdgeInsets.only(bottom: 2),
+                                    child: Text('KM TO GO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white70)),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 2),
-                              const Text('BOUND FOR: KADUWELA', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textLight, letterSpacing: 0.5)),
+                              const Text('BOUND FOR: KADUWELA', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white70, letterSpacing: 0.5)),
                             ],
                           ),
                           const Spacer(),
-                          Icon(Icons.route, color: AppColors.primaryOrange, size: 28),
+                          const Icon(Icons.route, color: Colors.white, size: 20),
                         ],
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
 
                       // Progress bar
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: (_currentPointIndex + _progress) / (_routePoints.length - 1),
-                          minHeight: 6,
-                          backgroundColor: isDark ? Colors.white10 : Colors.grey.shade300,
-                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryOrange),
+                          minHeight: 4,
+                          backgroundColor: Colors.white.withValues(alpha: 0.3),
+                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       ),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 8),
 
                       // ETA & Status
                       Row(
                         children: [
-                          _buildInfoTile('EST. ARRIVAL', _eta, isDark),
-                          const SizedBox(width: 16),
-                          _buildInfoTile('OPTIMIZER', _statusText, isDark, isStatus: true),
+                          _buildInfoTile(
+                            'EST. ARRIVAL', 
+                            _eta, 
+                            Colors.white, 
+                            Colors.black54, 
+                            Colors.black87,
+                          ),
+                          const SizedBox(width: 8),
+                          _buildInfoTile(
+                            'OPTIMIZER', 
+                            _statusText, 
+                            Colors.white, 
+                            Colors.black54, 
+                            Colors.green[700]!,
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 6),
+                      
+                      // Your Stop ETA
+                      Row(
+                        children: [
+                          _buildInfoTile(
+                            'ETA AT YOUR STOP (NUGEGODA)', 
+                            '10:15 AM', 
+                            Colors.white, 
+                            Colors.blueAccent[700]!, 
+                            Colors.blueAccent[700]!,
+                          ),
                         ],
                       ),
                     ],
@@ -384,31 +449,46 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
               ),
             ),
           ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoTile(String label, String value, bool isDark, {bool isStatus = false}) {
+  Widget _buildInfoTile(
+    String label, 
+    String value, 
+    Color bgColor, 
+    Color labelColor, 
+    Color valueColor,
+  ) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.4),
+          color: bgColor,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: isDark ? Colors.white10 : Colors.white),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textLight, letterSpacing: 0.5)),
+            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: labelColor, letterSpacing: 0.5)),
             const SizedBox(height: 6),
             Text(
               value,
               style: TextStyle(
                 fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: isStatus ? Colors.green : null,
+                fontWeight: FontWeight.w900,
+                color: valueColor,
               ),
             ),
           ],
