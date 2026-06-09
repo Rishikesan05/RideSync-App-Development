@@ -23,10 +23,11 @@ async function fetchRoutes() {
       const d = doc.data();
       return {
         id: doc.id,
-        origin: d.origin,
-        destination: d.destination,
+        // Seed script uses startPoint/endPoint; backend admin uses origin/destination
+        origin: d.origin || d.startPoint || 'Unknown',
+        destination: d.destination || d.endPoint || 'Unknown',
         type: d.type || d.routeType || 'normal',
-        distanceKm: d.distanceKm || d.distance || null,
+        distanceKm: d.distanceKm || d.totalDistanceKm || d.distance || null,
         estimatedDuration: d.estimatedDuration || d.duration || null,
       };
     });
