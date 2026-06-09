@@ -79,14 +79,14 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFFE65100), // Deep Orange
-            Color(0xFFBF360C), // Darker Deep Orange
+            AppColors.primaryOrange,
+            AppColors.primaryOrangeDeep,
           ],
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFE65100).withValues(alpha: 0.3),
+            color: AppColors.primaryOrange.withValues(alpha: 0.3),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),

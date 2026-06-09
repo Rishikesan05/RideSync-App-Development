@@ -5,12 +5,14 @@
  * showing live counts derived from the Firestore routes snapshot.
  *
  * Props:
- *   routes  — array of route objects from useRoutesFirestore()
- *   loading — boolean
+ *   routes       — array of route objects from useRoutesFirestore()
+ *   loading      — boolean
+ *   activeFilter — 'all' | 'active' | 'inactive'  (currently selected filter)
+ *   onFilter     — (filterValue: string) => void  (called when a pill is clicked)
  */
 
 import React from 'react';
-import { Box, Card, Typography, Skeleton, Divider, useTheme } from '@mui/material';
+import { Box, Card, Typography, Skeleton, Divider, useTheme, Tooltip } from '@mui/material';
 import {
   Route as RouteIcon,
   CheckCircleOutlined,
@@ -18,54 +20,91 @@ import {
   AltRoute,
 } from '@mui/icons-material';
 
-const StatPill = ({ icon, label, value, color, loading }) => {
+const StatPill = ({ icon, label, value, color, loading, onClick, isActive }) => {
   const theme = useTheme();
+
   return (
-    <Box
-      sx={{
-        display:        'flex',
-        alignItems:     'center',
-        gap:            1.5,
-        px:             2.5,
-        py:             1.5,
-        borderRadius:   2,
-        flex:           1,
-        minWidth:       130,
-        backgroundColor: `${color}12`,
-        border:         `1px solid ${color}30`,
-        transition:     'background 0.2s',
-        '&:hover': { backgroundColor: `${color}20` },
-      }}
-    >
+    <Tooltip title={onClick ? `Click to filter by ${label}` : ''} placement="top" arrow>
       <Box
+        onClick={onClick}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyDown={onClick ? (e) => (e.key === 'Enter' || e.key === ' ') && onClick() : undefined}
         sx={{
-          color,
           display:         'flex',
           alignItems:      'center',
-          backgroundColor: `${color}20`,
-          borderRadius:    '50%',
-          p:               0.8,
+          gap:             1.5,
+          px:              2.5,
+          py:              1.5,
+          borderRadius:    2,
+          flex:            1,
+          minWidth:        130,
+          backgroundColor: 'transparent',
+          border:          isActive
+            ? `2px solid ${color}`
+            : `1px solid ${color}30`,
+          transition:      'all 0.2s ease',
+          cursor:          onClick ? 'pointer' : 'default',
+          userSelect:      'none',
+          transform:       isActive ? 'translateY(-1px)' : 'none',
+          boxShadow:       'none',
+          '&:hover': onClick
+            ? {
+                backgroundColor: 'transparent',
+                transform:       'translateY(-2px)',
+                boxShadow:       'none',
+                border:          isActive ? `2px solid ${color}` : `2px solid ${color}60`,
+              }
+            : {},
+          '&:active': onClick
+            ? { transform: 'translateY(0)', boxShadow: 'none' }
+            : {},
+          '&:focus-visible': {
+            outline: `2px solid ${color}`,
+            outlineOffset: '2px',
+          },
         }}
       >
-        {icon}
-      </Box>
-      <Box>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2 }}>
-          {label}
-        </Typography>
-        {loading ? (
-          <Skeleton width={32} height={24} />
-        ) : (
-          <Typography variant="h6" sx={{ fontWeight: 800, color, lineHeight: 1.2 }}>
-            {value}
+        <Box
+          sx={{
+            color,
+            display:         'flex',
+            alignItems:      'center',
+            backgroundColor: `${color}20`,
+            borderRadius:    '50%',
+            p:               0.8,
+            transition:      'background 0.2s',
+          }}
+        >
+          {icon}
+        </Box>
+        <Box>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: 'block', lineHeight: 1.2, fontWeight: isActive ? 700 : 400, fontSize: '0.85rem' }}
+          >
+            {label}
           </Typography>
-        )}
+          {loading ? (
+            <Skeleton width={32} height={24} />
+          ) : (
+            <Typography variant="h6" sx={{ fontWeight: 800, color, lineHeight: 1.2, fontSize: '1.5rem' }}>
+              {value}
+            </Typography>
+          )}
+        </Box>
       </Box>
-    </Box>
+    </Tooltip>
   );
 };
 
-export const RouteStatsBar = ({ routes = [], loading = false }) => {
+export const RouteStatsBar = ({
+  routes       = [],
+  loading      = false,
+  activeFilter = 'all',
+  onFilter     = null,
+}) => {
   const theme = useTheme();
 
   const total    = routes.length;
@@ -75,24 +114,28 @@ export const RouteStatsBar = ({ routes = [], loading = false }) => {
 
   const stats = [
     {
+      key:   'all',
       icon:  <RouteIcon fontSize="small" />,
       label: 'Total Routes',
       value: total,
       color: theme.palette.primary.main,
     },
     {
+      key:   'active',
       icon:  <CheckCircleOutlined fontSize="small" />,
       label: 'Active',
       value: active,
       color: theme.palette.success.main,
     },
     {
+      key:   'inactive',
       icon:  <HighlightOff fontSize="small" />,
       label: 'Inactive',
       value: inactive,
       color: theme.palette.error.main,
     },
     {
+      key:   null,          // not filterable — informational only
       icon:  <AltRoute fontSize="small" />,
       label: 'Total Stops',
       value: stops,
@@ -120,7 +163,19 @@ export const RouteStatsBar = ({ routes = [], loading = false }) => {
       >
         {stats.map((s, i) => (
           <React.Fragment key={s.label}>
-            <StatPill {...s} loading={loading} />
+            <StatPill
+              icon={s.icon}
+              label={s.label}
+              value={s.value}
+              color={s.color}
+              loading={loading}
+              isActive={s.key !== null && activeFilter === s.key}
+              onClick={
+                s.key !== null && onFilter
+                  ? () => onFilter(activeFilter === s.key ? 'all' : s.key)
+                  : undefined
+              }
+            />
             {i < stats.length - 1 && (
               <Divider
                 orientation="vertical"

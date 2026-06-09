@@ -349,7 +349,7 @@ class _TravelSquadCard extends StatelessWidget {
     final members = [
       ('Add', Icons.add_rounded, null),
       ('Mom', null, const Color(0xFFE88A8A)),
-      ('Brother', null, const Color(0xFF9CA3AF)),
+      ('Brother', null, const Color(0xFF4CAF50)),
       ('Sahan', null, const Color(0xFF6B7280)),
     ];
 
@@ -383,7 +383,8 @@ class _TravelSquadCard extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: index == 0
-                              ? AppColors.textLight.withValues(alpha: 0.4)
+                              ? 
+                              const Color.fromARGB(255, 47, 144, 62).withValues(alpha: 0.4)
                               : Colors.transparent,
                           style: index == 0
                               ? BorderStyle.solid
