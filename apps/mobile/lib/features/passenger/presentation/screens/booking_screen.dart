@@ -114,56 +114,14 @@ class _BookingScreenState extends State<BookingScreen> {
           ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: widget.onBack)
           : null,
       ),
-      body: Stack(
-        clipBehavior: Clip.none,
+      body: Column(
         children: [
-          // Orange Background Curve
-          Container(
-            height: 240,
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(40),
-                bottomRight: Radius.circular(40),
-              ),
-            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: _buildSearchHeader(booking, isDark),
           ),
-          // Bus Animation
-          Positioned(
-            top: -10,
-            right: 0,
-            child: TweenAnimationBuilder<double>(
-              tween: Tween<double>(begin: 200, end: 0),
-              duration: const Duration(milliseconds: 3500),
-              curve: Curves.easeOutCubic,
-              builder: (context, value, child) {
-                return Transform.translate(
-                  offset: Offset(value, 0),
-                  child: child,
-                );
-              },
-              child: Opacity(
-                opacity: 0.4,
-                child: Image.asset(
-                  'assets/images/bussymbol.png',
-                  height: 120,
-                  color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
-                  colorBlendMode: BlendMode.multiply,
-                ),
-              ),
-            ),
-          ),
-          // Content
-          Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: _buildSearchHeader(booking, isDark),
-              ),
-              Expanded(
-                child: _buildSchedulesList(booking, isDark),
-              ),
-            ],
+          Expanded(
+            child: _buildSchedulesList(booking, isDark),
           ),
         ],
       ),

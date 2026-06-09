@@ -21,28 +21,31 @@ import {
   MoreVert, 
   Block, 
   DirectionsBus,
-  Schedule as ScheduleIcon
+  Schedule as ScheduleIcon,
+  CheckCircle,
+  Delete
 } from '@mui/icons-material';
 import { 
-  useSchedulesList, 
   useCreateSchedule, 
   useCancelSchedule 
 } from '../../api/schedules';
+import { useSchedulesFirestore } from './useSchedulesFirestore';
 import { ScheduleFormDialog } from './ScheduleFormDialog';
 import { format, isValid } from 'date-fns';
+import { collection, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '../../api/firebase';
 
 export const SchedulesView = () => {
   const theme = useTheme();
-  const { data: schedulesResponse, isLoading, error } = useSchedulesList();
-  const createSchedule = useCreateSchedule();
-  const cancelSchedule = useCancelSchedule();
+  // Real-time Firestore listener — replaces React Query polling
+  const { schedules, loading: isLoading, error } = useSchedulesFirestore();
+  // We now use direct Firestore calls instead of the REST hooks below:
+  // const createSchedule = useCreateSchedule();
+  // const cancelSchedule = useCancelSchedule();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuScheduleId, setMenuScheduleId] = useState(null);
-
-  const schedulesData = schedulesResponse?.data || schedulesResponse?.schedules || schedulesResponse || [];
-  const schedules = Array.isArray(schedulesData) ? schedulesData : [];
 
   const formatDateTime = (timeStr) => {
     try {
@@ -76,15 +79,39 @@ export const SchedulesView = () => {
     const scheduleId = menuScheduleId;
     handleCloseMenu();
     try {
-      await cancelSchedule.mutateAsync(scheduleId);
+      const scheduleRef = doc(db, 'schedules', scheduleId);
+      await updateDoc(scheduleRef, { status: 'cancelled' });
     } catch (e) {
       console.error('Failed to cancel schedule', e);
     }
   };
 
+  const handleActivateSchedule = async () => {
+    const scheduleId = menuScheduleId;
+    handleCloseMenu();
+    try {
+      const scheduleRef = doc(db, 'schedules', scheduleId);
+      await updateDoc(scheduleRef, { status: 'active' });
+    } catch (e) {
+      console.error('Failed to activate schedule', e);
+    }
+  };
+
+  const handleDeleteSchedule = async () => {
+    const scheduleId = menuScheduleId;
+    handleCloseMenu();
+    try {
+      const scheduleRef = doc(db, 'schedules', scheduleId);
+      await deleteDoc(scheduleRef);
+    } catch (e) {
+      console.error('Failed to delete schedule', e);
+    }
+  };
+
   const handleSubmit = async (formData) => {
     try {
-      await createSchedule.mutateAsync(formData);
+      const schedulesRef = collection(db, 'schedules');
+      await addDoc(schedulesRef, formData);
     } catch (err) {
       console.error('Error creating schedule', err);
       throw err; 
@@ -100,6 +127,9 @@ export const SchedulesView = () => {
       default: return 'default';
     }
   };
+
+  const selectedMenuSchedule = schedules.find(s => s.id === menuScheduleId);
+  const menuScheduleStatus = selectedMenuSchedule?.status || '';
 
   return (
     <Box>
@@ -152,6 +182,7 @@ export const SchedulesView = () => {
                 height: '100%', 
                 position: 'relative', 
                 borderTop: `4px solid ${colorMain}`,
+                opacity: status === 'cancelled' ? 0.6 : 1,
                 transition: 'transform 0.2s',
                 '&:hover': { transform: 'translateY(-4px)' }
               }}>
@@ -166,11 +197,11 @@ export const SchedulesView = () => {
                       label={status.toUpperCase()} 
                       color={statusColor} 
                       size="small" 
-                      variant="filled"
+                      variant={status === 'cancelled' ? 'outlined' : 'filled'}
                       sx={{ fontWeight: 600 }}
                     />
-                    <Typography variant="caption" color="text.secondary">
-                      {schedule.id.substring(0, 8)}...
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                      {schedule.routeName || `Route: ${schedule.routeId?.substring(0, 8)}`}
                     </Typography>
                   </Box>
                   
@@ -184,7 +215,7 @@ export const SchedulesView = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
                     <DirectionsBus color="action" fontSize="small" />
                     <Typography variant="body2">
-                      Bus ID: {busId.substring(0, 8)}...
+                      Plate: {schedule.busPlateNumber || 'N/A'}
                     </Typography>
                   </Box>
 
@@ -192,10 +223,10 @@ export const SchedulesView = () => {
 
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography variant="body2" color="text.secondary">
-                      Current Stop:
+                      Operator:
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.primary.light }}>
-                      {schedule.currentStop || 'Ready to Start'}
+                      {schedule.operatorId || schedule.opId || 'Unassigned'}
                     </Typography>
                   </Box>
                   
@@ -212,9 +243,21 @@ export const SchedulesView = () => {
         open={Boolean(anchorEl)}
         onClose={handleCloseMenu}
       >
-        <MenuItem onClick={handleCancelSchedule} sx={{ color: theme.palette.error.main }}>
-          <ListItemIcon><Block fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
-          Cancel Schedule
+        {menuScheduleStatus !== 'active' && (
+          <MenuItem onClick={handleActivateSchedule} sx={{ color: theme.palette.success.main }}>
+            <ListItemIcon><CheckCircle fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
+            Activate Schedule
+          </MenuItem>
+        )}
+        {menuScheduleStatus !== 'cancelled' && (
+          <MenuItem onClick={handleCancelSchedule} sx={{ color: theme.palette.warning.main }}>
+            <ListItemIcon><Block fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
+            Cancel Schedule
+          </MenuItem>
+        )}
+        <MenuItem onClick={handleDeleteSchedule} sx={{ color: theme.palette.error.main }}>
+          <ListItemIcon><Delete fontSize="small" sx={{ color: 'inherit' }} /></ListItemIcon>
+          Delete Schedule
         </MenuItem>
       </Menu>
 

@@ -6,6 +6,7 @@ class UserModel {
   final String name;
   final String email;
   final String role; // 'Passenger' or 'Operator'
+  final String? operatorType; // 'driver' or 'conductor' (only for Operator)
   final int joinYear;
   final int totalRides;
   final double rating;
@@ -16,6 +17,7 @@ class UserModel {
     required this.name,
     required this.email,
     required this.role,
+    this.operatorType,
     this.joinYear = 2024,
     this.totalRides = 0,
     this.rating = 5.0,

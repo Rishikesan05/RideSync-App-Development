@@ -21,6 +21,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
 
   int _currentStep = 0;
   bool _isLoading = false;
+  String _operatorType = 'driver'; // 'driver' or 'conductor'
 
   @override
   void dispose() {
@@ -50,6 +51,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
       // 2. Create User Doc (role: operator, status: pending)
       await firestore.collection('users').doc(cred.user!.uid).set({
         'role': 'operator',
+        'operatorType': _operatorType,
         'status': 'pending_review',
         'displayName': _nameC.text.trim(),
         'email': _emailC.text.trim(),
@@ -61,8 +63,9 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
         'displayName': _nameC.text.trim(),
         'email': _emailC.text.trim(),
         'phone': _phoneC.text.trim(),
-        'licenseNumber': _licenseC.text.trim(),
-        'experienceYears': int.tryParse(_experienceC.text.trim()) ?? 0,
+        'operatorType': _operatorType,
+        'licenseOrNIC': _licenseC.text.trim(),
+        'experienceYears': _operatorType == 'driver' ? (int.tryParse(_experienceC.text.trim()) ?? 0) : 0,
         'status': 'pending_review',
         'registrationDate': FieldValue.serverTimestamp(),
       });
@@ -155,7 +158,34 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
             content: Form(
               key: _currentStep == 0 ? _formKey : null,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const Text('Select your role:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment<String>(
+                          value: 'driver',
+                          label: Text('Driver'),
+                        ),
+                        ButtonSegment<String>(
+                          value: 'conductor',
+                          label: Text('Conductor'),
+                        ),
+                      ],
+                      selected: {_operatorType},
+                      onSelectionChanged: (Set<String> newSelection) {
+                        setState(() => _operatorType = newSelection.first);
+                      },
+                      style: SegmentedButton.styleFrom(
+                        selectedBackgroundColor: blue.withValues(alpha: 0.2),
+                        selectedForegroundColor: blue,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   _formField(isDark, 'Full Name', Icons.person_outline, _nameC),
                   const SizedBox(height: 16),
                   _formField(isDark, 'Gmail Address', Icons.email_outlined, _emailC),
@@ -177,13 +207,15 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
             ),
           ),
           Step(
-            title: const Text('License'),
+            title: const Text('Credentials'),
             isActive: _currentStep >= 2,
             content: Column(
               children: [
-                _formField(isDark, 'License Number', Icons.badge_outlined, _licenseC),
-                const SizedBox(height: 16),
-                _formField(isDark, 'Years of Experience', Icons.history_edu_outlined, _experienceC, keyboardType: TextInputType.number),
+                _formField(isDark, _operatorType == 'driver' ? 'License Number' : 'National Identity Card (NIC)', Icons.badge_outlined, _licenseC),
+                if (_operatorType == 'driver') ...[
+                  const SizedBox(height: 16),
+                  _formField(isDark, 'Years of Experience', Icons.history_edu_outlined, _experienceC, keyboardType: TextInputType.number),
+                ],
               ],
             ),
           ),
