@@ -55,11 +55,8 @@ async function remove(scheduleId) {
   const doc = await docRef.get();
   if (!doc.exists) return null;
 
-  await docRef.update({
-    status: 'cancelled',
-    updatedAt: new Date(),
-  });
-  return { id: scheduleId, cancelled: true };
+  await docRef.delete();
+  return { id: scheduleId, deleted: true };
 }
 
 module.exports = {
