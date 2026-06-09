@@ -200,8 +200,8 @@ export const SchedulesView = () => {
                       variant={status === 'cancelled' ? 'outlined' : 'filled'}
                       sx={{ fontWeight: 600 }}
                     />
-                    <Typography variant="caption" color="text.secondary">
-                      {schedule.id.substring(0, 8)}...
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                      {schedule.routeName || `Route: ${schedule.routeId?.substring(0, 8)}`}
                     </Typography>
                   </Box>
                   
@@ -215,7 +215,7 @@ export const SchedulesView = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
                     <DirectionsBus color="action" fontSize="small" />
                     <Typography variant="body2">
-                      Bus ID: {busId.substring(0, 8)}...
+                      Plate: {schedule.busPlateNumber || 'N/A'}
                     </Typography>
                   </Box>
 
@@ -223,10 +223,10 @@ export const SchedulesView = () => {
 
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography variant="body2" color="text.secondary">
-                      Current Stop:
+                      Operator:
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.primary.light }}>
-                      {schedule.currentStop || 'Ready to Start'}
+                      {schedule.operatorId || schedule.opId || 'Unassigned'}
                     </Typography>
                   </Box>
                   
