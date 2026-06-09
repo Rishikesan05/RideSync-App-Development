@@ -21,6 +21,7 @@ const SCHEDULE_STATUSES = Object.freeze({
   ACTIVE: 'active',
   COMPLETED: 'completed',
   CANCELLED: 'cancelled',
+  EXPIRED: 'expired',
 });
 
 const BOOKING_STATUSES = Object.freeze({
