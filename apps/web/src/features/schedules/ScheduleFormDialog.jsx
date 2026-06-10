@@ -109,12 +109,17 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
   const handleFormSubmit = async (data) => {
     // Validate opId against the operator collection
     try {
+      // Trim any accidental whitespace from the input
+      const trimmedOpId = data.opId.trim();
+      console.log('[Schedule] Validating opId:', JSON.stringify(trimmedOpId));
+
       // Check operator collection (document ID = opId)
-      const opRef = doc(db, 'operator', data.opId);
+      const opRef = doc(db, 'operator', trimmedOpId);
       const opSnap = await getDoc(opRef);
+      console.log('[Schedule] opSnap.exists():', opSnap.exists());
 
       if (!opSnap.exists()) {
-        setError('opId', { type: 'manual', message: 'Operator ID not found. Please enter a valid Operator ID.' });
+        setError('opId', { type: 'manual', message: `Operator ID "${trimmedOpId}" not found. Please enter a valid Operator ID.` });
         return;
       }
 
