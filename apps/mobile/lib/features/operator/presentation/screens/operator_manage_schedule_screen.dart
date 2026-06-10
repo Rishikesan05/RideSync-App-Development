@@ -20,6 +20,7 @@ class OperatorManageScheduleScreen extends StatefulWidget {
 
 class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScreen> {
   String _searchQuery = '';
+  bool _isGridView = true;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -45,6 +46,18 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
         backgroundColor: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(_isGridView ? Icons.list_alt_rounded : Icons.grid_view_rounded),
+            onPressed: () {
+              setState(() {
+                _isGridView = !_isGridView;
+              });
+            },
+            tooltip: _isGridView ? 'List View' : 'Grid View',
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: bookingProvider.streamSeats(scheduleId),
@@ -70,12 +83,14 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
             children: [
               _buildHeader(widget.routeData, totalSeats, bookedCount, availableCount, boardedCount, isDark),
               _buildSearchBar(isDark),
-              _buildLegend(),
+              if (_isGridView) _buildLegend(),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
-                  child: _buildBusGrid(context, blueprint, liveSeats, capacity, isDark),
-                ),
+                child: _isGridView 
+                    ? SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+                        child: _buildBusGrid(context, blueprint, liveSeats, capacity, isDark),
+                      )
+                    : _buildPassengerList(context, liveSeats, isDark),
               ),
             ],
           );
@@ -312,6 +327,165 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildPassengerList(BuildContext context, List<Map<String, dynamic>> liveSeats, bool isDark) {
+    // Filter out empty seats
+    final List<Map<String, dynamic>> bookedSeats = liveSeats.where((s) {
+      final status = s['status'];
+      return ['sold', 'occupied', 'boarded', 'reserved'].contains(status);
+    }).toList();
+
+    // Apply search filter if active
+    final List<Map<String, dynamic>> displayedSeats = _searchQuery.isEmpty 
+        ? bookedSeats 
+        : bookedSeats.where((s) {
+            final name = (s['passengerName'] ?? '').toString().toLowerCase();
+            final ticket = (s['ticketCode'] ?? '').toString().toLowerCase();
+            return name.contains(_searchQuery) || ticket.contains(_searchQuery);
+          }).toList();
+
+    if (displayedSeats.isEmpty) {
+      return Center(
+        child: Text(
+          _searchQuery.isNotEmpty ? 'No passengers found matching "$_searchQuery"' : 'No passengers booked yet.',
+          style: TextStyle(color: isDark ? Colors.white54 : AppColors.textLight, fontSize: 16),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      itemCount: displayedSeats.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final seatData = displayedSeats[index];
+        final String seatNumber = seatData['seatNumber'] ?? '?';
+        final String passengerName = seatData['passengerName'] ?? seatData['passengerId'] ?? 'Unknown';
+        final String ticketCode = seatData['ticketCode'] ?? 'N/A';
+        final String pickup = seatData['pickup'] ?? 'Pettah';
+        final String dropoff = seatData['dropoff'] ?? 'Destination';
+        final String status = seatData['status'] ?? 'sold';
+        final bool isBoarded = status == 'boarded';
+        
+        return InkWell(
+          onTap: () => _showBookingDetails(context, seatNumber, seatData, isDark),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+              boxShadow: [
+                if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Seat Number Badge
+                Container(
+                  width: 48,
+                  height: 48,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isBoarded ? Colors.green.withValues(alpha: 0.15) : AppColors.primaryOrange.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: isBoarded ? Colors.green.withValues(alpha: 0.3) : AppColors.primaryOrange.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    seatNumber,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: isBoarded ? Colors.green : AppColors.primaryOrange,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                
+                // Passenger Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              passengerName,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : AppColors.textDark,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isBoarded ? Colors.green.withValues(alpha: 0.15) : Colors.grey.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              isBoarded ? 'BOARDED' : 'BOOKED',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isBoarded ? Colors.green : (isDark ? Colors.white70 : Colors.black54),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'TKT: $ticketCode',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.white54 : Colors.grey.shade600,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.trip_origin, size: 12, color: AppColors.primaryOrange),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              pickup,
+                              style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : AppColors.textLight),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            child: Icon(Icons.arrow_forward, size: 12, color: Colors.grey),
+                          ),
+                          Expanded(
+                            child: Text(
+                              dropoff,
+                              style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : AppColors.textLight),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
