@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:ui';
 
 class OperatorEarningsScreen extends StatefulWidget {
@@ -41,49 +42,79 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
     
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC),
-      body: CustomScrollView(
-        slivers: [
-          _buildSliverAppBar(isDark),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 120),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildBalanceCard(isDark),
-                  const SizedBox(height: 8),
-                  _buildTimeframeToggle(isDark),
-                  const SizedBox(height: 24),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildEarningsBreakdown(isDark),
-                        const SizedBox(height: 24),
-                        _buildChartSection(isDark),
-                        const SizedBox(height: 32),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('cash_handovers')
+            .where('operatorId', isEqualTo: 'op_001')
+            .snapshots(),
+        builder: (context, snapshot) {
+          double awaitingApproval = 0;
+          double deposited = 0;
+          
+          if (snapshot.hasData) {
+            for (var doc in snapshot.data!.docs) {
+              final data = doc.data() as Map<String, dynamic>;
+              final amount = (data['amount'] ?? 0).toDouble();
+              final status = data['status'] as String?;
+              
+              if (status == 'pending_approval') {
+                awaitingApproval += amount;
+              } else if (status == 'approved') {
+                deposited += amount;
+              }
+            }
+          }
+
+          // Mock total lifetime collected cash for this operator
+          const double totalLifetimeCollected = 68500;
+          double pendingHandover = totalLifetimeCollected - (awaitingApproval + deposited);
+          if (pendingHandover < 0) pendingHandover = 0;
+
+          return CustomScrollView(
+            slivers: [
+              _buildSliverAppBar(isDark),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 120),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildBalanceCard(isDark, totalLifetimeCollected, pendingHandover),
+                      const SizedBox(height: 8),
+                      _buildTimeframeToggle(isDark),
+                      const SizedBox(height: 24),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Recent Payouts', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
-                            TextButton(
-                              onPressed: () {},
-                              style: TextButton.styleFrom(foregroundColor: AppColors.primaryOrange),
-                              child: const Text('See All', style: TextStyle(fontWeight: FontWeight.w600)),
+                            _buildEarningsBreakdown(isDark, pendingHandover, awaitingApproval, deposited),
+                            const SizedBox(height: 24),
+                            _buildChartSection(isDark),
+                            const SizedBox(height: 32),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Recent Payouts', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                                TextButton(
+                                  onPressed: () {},
+                                  style: TextButton.styleFrom(foregroundColor: AppColors.primaryOrange),
+                                  child: const Text('See All', style: TextStyle(fontWeight: FontWeight.w600)),
+                                ),
+                              ],
                             ),
+                            const SizedBox(height: 12),
+                            ..._transactions.map((tx) => _buildTransactionCard(tx, isDark)),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        ..._transactions.map((tx) => _buildTransactionCard(tx, isDark)),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        }
       ),
     );
   }
@@ -145,7 +176,7 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
     );
   }
 
-  Widget _buildBalanceCard(bool isDark) {
+  Widget _buildBalanceCard(bool isDark, double totalLifetimeCollected, double pendingHandover) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
@@ -203,7 +234,7 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
                 Text('LKR', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 18, fontWeight: FontWeight.bold, height: 2.2)),
                 const SizedBox(width: 8),
                 TweenAnimationBuilder<double>(
-                  tween: Tween<double>(begin: 0, end: 68500),
+                  tween: Tween<double>(begin: 0, end: totalLifetimeCollected),
                   duration: const Duration(milliseconds: 1200),
                   curve: Curves.easeOutQuart,
                   builder: (context, value, child) {
@@ -216,16 +247,18 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Cash handover logged!')),
-              );
-            },
+            onPressed: pendingHandover <= 0 
+                ? null 
+                : () {
+                    _showHandoverConfirmation(context, pendingHandover);
+                  },
             icon: const Icon(Icons.account_balance_rounded, size: 18),
             label: const Text('Log Cash Handover', style: TextStyle(fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: const Color(0xFFE65100),
+              disabledBackgroundColor: Colors.white.withValues(alpha: 0.5),
+              disabledForegroundColor: Colors.white.withValues(alpha: 0.8),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
               elevation: 8,
@@ -280,77 +313,116 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
     );
   }
 
-  Widget _buildEarningsBreakdown(bool isDark) {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
-              boxShadow: [
-                if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
-              ],
+  void _showHandoverConfirmation(BuildContext context, double amount) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Confirm Handover', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: Text('Are you sure you want to log a cash handover of LKR ${NumberFormat('#,##0').format(amount)} to the depot?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(color: isDark ? Colors.orange.withValues(alpha: 0.15) : Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
-                      child: Icon(Icons.warning_amber_rounded, color: Colors.orange.shade600, size: 16),
-                    ),
-                    const SizedBox(width: 8),
-                    Text('Pending Handover', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text('LKR 12,500', style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text('Cash currently in hand', style: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400, fontSize: 10)),
-              ],
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryOrange,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                FirebaseFirestore.instance.collection('cash_handovers').add({
+                  'operatorId': 'op_001',
+                  'amount': amount,
+                  'status': 'pending_approval',
+                  'timestamp': FieldValue.serverTimestamp(),
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Cash handover logged successfully! Awaiting approval.')),
+                );
+              },
+              child: const Text('Confirm'),
             ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildEarningsBreakdown(bool isDark, double pendingHandover, double awaitingApproval, double deposited) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: [
+          _buildBreakdownCard(
+            isDark: isDark,
+            title: 'Pending',
+            amount: pendingHandover,
+            subtitle: 'Cash in hand',
+            icon: Icons.warning_amber_rounded,
+            color: Colors.orange,
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
-              boxShadow: [
-                if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
-              ],
+          const SizedBox(width: 16),
+          if (awaitingApproval > 0) ...[
+            _buildBreakdownCard(
+              isDark: isDark,
+              title: 'Awaiting',
+              amount: awaitingApproval,
+              subtitle: 'Depot approval',
+              icon: Icons.access_time_rounded,
+              color: Colors.amber,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(color: isDark ? Colors.green.withValues(alpha: 0.15) : Colors.green.shade50, borderRadius: BorderRadius.circular(8)),
-                      child: Icon(Icons.check_circle_outline_rounded, color: Colors.green.shade600, size: 16),
-                    ),
-                    const SizedBox(width: 8),
-                    Text('Deposited to Depot', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text('LKR 56,000', style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text('Already handed over', style: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400, fontSize: 10)),
-              ],
-            ),
+            const SizedBox(width: 16),
+          ],
+          _buildBreakdownCard(
+            isDark: isDark,
+            title: 'Deposited',
+            amount: deposited,
+            subtitle: 'Already handed over',
+            icon: Icons.check_circle_outline_rounded,
+            color: Colors.green,
           ),
-        ),
-      ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBreakdownCard({required bool isDark, required String title, required double amount, required String subtitle, required IconData icon, required MaterialColor color}) {
+    return Container(
+      width: 160,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+        boxShadow: [
+          if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(color: isDark ? color.withValues(alpha: 0.15) : color.shade50, borderRadius: BorderRadius.circular(8)),
+                child: Icon(icon, color: color.shade600, size: 16),
+              ),
+              const SizedBox(width: 8),
+              Text(title, style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text('LKR ${NumberFormat('#,##0').format(amount)}', style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(subtitle, style: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400, fontSize: 10)),
+        ],
+      ),
     );
   }
 
