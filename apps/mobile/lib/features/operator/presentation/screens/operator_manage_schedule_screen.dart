@@ -6,7 +6,7 @@ import 'package:ridesync/features/passenger/presentation/providers/seat_layout_e
 import 'dart:ui';
 import 'dart:math' as math;
 
-class OperatorManageScheduleScreen extends StatelessWidget {
+class OperatorManageScheduleScreen extends StatefulWidget {
   final Map<String, dynamic> routeData;
 
   const OperatorManageScheduleScreen({
@@ -15,19 +15,33 @@ class OperatorManageScheduleScreen extends StatelessWidget {
   });
 
   @override
+  State<OperatorManageScheduleScreen> createState() => _OperatorManageScheduleScreenState();
+}
+
+class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScreen> {
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
     // Use route id as schedule ID, or fallback
-    final scheduleId = routeData['id'] ?? 'dummy_schedule_id';
+    final scheduleId = widget.routeData['id'] ?? 'dummy_schedule_id';
     
     // Default capacity to 54 if not provided
-    final capacity = (routeData['capacity'] ?? 54).toString();
+    final capacity = (widget.routeData['capacity'] ?? 54).toString();
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       appBar: AppBar(
-        title: Text(routeData['id'] ?? 'Manage Schedule', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: Text(widget.routeData['id'] ?? 'Manage Schedule', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         backgroundColor: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
@@ -54,11 +68,12 @@ class OperatorManageScheduleScreen extends StatelessWidget {
 
           return Column(
             children: [
-              _buildHeader(routeData, totalSeats, bookedCount, availableCount, boardedCount, isDark),
+              _buildHeader(widget.routeData, totalSeats, bookedCount, availableCount, boardedCount, isDark),
+              _buildSearchBar(isDark),
               _buildLegend(),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
                   child: _buildBusGrid(context, blueprint, liveSeats, capacity, isDark),
                 ),
               ),
@@ -70,7 +85,7 @@ class OperatorManageScheduleScreen extends StatelessWidget {
   }
 
   List<Map<String, dynamic>> _generateDummyBookings(List<BusSeatBlueprint> blueprint) {
-    final random = math.Random(routeData['id'].hashCode);
+    final random = math.Random(widget.routeData['id'].hashCode);
     List<Map<String, dynamic>> dummies = [];
     for (var bp in blueprint) {
       if (!bp.isAisle && !bp.isSpacer) {
@@ -80,6 +95,7 @@ class OperatorManageScheduleScreen extends StatelessWidget {
           dummies.add({
             'seatNumber': bp.seatNumber,
             'status': isBoarded ? 'boarded' : 'sold',
+            'ticketCode': 'RS-${random.nextInt(9000) + 1000}',
             'passengerId': 'USR-${random.nextInt(9000) + 1000}',
             'passengerName': 'Passenger ${random.nextInt(100)}',
             'pickup': 'Stop ${random.nextInt(5) + 1}',
@@ -135,6 +151,43 @@ class OperatorManageScheduleScreen extends StatelessWidget {
           Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
           Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (val) {
+          setState(() {
+            _searchQuery = val.toLowerCase().trim();
+          });
+        },
+        decoration: InputDecoration(
+          hintText: 'Search by Name or Ticket ID (e.g. RS-1234)',
+          hintStyle: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade400, fontSize: 13),
+          prefixIcon: Icon(Icons.search, color: AppColors.primaryOrange),
+          suffixIcon: _searchQuery.isNotEmpty 
+              ? IconButton(
+                  icon: const Icon(Icons.clear, size: 20),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 0),
+        ),
       ),
     );
   }
@@ -230,11 +283,21 @@ class OperatorManageScheduleScreen extends StatelessWidget {
             bool isReserved = ['blocked', 'reserved'].contains(liveData['status']);
             bool isBoarded = liveData['status'] == 'boarded';
 
+            bool isHighlighted = false;
+            if (_searchQuery.isNotEmpty && (isBooked || isBoarded || isReserved)) {
+              final name = (liveData['passengerName'] ?? '').toString().toLowerCase();
+              final ticket = (liveData['ticketCode'] ?? '').toString().toLowerCase();
+              if (name.contains(_searchQuery) || ticket.contains(_searchQuery)) {
+                isHighlighted = true;
+              }
+            }
+
             return _OperatorSeatWidget(
               number: bp.seatNumber,
               isBooked: isBooked,
               isReserved: isReserved,
               isBoarded: isBoarded,
+              isHighlighted: isHighlighted,
               isDark: isDark,
               onTap: () {
                 if (isBooked || isReserved || isBoarded) {
@@ -292,6 +355,10 @@ class OperatorManageScheduleScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 24),
+            if (bookingData['ticketCode'] != null) ...[
+              _detailRow(Icons.confirmation_number, 'Ticket Code', bookingData['ticketCode'], isDark),
+              const SizedBox(height: 16),
+            ],
             _detailRow(Icons.person, 'Passenger', bookingData['passengerName'] ?? bookingData['passengerId'] ?? 'Unknown', isDark),
             const SizedBox(height: 16),
             _detailRow(Icons.trip_origin, 'Boarding', bookingData['pickup'] ?? 'Pettah Terminal', isDark),
@@ -339,6 +406,7 @@ class _OperatorSeatWidget extends StatelessWidget {
   final bool isBooked;
   final bool isReserved;
   final bool isBoarded;
+  final bool isHighlighted;
   final bool isDark;
   final VoidCallback onTap;
 
@@ -347,6 +415,7 @@ class _OperatorSeatWidget extends StatelessWidget {
     required this.isBooked,
     required this.isReserved,
     required this.isBoarded,
+    this.isHighlighted = false,
     required this.isDark,
     required this.onTap,
   });
@@ -377,12 +446,16 @@ class _OperatorSeatWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isReserved 
-                ? AppColors.primaryOrange 
-                : ((isBooked || isBoarded) ? Colors.transparent : (isDark ? Colors.white10 : Colors.grey.shade200)),
-          ),
-          boxShadow: isReserved ? [BoxShadow(color: AppColors.primaryOrange.withValues(alpha: 0.3), blurRadius: 8)] : null,
+          border: isHighlighted
+              ? Border.all(color: Colors.yellowAccent, width: 3)
+              : Border.all(
+                  color: isReserved 
+                      ? AppColors.primaryOrange 
+                      : ((isBooked || isBoarded) ? Colors.transparent : (isDark ? Colors.white10 : Colors.grey.shade200)),
+                ),
+          boxShadow: isHighlighted 
+              ? [BoxShadow(color: Colors.yellowAccent.withValues(alpha: 0.6), blurRadius: 12, spreadRadius: 2)]
+              : (isReserved ? [BoxShadow(color: AppColors.primaryOrange.withValues(alpha: 0.3), blurRadius: 8)] : null),
         ),
         child: isBoarded
             ? const Icon(Icons.check, color: Colors.white, size: 16)
