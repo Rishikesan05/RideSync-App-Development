@@ -65,9 +65,9 @@ export const Login = () => {
 
 
 
-      <div style={styles.container}>
+      <div className="ticket-container" style={styles.container}>
         {/* Logo & Brand */}
-        <div style={styles.brand}>
+        <div className="outside-brand" style={styles.brand}>
           <img
             src="/ridesync-logo.jpeg"
             alt="RideSync"
@@ -77,14 +77,34 @@ export const Login = () => {
         </div>
 
         {/* Card */}
-        <div style={styles.card}>
-          {/* Top section: Header & Credentials Form */}
-          <div style={styles.ticketTop}>
+        <div className="ticket-card" style={styles.card}>
+          {/* Left Section (Top on mobile, Left on desktop) */}
+          <div className="ticket-left" style={styles.ticketTop}>
+            {/* Desktop Brand inside Left ticket stub */}
+            <div className="desktop-only-brand" style={{ ...styles.brand, marginBottom: '24px' }}>
+              <img
+                src="/ridesync-logo.jpeg"
+                alt="RideSync"
+                style={{ ...styles.logoImg, width: '160px', marginBottom: '4px' }}
+              />
+              <p style={{ ...styles.brandSub, fontSize: '11px' }}>Admin Portal</p>
+            </div>
+            
             <div style={styles.cardHeader}>
               <h2 style={styles.cardTitle}>Welcome back</h2>
               <p style={styles.cardSubtitle}>Sign in to your account to continue</p>
             </div>
+          </div>
 
+          {/* Ticket Divider */}
+          <div className="ticket-divider-container" style={styles.ticketDivider}>
+            <div className="ticket-notch-left" style={styles.notchLeft} />
+            <div className="ticket-perforation-line" style={styles.perforation} />
+            <div className="ticket-notch-right" style={styles.notchRight} />
+          </div>
+
+          {/* Right Section (Bottom on mobile, Right on desktop) */}
+          <div className="ticket-right" style={styles.ticketBottom}>
             {authError && (
               <div style={styles.errorBanner}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{flexShrink: 0}}>
@@ -189,17 +209,7 @@ export const Login = () => {
                 )}
               </button>
             </form>
-          </div>
 
-          {/* Ticket Divider (Perforation & punch notches) */}
-          <div style={styles.ticketDivider}>
-            <div style={styles.notchLeft} />
-            <div style={styles.perforation} />
-            <div style={styles.notchRight} />
-          </div>
-
-          {/* Bottom section: Signup Redirect */}
-          <div style={styles.ticketBottom}>
             <div style={styles.divider}>
               <span style={styles.dividerLine} />
               <span style={styles.dividerText}>New to RideSync?</span>
@@ -250,6 +260,129 @@ export const Login = () => {
           background: rgba(245,158,11,0.1) !important;
           border-color: #f59e0b !important;
           color: #f59e0b !important;
+        }
+
+        /* Desktop (Landscape) Ticket Styles */
+        @media (min-width: 768px) {
+          .ticket-container {
+            max-width: 820px !important;
+          }
+          .ticket-card {
+            display: flex !important;
+            flex-direction: row !important;
+            padding: 0 !important;
+            align-items: stretch !important;
+          }
+          .ticket-left {
+            width: 38% !important;
+            padding: 40px 36px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+          }
+          .ticket-right {
+            width: 62% !important;
+            padding: 40px 36px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+          }
+          .ticket-divider-container {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            width: 24px !important;
+            height: auto !important;
+            margin: 0 -12px !important;
+            position: relative !important;
+            z-index: 2 !important;
+          }
+          .ticket-notch-left {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-top: -12px !important;
+            margin-left: 0 !important;
+            box-shadow: inset 0 -4px 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-notch-right {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-bottom: -12px !important;
+            margin-right: 0 !important;
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-perforation-line {
+            flex: 1 !important;
+            border-left: 2px dashed rgba(245, 158, 11, 0.25) !important;
+            border-top: none !important;
+            width: 1px !important;
+            height: 100% !important;
+            margin: 8px 0 !important;
+          }
+          .desktop-only-brand {
+            display: block !important;
+          }
+          .outside-brand {
+            display: none !important;
+          }
+        }
+
+        /* Mobile/Tablet (Portrait Stacked) Styles */
+        @media (max-width: 767px) {
+          .ticket-card {
+            flex-direction: column !important;
+          }
+          .ticket-left {
+            width: 100% !important;
+          }
+          .ticket-right {
+            width: 100% !important;
+          }
+          .ticket-divider-container {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            margin: 24px -37px !important;
+            height: 24px !important;
+          }
+          .ticket-notch-left {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-left: -12px !important;
+            box-shadow: inset -4px 0 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-notch-right {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-right: -12px !important;
+            box-shadow: inset 4px 0 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-perforation-line {
+            flex: 1 !important;
+            border-top: 2px dashed rgba(245, 158, 11, 0.25) !important;
+            height: 1px !important;
+            margin: 0 8px !important;
+          }
+          .desktop-only-brand {
+            display: none !important;
+          }
+          .outside-brand {
+            display: block !important;
+          }
         }
       `}</style>
     </div>
