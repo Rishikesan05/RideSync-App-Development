@@ -90,9 +90,9 @@ export const ForgotPassword = () => {
                       <path d="M18 28h20M28 18l10 10-10 10" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
-                  <h2 style={styles.successTitle}>Check your inbox</h2>
+                  <h2 style={styles.successTitle}>Check your WhatsApp</h2>
                   <p style={styles.successText}>
-                    We've sent a password reset link to
+                    We will send the password reset link via WhatsApp for:
                   </p>
                   <div style={styles.emailBadge}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{flexShrink: 0}}>
@@ -102,7 +102,7 @@ export const ForgotPassword = () => {
                     <span style={styles.emailText}>{sentEmail}</span>
                   </div>
                   <p style={styles.successNote}>
-                    Didn't receive it? Check your spam folder or{' '}
+                    Didn't receive the message? Check your WhatsApp or{' '}
                     <button
                       style={styles.resendBtn}
                       id="forgot-resend-btn"
@@ -519,8 +519,9 @@ const styles = {
     wordBreak: 'break-all',
   },
   successNote: {
-    fontSize: '13px',
-    color: '#94a3b8',
+    fontSize: '13.5px',
+    fontWeight: 500,
+    color: '#cbd5e1',
     lineHeight: 1.6,
   },
   resendBtn: {
