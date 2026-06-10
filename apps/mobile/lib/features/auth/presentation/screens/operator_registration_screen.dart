@@ -145,7 +145,9 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
                   primary: AppColors.primaryOrange, // Stepper colors
                 ),
               ),
-              child: Stepper(
+              child: Form(
+                key: _formKey,
+                child: Stepper(
         type: StepperType.horizontal,
         currentStep: _currentStep,
         onStepContinue: () {
@@ -213,18 +215,15 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
           Step(
             title: const Text('Personal'),
             isActive: _currentStep >= 0,
-            content: Form(
-              key: _currentStep == 0 ? _formKey : null,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _formField(isDark, 'Full Name', Icons.person_outline, _nameC, hintText: 'e.g. Nimal Perera', validator: (val) => val == null || val.trim().isEmpty ? 'Please enter your full name' : null),
-                  const SizedBox(height: 16),
-                  _formField(isDark, 'Gmail Address', Icons.email_outlined, _emailC, hintText: 'e.g. nimal@gmail.com', validator: (val) => val == null || !val.endsWith('@gmail.com') ? 'Must be a valid @gmail.com address' : null),
-                  const SizedBox(height: 16),
-                  _formField(isDark, 'Phone Number', Icons.phone_outlined, _phoneC, hintText: 'e.g. +94771234567', validator: (val) => val == null || !RegExp(r'^\+94\d{9}$').hasMatch(val) ? 'Format: +94 followed by 9 digits' : null),
-                ],
-              ),
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _formField(isDark, 'Full Name', Icons.person_outline, _nameC, hintText: 'e.g. Nimal Perera', validator: (val) => val == null || val.trim().isEmpty ? 'Please enter your full name' : null),
+                const SizedBox(height: 16),
+                _formField(isDark, 'Gmail Address', Icons.email_outlined, _emailC, hintText: 'e.g. nimal@gmail.com', validator: (val) => val == null || !val.endsWith('@gmail.com') ? 'Must be a valid @gmail.com address' : null),
+                const SizedBox(height: 16),
+                _formField(isDark, 'Phone Number', Icons.phone_outlined, _phoneC, hintText: 'e.g. +94771234567', validator: (val) => val == null || !RegExp(r'^\+94\d{9}$').hasMatch(val) ? 'Format: +94 followed by 9 digits' : null),
+              ],
             ),
           ),
           Step(
@@ -264,6 +263,7 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
           ),
         ],
       ),
+              ),
             ),
           ),
         ],
