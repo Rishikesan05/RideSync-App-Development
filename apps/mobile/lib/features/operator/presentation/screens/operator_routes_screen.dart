@@ -175,25 +175,18 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
                   label: const Text('View Stops'),
                   style: TextButton.styleFrom(foregroundColor: AppColors.primaryOrange),
                 ),
-                if (route['isAssigned'])
-                  ElevatedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Manage Schedule Screen Coming Soon')));
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryNavy,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
-                    ),
-                    child: const Text('Manage'),
-                  )
-                else
-                  TextButton(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(foregroundColor: Colors.grey),
-                    child: const Text('Request'),
+                ElevatedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Manage Schedule Screen Coming Soon')));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryNavy,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
                   ),
+                  child: const Text('Manage'),
+                ),
               ],
             ),
           ),
