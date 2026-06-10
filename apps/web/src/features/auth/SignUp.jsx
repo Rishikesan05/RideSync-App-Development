@@ -143,7 +143,7 @@ export const SignUp = () => {
       <div style={styles.orb1} />
       <div style={styles.orb2} />
       <div style={styles.orb3} />
-      <div style={styles.gridOverlay} />
+
 
       <div style={styles.container}>
         {/* Brand */}
@@ -423,13 +423,7 @@ const styles = {
     animation: 'orb3Float 12s ease-in-out infinite',
     pointerEvents: 'none',
   },
-  gridOverlay: {
-    position: 'fixed',
-    inset: 0,
-    backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
-    backgroundSize: '60px 60px',
-    pointerEvents: 'none',
-  },
+
   container: {
     position: 'relative',
     zIndex: 10,
