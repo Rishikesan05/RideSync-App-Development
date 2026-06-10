@@ -377,6 +377,13 @@ export const SignUp = () => {
         }
         #signup-back-btn:hover {
           color: #f8fafc !important;
+          background: rgba(245, 158, 11, 0.1) !important;
+          border-color: rgba(245, 158, 11, 0.4) !important;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        #signup-back-btn:active {
+          transform: translateY(0);
         }
       `}</style>
     </div>
@@ -435,13 +442,19 @@ const styles = {
   backLink: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '6px',
+    gap: '8px',
     color: '#94a3b8',
+    background: 'rgba(30, 41, 59, 0.5)',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    borderRadius: '10px',
+    padding: '8px 16px',
     textDecoration: 'none',
     fontSize: '13px',
     fontWeight: 500,
     marginBottom: '16px',
-    transition: 'color 0.2s',
+    transition: 'all 0.25s ease',
   },
   logoImg: {
     width: '200px',

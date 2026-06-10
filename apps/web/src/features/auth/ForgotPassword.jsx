@@ -60,12 +60,6 @@ export const ForgotPassword = () => {
       <div style={styles.container}>
         {/* Brand */}
         <div style={styles.brand}>
-          <RouterLink to="/login" style={styles.backLink} id="forgot-back-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M19 12H5M12 5l-7 7 7 7" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Back to login
-          </RouterLink>
           <img
             src="/ridesync-logo.jpeg"
             alt="RideSync"
@@ -73,6 +67,14 @@ export const ForgotPassword = () => {
           />
           <p style={styles.brandSub}>Password Recovery</p>
         </div>
+
+        {/* Back Link */}
+        <RouterLink to="/login" style={styles.backLink} id="forgot-back-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M12 5l-7 7 7 7" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Back to login
+        </RouterLink>
 
         {/* Card */}
         <div style={styles.card}>
@@ -226,7 +228,16 @@ export const ForgotPassword = () => {
         }
         #forgot-submit-btn:active:not(:disabled) { transform: translateY(0); }
 
-        #forgot-back-btn:hover { color: #f8fafc !important; }
+        #forgot-back-btn:hover {
+          color: #f8fafc !important;
+          background: rgba(245, 158, 11, 0.1) !important;
+          border-color: rgba(245, 158, 11, 0.4) !important;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        #forgot-back-btn:active {
+          transform: translateY(0);
+        }
 
         input:focus {
           border-color: rgba(245,158,11,0.5) !important;
@@ -287,17 +298,21 @@ const styles = {
     position: 'relative',
   },
   backLink: {
-    position: 'absolute',
-    left: 0,
-    top: '4px',
-    display: 'flex',
+    display: 'inline-flex',
     alignItems: 'center',
-    gap: '6px',
+    gap: '8px',
     color: '#94a3b8',
+    background: 'rgba(30, 41, 59, 0.5)',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    borderRadius: '10px',
+    padding: '8px 16px',
     textDecoration: 'none',
     fontSize: '13px',
     fontWeight: 500,
-    transition: 'color 0.2s',
+    marginBottom: '16px',
+    transition: 'all 0.25s ease',
   },
   logoImg: {
     width: '200px',
