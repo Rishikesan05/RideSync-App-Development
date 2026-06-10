@@ -98,12 +98,12 @@ export const PendingApproval = () => {
               <div style={styles.step}>
                 <div style={{ ...styles.stepIcon, background: 'rgba(100,116,139,0.08)', border: '1px solid rgba(100,116,139,0.15)' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 18l6-6-6-6" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 18l6-6-6-6" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
                 <div>
-                  <p style={{ ...styles.stepTitle, color: '#475569' }}>Access granted</p>
-                  <p style={styles.stepDesc}>You'll be able to sign in once approved.</p>
+                  <p style={{ ...styles.stepTitle, color: '#64748b' }}>Access granted</p>
+                  <p style={{ ...styles.stepDesc, color: '#5b6c80' }}>You'll be able to sign in once approved.</p>
                 </div>
               </div>
             </div>
@@ -213,7 +213,7 @@ const styles = {
   },
   subtitle: {
     fontSize: '14px',
-    color: '#64748b',
+    color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 1.7,
     marginBottom: '20px',
@@ -243,7 +243,7 @@ const styles = {
   },
   emailTag: {
     fontSize: '12px',
-    color: '#475569',
+    color: '#94a3b8',
     background: 'rgba(255,255,255,0.05)',
     border: '1px solid rgba(255,255,255,0.08)',
     borderRadius: '100px',
@@ -292,7 +292,7 @@ const styles = {
   },
   stepDesc: {
     fontSize: '12px',
-    color: '#475569',
+    color: '#94a3b8',
     lineHeight: 1.5,
   },
   pendingBadge: {
@@ -330,7 +330,7 @@ const styles = {
     textAlign: 'center',
     marginTop: '24px',
     fontSize: '12px',
-    color: '#334155',
+    color: '#5b6c80',
   },
   ticketTop: {
     width: '100%',
