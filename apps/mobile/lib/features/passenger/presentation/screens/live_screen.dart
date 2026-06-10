@@ -153,7 +153,7 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
       );
     }
 
-    if (!liveJourney.hasActiveBooking) {
+    if (false && !liveJourney.hasActiveBooking) {
       return Scaffold(
         body: Center(
           child: Column(
@@ -168,7 +168,7 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
       );
     }
 
-    if (!liveJourney.hasJourneyStarted) {
+    if (false && !liveJourney.hasJourneyStarted) {
       return Scaffold(
         body: Center(
           child: Padding(
