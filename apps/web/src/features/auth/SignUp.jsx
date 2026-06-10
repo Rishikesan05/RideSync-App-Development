@@ -183,170 +183,183 @@ export const SignUp = () => {
             </div>
           ) : (
             <>
-              <div style={styles.cardHeader}>
-                <h2 style={styles.cardTitle}>Create account</h2>
-                <p style={styles.cardSubtitle}>Fill in your details to get started</p>
+              {/* Top section: Header & Signup Form */}
+              <div style={styles.ticketTop}>
+                <div style={styles.cardHeader}>
+                  <h2 style={styles.cardTitle}>Create account</h2>
+                  <p style={styles.cardSubtitle}>Fill in your details to get started</p>
+                </div>
+
+                {authError && (
+                  <div style={styles.errorBanner}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{flexShrink: 0}}>
+                      <circle cx="8" cy="8" r="7" stroke="#f87171" strokeWidth="1.5"/>
+                      <path d="M8 5v3M8 11v.5" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                    <span>{authError}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit(onSubmit)} style={styles.form} noValidate>
+                  {/* Full Name */}
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label} htmlFor="signup-name">Full Name</label>
+                    <div style={styles.inputWrapper}>
+                      <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <input
+                        id="signup-name"
+                        type="text"
+                        placeholder="John Doe"
+                        style={{ ...styles.input, ...(errors.displayName ? styles.inputError : {}) }}
+                        {...register('displayName')}
+                        autoComplete="name"
+                      />
+                    </div>
+                    {errors.displayName && <p style={styles.fieldError}>{errors.displayName.message}</p>}
+                  </div>
+
+                  {/* Email */}
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label} htmlFor="signup-email">Email Address</label>
+                    <div style={styles.inputWrapper}>
+                      <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <polyline points="22,6 12,13 2,6" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <input
+                        id="signup-email"
+                        type="email"
+                        placeholder="admin@ridesync.lk"
+                        style={{ ...styles.input, ...(errors.email ? styles.inputError : {}) }}
+                        {...register('email')}
+                        autoComplete="email"
+                      />
+                    </div>
+                    {errors.email && <p style={styles.fieldError}>{errors.email.message}</p>}
+                  </div>
+
+                  {/* Password */}
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label} htmlFor="signup-password">Password</label>
+                    <div style={styles.inputWrapper}>
+                      <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <input
+                        id="signup-password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Min. 8 characters"
+                        style={{ ...styles.input, ...styles.inputWithEndIcon, ...(errors.password ? styles.inputError : {}) }}
+                        {...register('password')}
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        style={styles.eyeBtn}
+                        onClick={() => setShowPassword(v => !v)}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <line x1="1" y1="1" x2="23" y2="23" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
+                          </svg>
+                        ) : (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <circle cx="12" cy="12" r="3" stroke="#94a3b8" strokeWidth="1.5"/>
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                    {errors.password && <p style={styles.fieldError}>{errors.password.message}</p>}
+                    <PasswordStrength password={passwordValue} />
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label} htmlFor="signup-confirm-password">Confirm Password</label>
+                    <div style={styles.inputWrapper}>
+                      <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M9 12l2 2 4-4" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <rect x="3" y="11" width="18" height="11" rx="2" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <input
+                        id="signup-confirm-password"
+                        type={showConfirm ? 'text' : 'password'}
+                        placeholder="Repeat your password"
+                        style={{ ...styles.input, ...styles.inputWithEndIcon, ...(errors.confirmPassword ? styles.inputError : {}) }}
+                        {...register('confirmPassword')}
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        style={styles.eyeBtn}
+                        onClick={() => setShowConfirm(v => !v)}
+                        aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                      >
+                        {showConfirm ? (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <line x1="1" y1="1" x2="23" y2="23" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
+                          </svg>
+                        ) : (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <circle cx="12" cy="12" r="3" stroke="#94a3b8" strokeWidth="1.5"/>
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                    {errors.confirmPassword && <p style={styles.fieldError}>{errors.confirmPassword.message}</p>}
+                  </div>
+
+                  <button
+                    id="signup-submit-btn"
+                    type="submit"
+                    disabled={isSubmitting}
+                    style={{ ...styles.submitBtn, ...(isSubmitting ? styles.submitBtnDisabled : {}) }}
+                  >
+                    {isSubmitting ? (
+                      <span style={styles.spinnerWrap}>
+                        <span style={styles.spinner} />
+                        Creating account…
+                      </span>
+                    ) : (
+                      <>
+                        Create Account
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{marginLeft: 8}}>
+                          <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </>
+                    )}
+                  </button>
+                </form>
               </div>
 
-              {authError && (
-                <div style={styles.errorBanner}>
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{flexShrink: 0}}>
-                    <circle cx="8" cy="8" r="7" stroke="#f87171" strokeWidth="1.5"/>
-                    <path d="M8 5v3M8 11v.5" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                  <span>{authError}</span>
-                </div>
-              )}
+              {/* Ticket Divider (Perforation & punch notches) */}
+              <div style={styles.ticketDivider}>
+                <div style={styles.notchLeft} />
+                <div style={styles.perforation} />
+                <div style={styles.notchRight} />
+              </div>
 
-              <form onSubmit={handleSubmit(onSubmit)} style={styles.form} noValidate>
-                {/* Full Name */}
-                <div style={styles.fieldGroup}>
-                  <label style={styles.label} htmlFor="signup-name">Full Name</label>
-                  <div style={styles.inputWrapper}>
-                    <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <circle cx="12" cy="7" r="4" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <input
-                      id="signup-name"
-                      type="text"
-                      placeholder="John Doe"
-                      style={{ ...styles.input, ...(errors.displayName ? styles.inputError : {}) }}
-                      {...register('displayName')}
-                      autoComplete="name"
-                    />
-                  </div>
-                  {errors.displayName && <p style={styles.fieldError}>{errors.displayName.message}</p>}
-                </div>
-
-                {/* Email */}
-                <div style={styles.fieldGroup}>
-                  <label style={styles.label} htmlFor="signup-email">Email Address</label>
-                  <div style={styles.inputWrapper}>
-                    <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <polyline points="22,6 12,13 2,6" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <input
-                      id="signup-email"
-                      type="email"
-                      placeholder="admin@ridesync.lk"
-                      style={{ ...styles.input, ...(errors.email ? styles.inputError : {}) }}
-                      {...register('email')}
-                      autoComplete="email"
-                    />
-                  </div>
-                  {errors.email && <p style={styles.fieldError}>{errors.email.message}</p>}
-                </div>
-
-                {/* Password */}
-                <div style={styles.fieldGroup}>
-                  <label style={styles.label} htmlFor="signup-password">Password</label>
-                  <div style={styles.inputWrapper}>
-                    <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <input
-                      id="signup-password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Min. 8 characters"
-                      style={{ ...styles.input, ...styles.inputWithEndIcon, ...(errors.password ? styles.inputError : {}) }}
-                      {...register('password')}
-                      autoComplete="new-password"
-                    />
-                    <button
-                      type="button"
-                      style={styles.eyeBtn}
-                      onClick={() => setShowPassword(v => !v)}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <line x1="1" y1="1" x2="23" y2="23" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
-                        </svg>
-                      ) : (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <circle cx="12" cy="12" r="3" stroke="#94a3b8" strokeWidth="1.5"/>
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                  {errors.password && <p style={styles.fieldError}>{errors.password.message}</p>}
-                  <PasswordStrength password={passwordValue} />
-                </div>
-
-                {/* Confirm Password */}
-                <div style={styles.fieldGroup}>
-                  <label style={styles.label} htmlFor="signup-confirm-password">Confirm Password</label>
-                  <div style={styles.inputWrapper}>
-                    <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path d="M9 12l2 2 4-4" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <rect x="3" y="11" width="18" height="11" rx="2" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <input
-                      id="signup-confirm-password"
-                      type={showConfirm ? 'text' : 'password'}
-                      placeholder="Repeat your password"
-                      style={{ ...styles.input, ...styles.inputWithEndIcon, ...(errors.confirmPassword ? styles.inputError : {}) }}
-                      {...register('confirmPassword')}
-                      autoComplete="new-password"
-                    />
-                    <button
-                      type="button"
-                      style={styles.eyeBtn}
-                      onClick={() => setShowConfirm(v => !v)}
-                      aria-label={showConfirm ? 'Hide password' : 'Show password'}
-                    >
-                      {showConfirm ? (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <line x1="1" y1="1" x2="23" y2="23" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
-                        </svg>
-                      ) : (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          <circle cx="12" cy="12" r="3" stroke="#94a3b8" strokeWidth="1.5"/>
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                  {errors.confirmPassword && <p style={styles.fieldError}>{errors.confirmPassword.message}</p>}
-                </div>
-
-                <button
-                  id="signup-submit-btn"
-                  type="submit"
-                  disabled={isSubmitting}
-                  style={{ ...styles.submitBtn, ...(isSubmitting ? styles.submitBtnDisabled : {}) }}
-                >
-                  {isSubmitting ? (
-                    <span style={styles.spinnerWrap}>
-                      <span style={styles.spinner} />
-                      Creating account…
-                    </span>
-                  ) : (
-                    <>
-                      Create Account
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{marginLeft: 8}}>
-                        <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </>
-                  )}
-                </button>
-              </form>
-
-              <p style={styles.loginPrompt}>
-                Already have an account?{' '}
-                <RouterLink to="/login" style={styles.loginLink} id="signup-go-login-link">
-                  Sign in
-                </RouterLink>
-              </p>
+              {/* Bottom section: Login Redirect */}
+              <div style={styles.ticketBottom}>
+                <p style={styles.loginPrompt}>
+                  Already have an account?{' '}
+                  <RouterLink to="/login" style={styles.loginLink} id="signup-go-login-link">
+                    Sign in
+                  </RouterLink>
+                </p>
+              </div>
             </>
           )}
         </div>
@@ -471,13 +484,14 @@ const styles = {
     fontWeight: 500,
   },
   card: {
-    background: 'rgba(30, 41, 59, 0.7)',
+    background: 'rgba(30, 41, 59, 0.72)',
     backdropFilter: 'blur(24px)',
     WebkitBackdropFilter: 'blur(24px)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+    borderTop: '4px solid #f59e0b',
     borderRadius: '24px',
     padding: '36px',
-    boxShadow: '0 32px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
+    boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 50px rgba(245, 158, 11, 0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
   },
   cardHeader: {
     marginBottom: '24px',
@@ -629,5 +643,45 @@ const styles = {
     marginTop: '24px',
     fontSize: '12px',
     color: '#334155',
+  },
+  ticketTop: {
+    width: '100%',
+  },
+  ticketBottom: {
+    width: '100%',
+  },
+  ticketDivider: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    margin: '24px -37px',
+    position: 'relative',
+    height: '24px',
+  },
+  notchLeft: {
+    width: '24px',
+    height: '24px',
+    borderRadius: '50%',
+    background: '#0f172a',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+    marginLeft: '-12px',
+    boxShadow: 'inset -4px 0 8px rgba(0, 0, 0, 0.4)',
+    zIndex: 2,
+  },
+  notchRight: {
+    width: '24px',
+    height: '24px',
+    borderRadius: '50%',
+    background: '#0f172a',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+    marginRight: '-12px',
+    boxShadow: 'inset 4px 0 8px rgba(0, 0, 0, 0.4)',
+    zIndex: 2,
+  },
+  perforation: {
+    flex: 1,
+    borderTop: '2px dashed rgba(245, 158, 11, 0.25)',
+    height: '1px',
+    margin: '0 8px',
   },
 };
