@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/seat_layout_engine.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:ui';
 import 'dart:math' as math;
 
@@ -229,6 +230,19 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
               const Text('Boarded', style: TextStyle(fontSize: 12, color: AppColors.textLight, fontWeight: FontWeight.w600)),
             ],
           ),
+          const SizedBox(width: 16),
+          Row(
+            children: [
+              Container(
+                width: 14,
+                height: 14,
+                decoration: BoxDecoration(color: Colors.red.shade600, borderRadius: BorderRadius.circular(3)),
+                child: const Icon(Icons.close, size: 10, color: Colors.white),
+              ),
+              const SizedBox(width: 6),
+              const Text('Blocked', style: TextStyle(fontSize: 12, color: AppColors.textLight, fontWeight: FontWeight.w600)),
+            ],
+          ),
         ],
       ),
     );
@@ -295,7 +309,8 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
             );
 
             bool isBooked = ['occupied', 'sold'].contains(liveData['status']);
-            bool isReserved = ['blocked', 'reserved'].contains(liveData['status']);
+            bool isReserved = liveData['status'] == 'reserved';
+            bool isBlocked = liveData['status'] == 'blocked';
             bool isBoarded = liveData['status'] == 'boarded';
 
             bool isHighlighted = false;
@@ -312,15 +327,24 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
               isBooked: isBooked,
               isReserved: isReserved,
               isBoarded: isBoarded,
+              isBlocked: isBlocked,
               isHighlighted: isHighlighted,
               isDark: isDark,
               onTap: () {
                 if (isBooked || isReserved || isBoarded) {
                   _showBookingDetails(context, bp.seatNumber, liveData, isDark);
+                } else if (isBlocked) {
+                  _showBlockSeatDialog(context, 'dummy_schedule_id', bp.seatNumber, true);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Seat ${bp.seatNumber} is currently available.')),
                   );
+                }
+              },
+              onLongPress: () {
+                if (!isBooked && !isReserved && !isBoarded) {
+                  // Pass a dummy scheduleId for demonstration if routeData lacks it
+                  _showBlockSeatDialog(context, widget.routeData['id'] ?? 'dummy_schedule_id', bp.seatNumber, isBlocked);
                 }
               },
             );
@@ -489,6 +513,38 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
     );
   }
 
+  void _showBlockSeatDialog(BuildContext context, String scheduleId, String seatNumber, bool isCurrentlyBlocked) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isCurrentlyBlocked ? 'Unblock Seat $seatNumber?' : 'Block Seat $seatNumber?'),
+        content: Text(isCurrentlyBlocked 
+            ? 'This seat will become available for passengers to book again.' 
+            : 'Passengers will no longer be able to book this seat.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final docRef = FirebaseFirestore.instance.collection('schedules').doc(scheduleId).collection('seats').doc(seatNumber);
+              
+              if (isCurrentlyBlocked) {
+                await docRef.update({'status': 'available'});
+              } else {
+                await docRef.set({'status': 'blocked', 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: isCurrentlyBlocked ? Colors.green : Colors.red),
+            child: Text(isCurrentlyBlocked ? 'Unblock' : 'Block', style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showBookingDetails(BuildContext context, String seatNumber, Map<String, dynamic> bookingData, bool isDark) {
     showModalBottomSheet(
       context: context,
@@ -580,18 +636,22 @@ class _OperatorSeatWidget extends StatelessWidget {
   final bool isBooked;
   final bool isReserved;
   final bool isBoarded;
+  final bool isBlocked;
   final bool isHighlighted;
   final bool isDark;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const _OperatorSeatWidget({
     required this.number,
     required this.isBooked,
     required this.isReserved,
     required this.isBoarded,
+    required this.isBlocked,
     this.isHighlighted = false,
     required this.isDark,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -599,7 +659,10 @@ class _OperatorSeatWidget extends StatelessWidget {
     Color bgColor;
     Color textColor;
 
-    if (isBoarded) {
+    if (isBlocked) {
+      bgColor = Colors.red.shade600;
+      textColor = Colors.white;
+    } else if (isBoarded) {
       bgColor = Colors.green.shade400;
       textColor = Colors.white;
     } else if (isBooked) {
@@ -615,6 +678,7 @@ class _OperatorSeatWidget extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Container(
         alignment: Alignment.center,
         decoration: BoxDecoration(
@@ -625,22 +689,24 @@ class _OperatorSeatWidget extends StatelessWidget {
               : Border.all(
                   color: isReserved 
                       ? AppColors.primaryOrange 
-                      : ((isBooked || isBoarded) ? Colors.transparent : (isDark ? Colors.white10 : Colors.grey.shade200)),
+                      : ((isBooked || isBoarded || isBlocked) ? Colors.transparent : (isDark ? Colors.white10 : Colors.grey.shade200)),
                 ),
           boxShadow: isHighlighted 
               ? [BoxShadow(color: Colors.yellowAccent.withValues(alpha: 0.6), blurRadius: 12, spreadRadius: 2)]
               : (isReserved ? [BoxShadow(color: AppColors.primaryOrange.withValues(alpha: 0.3), blurRadius: 8)] : null),
         ),
-        child: isBoarded
-            ? const Icon(Icons.check, color: Colors.white, size: 16)
-            : Text(
-                number,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: (isBooked || isReserved) ? FontWeight.bold : FontWeight.w500,
-                  color: textColor,
-                ),
-              ),
+        child: isBlocked
+            ? const Icon(Icons.close, color: Colors.white, size: 16)
+            : (isBoarded
+                ? const Icon(Icons.check, color: Colors.white, size: 16)
+                : Text(
+                    number,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: (isBooked || isReserved) ? FontWeight.bold : FontWeight.w500,
+                      color: textColor,
+                    ),
+                  )),
       ),
     );
   }
