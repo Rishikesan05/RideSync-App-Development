@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:ridesync/core/constants.dart';
 
 class OperatorContactScreen extends StatefulWidget {
@@ -106,17 +107,17 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
                   icon: Icons.phone_in_talk_rounded,
                   label: 'Call Depot',
                   color: Colors.blue,
-                  onTap: () {},
+                  onTap: () => _launchPhoneCall('+94771234567'),
                   isDark: isDark,
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _buildActionButton(
-                  icon: Icons.warning_rounded,
-                  label: 'SOS Alert',
-                  color: Colors.red,
-                  onTap: () {},
+                  icon: Icons.chat_bubble_rounded,
+                  label: 'WhatsApp Admin',
+                  color: Colors.green,
+                  onTap: () => _launchWhatsApp('+94771234567'),
                   isDark: isDark,
                 ),
               ),
@@ -319,5 +320,27 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _launchWhatsApp(String phone) async {
+    final Uri url = Uri.parse('https://wa.me/$phone');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open WhatsApp. Is it installed?')));
+      }
+    }
+  }
+
+  Future<void> _launchPhoneCall(String phone) async {
+    final Uri url = Uri.parse('tel:$phone');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open phone dialer.')));
+      }
+    }
   }
 }
