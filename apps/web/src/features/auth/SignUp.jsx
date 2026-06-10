@@ -439,23 +439,21 @@ export const SignUp = () => {
           transform: translateY(0);
         }
 
-        /* Desktop Layout Wrapper (Side-by-side) */
+        /* Desktop Layout Wrapper (Side-by-side & Card Centered) */
         @media (min-width: 1024px) {
           .auth-layout-wrapper {
-            display: flex !important;
-            flex-direction: row !important;
-            align-items: flex-start !important;
-            gap: 32px !important;
-            width: 100% !important;
             position: relative !important;
+            width: 100% !important;
           }
           .ticket-container {
-            max-width: 1040px !important;
+            max-width: 820px !important;
           }
           #signup-back-btn, #forgot-back-btn {
-            margin-bottom: 0 !important;
-            margin-top: 24px !important;
-            flex-shrink: 0 !important;
+            position: absolute !important;
+            right: calc(100% + 32px) !important;
+            top: 24px !important;
+            margin: 0 !important;
+            white-space: nowrap !important;
           }
         }
 
