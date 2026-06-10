@@ -49,7 +49,7 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
         backgroundColor: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
         elevation: 0,
         title: const Text(
-          'My Routes',
+          'My Schedules',
           style: TextStyle(
             color: Colors.white,
             fontSize: 20,
@@ -68,13 +68,15 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
             children: [
               _buildSearchBar(isDark),
               const SizedBox(height: 24),
-              Text('My Assigned Routes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+              Text('Assigned Schedules', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
               const SizedBox(height: 16),
               ..._mockRoutes.where((r) => r['isAssigned'] == true).map((route) => _buildRouteCard(route, isDark)),
-              const SizedBox(height: 24),
-              Text('Other Fleet Routes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
-              const SizedBox(height: 16),
-              ..._mockRoutes.where((r) => r['isAssigned'] == false).map((route) => _buildRouteCard(route, isDark)),
+              if (_mockRoutes.any((r) => r['isAssigned'] == false)) ...[
+                const SizedBox(height: 24),
+                Text('New Routes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                const SizedBox(height: 16),
+                ..._mockRoutes.where((r) => r['isAssigned'] == false).map((route) => _buildRouteCard(route, isDark)),
+              ],
             ],
           ),
         ),
@@ -96,7 +98,7 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
       child: TextField(
         style: TextStyle(color: isDark ? Colors.white : AppColors.textDark),
         decoration: InputDecoration(
-          hintText: 'Search routes, destinations...',
+          hintText: 'Search schedules, destinations...',
           hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400),
           border: InputBorder.none,
           icon: Icon(Icons.search, color: isDark ? Colors.white54 : Colors.grey),
