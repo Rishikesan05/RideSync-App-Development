@@ -57,9 +57,9 @@ export const ForgotPassword = () => {
       <div style={styles.orb3} />
 
 
-      <div style={styles.container}>
+      <div className="ticket-container" style={styles.container}>
         {/* Brand */}
-        <div style={styles.brand}>
+        <div className="outside-brand" style={styles.brand}>
           <img
             src="/ridesync-logo.jpeg"
             alt="RideSync"
@@ -68,131 +68,182 @@ export const ForgotPassword = () => {
           <p style={styles.brandSub}>Password Recovery</p>
         </div>
 
-        {/* Back Link */}
-        <RouterLink to="/login" style={styles.backLink} id="forgot-back-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M12 5l-7 7 7 7" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          Back to login
-        </RouterLink>
+        <div className="auth-layout-wrapper">
+          {/* Back Link */}
+          <RouterLink to="/login" style={styles.backLink} id="forgot-back-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M19 12H5M12 5l-7 7 7 7" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Back to login
+          </RouterLink>
 
-        {/* Card */}
-        <div style={styles.card}>
+          {/* Card */}
+          <div className="ticket-card" style={styles.card}>
           {status === 'success' ? (
             /* Success State */
-            <div style={styles.successState}>
-              <div style={styles.successIconWrap}>
-                <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-                  <circle cx="28" cy="28" r="27" stroke="rgba(245,158,11,0.3)" strokeWidth="2"/>
-                  <circle cx="28" cy="28" r="20" fill="rgba(245,158,11,0.1)"/>
-                  <path d="M18 28h20M28 18l10 10-10 10" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+            <>
+              {/* Left Column */}
+              <div className="ticket-left" style={styles.ticketTop}>
+                {/* Desktop Brand inside Left ticket stub */}
+                <div className="desktop-only-brand" style={{ ...styles.brand, marginBottom: '24px' }}>
+                  <img
+                    src="/ridesync-logo.jpeg"
+                    alt="RideSync"
+                    style={{ ...styles.logoImg, width: '160px', marginBottom: '4px' }}
+                  />
+                  <p style={{ ...styles.brandSub, fontSize: '11px' }}>Password Recovery</p>
+                </div>
+
+                <div style={styles.successState}>
+                  <div style={styles.successIconWrap}>
+                    <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                      <circle cx="28" cy="28" r="27" stroke="rgba(245,158,11,0.3)" strokeWidth="2"/>
+                      <circle cx="28" cy="28" r="20" fill="rgba(245,158,11,0.1)"/>
+                      <path d="M18 28h20M28 18l10 10-10 10" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <h2 style={styles.successTitle}>Check your WhatsApp</h2>
+                  <p style={styles.successText}>
+                    We will send the password reset link via WhatsApp for:
+                  </p>
+                  <div style={styles.emailBadge}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{flexShrink: 0}}>
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <polyline points="22,6 12,13 2,6" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span style={styles.emailText}>{sentEmail}</span>
+                  </div>
+                  <p style={styles.successNote}>
+                    Didn't receive the message? Check your WhatsApp or{' '}
+                    <button
+                      style={styles.resendBtn}
+                      id="forgot-resend-btn"
+                      onClick={() => setStatus('idle')}
+                    >
+                      try again
+                    </button>
+                  </p>
+                </div>
               </div>
-              <h2 style={styles.successTitle}>Check your inbox</h2>
-              <p style={styles.successText}>
-                We've sent a password reset link to
-              </p>
-              <div style={styles.emailBadge}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{flexShrink: 0}}>
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <polyline points="22,6 12,13 2,6" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span style={styles.emailText}>{sentEmail}</span>
+
+              {/* Ticket Divider */}
+              <div className="ticket-divider-container" style={styles.ticketDivider}>
+                <div className="ticket-notch-left" style={styles.notchLeft} />
+                <div className="ticket-perforation-line" style={styles.perforation} />
+                <div className="ticket-notch-right" style={styles.notchRight} />
               </div>
-              <p style={styles.successNote}>
-                Didn't receive it? Check your spam folder or{' '}
-                <button
-                  style={styles.resendBtn}
-                  id="forgot-resend-btn"
-                  onClick={() => setStatus('idle')}
-                >
-                  try again
-                </button>
-              </p>
-              <RouterLink to="/login" style={styles.backToLoginBtn} id="forgot-success-login-btn">
-                Back to Sign In
-              </RouterLink>
-            </div>
+
+              {/* Right Column */}
+              <div className="ticket-right" style={styles.ticketBottom}>
+                <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                  <RouterLink to="/login" style={styles.backToLoginBtn} id="forgot-success-login-btn">
+                    Back to Sign In
+                  </RouterLink>
+                </div>
+              </div>
+            </>
           ) : (
             /* Form State */
             <>
-              <div style={styles.cardHeader}>
-                <div style={styles.iconCircle}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <circle cx="12" cy="16" r="1.5" fill="#f59e0b"/>
-                  </svg>
+              {/* Left Column */}
+              <div className="ticket-left" style={styles.ticketTop}>
+                {/* Desktop Brand inside Left ticket stub */}
+                <div className="desktop-only-brand" style={{ ...styles.brand, marginBottom: '24px' }}>
+                  <img
+                    src="/ridesync-logo.jpeg"
+                    alt="RideSync"
+                    style={{ ...styles.logoImg, width: '160px', marginBottom: '4px' }}
+                  />
+                  <p style={{ ...styles.brandSub, fontSize: '11px' }}>Password Recovery</p>
                 </div>
-                <h2 style={styles.cardTitle}>Forgot your password?</h2>
-                <p style={styles.cardSubtitle}>
-                  No worries! Enter your email address and we'll send you a link to reset your password.
-                </p>
+
+                <div style={styles.cardHeader}>
+                  <div style={styles.iconCircle}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="12" cy="16" r="1.5" fill="#f59e0b"/>
+                    </svg>
+                  </div>
+                  <h2 style={styles.cardTitle}>Forgot your password?</h2>
+                  <p style={styles.cardSubtitle}>
+                    No worries! Enter your email address and we'll send you a link to reset your password.
+                  </p>
+                </div>
               </div>
 
-              {status === 'error' && (
-                <div style={styles.errorBanner}>
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{flexShrink: 0}}>
-                    <circle cx="8" cy="8" r="7" stroke="#f87171" strokeWidth="1.5"/>
-                    <path d="M8 5v3M8 11v.5" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                  <span>{errorMsg}</span>
-                </div>
-              )}
+              {/* Ticket Divider */}
+              <div className="ticket-divider-container" style={styles.ticketDivider}>
+                <div className="ticket-notch-left" style={styles.notchLeft} />
+                <div className="ticket-perforation-line" style={styles.perforation} />
+                <div className="ticket-notch-right" style={styles.notchRight} />
+              </div>
 
-              <form onSubmit={handleSubmit(onSubmit)} style={styles.form} noValidate>
-                <div style={styles.fieldGroup}>
-                  <label style={styles.label} htmlFor="forgot-email">Email Address</label>
-                  <div style={styles.inputWrapper}>
-                    <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <polyline points="22,6 12,13 2,6" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              {/* Right Column */}
+              <div className="ticket-right" style={styles.ticketBottom}>
+                {status === 'error' && (
+                  <div style={styles.errorBanner}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{flexShrink: 0}}>
+                      <circle cx="8" cy="8" r="7" stroke="#f87171" strokeWidth="1.5"/>
+                      <path d="M8 5v3M8 11v.5" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round"/>
                     </svg>
-                    <input
-                      id="forgot-email"
-                      type="email"
-                      placeholder="admin@ridesync.lk"
-                      style={{ ...styles.input, ...(errors.email ? styles.inputError : {}) }}
-                      {...register('email')}
-                      autoComplete="email"
-                    />
+                    <span>{errorMsg}</span>
                   </div>
-                  {errors.email && <p style={styles.fieldError}>{errors.email.message}</p>}
-                </div>
+                )}
 
-                <button
-                  id="forgot-submit-btn"
-                  type="submit"
-                  disabled={isSubmitting}
-                  style={{ ...styles.submitBtn, ...(isSubmitting ? styles.submitBtnDisabled : {}) }}
-                >
-                  {isSubmitting ? (
-                    <span style={styles.spinnerWrap}>
-                      <span style={styles.spinner} />
-                      Sending reset link…
-                    </span>
-                  ) : (
-                    <>
-                      Send Reset Link
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{marginLeft: 8}}>
-                        <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                <form onSubmit={handleSubmit(onSubmit)} style={styles.form} noValidate>
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label} htmlFor="forgot-email">Email Address</label>
+                    <div style={styles.inputWrapper}>
+                      <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <polyline points="22,6 12,13 2,6" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
-                    </>
-                  )}
-                </button>
-              </form>
+                      <input
+                        id="forgot-email"
+                        type="email"
+                        placeholder="admin@ridesync.lk"
+                        style={{ ...styles.input, ...(errors.email ? styles.inputError : {}) }}
+                        {...register('email')}
+                        autoComplete="email"
+                      />
+                    </div>
+                    {errors.email && <p style={styles.fieldError}>{errors.email.message}</p>}
+                  </div>
 
+                  <button
+                    id="forgot-submit-btn"
+                    type="submit"
+                    disabled={isSubmitting}
+                    style={{ ...styles.submitBtn, ...(isSubmitting ? styles.submitBtnDisabled : {}) }}
+                  >
+                    {isSubmitting ? (
+                      <span style={styles.spinnerWrap}>
+                        <span style={styles.spinner} />
+                        Sending reset link…
+                      </span>
+                    ) : (
+                      <>
+                        Send Reset Link
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{marginLeft: 8}}>
+                          <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <polygon points="22 2 15 22 11 13 2 9 22 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        </svg>
+                      </>
+                    )}
+                  </button>
+                </form>
 
-
-              <p style={styles.loginPrompt}>
-                Remember your password?{' '}
-                <RouterLink to="/login" style={styles.loginLink} id="forgot-go-login-link">
-                  Sign in
-                </RouterLink>
-              </p>
+                <p style={styles.loginPrompt}>
+                  Remember your password?{' '}
+                  <RouterLink to="/login" style={styles.loginLink} id="forgot-go-login-link">
+                    Sign in
+                  </RouterLink>
+                </p>
+              </div>
             </>
           )}
+        </div>
         </div>
 
         <p style={styles.footer}>© 2025 RideSync LK · All rights reserved</p>
@@ -229,6 +280,147 @@ export const ForgotPassword = () => {
           border-color: rgba(245,158,11,0.5) !important;
           box-shadow: 0 0 0 3px rgba(245,158,11,0.1) !important;
           outline: none;
+        }
+
+        /* Desktop Layout Wrapper (Side-by-side & Card Centered) */
+        @media (min-width: 1024px) {
+          .auth-layout-wrapper {
+            position: relative !important;
+            width: 100% !important;
+          }
+          .ticket-container {
+            max-width: 820px !important;
+          }
+          #signup-back-btn, #forgot-back-btn {
+            position: absolute !important;
+            right: calc(100% + 32px) !important;
+            top: 24px !important;
+            margin: 0 !important;
+            white-space: nowrap !important;
+          }
+        }
+
+        /* Desktop (Landscape) Ticket Styles */
+        @media (min-width: 768px) {
+          .ticket-container {
+            max-width: 820px !important;
+          }
+          .ticket-card {
+            display: flex !important;
+            flex-direction: row !important;
+            padding: 0 !important;
+            align-items: stretch !important;
+          }
+          .ticket-left {
+            width: 38% !important;
+            padding: 40px 36px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+          }
+          .ticket-right {
+            width: 62% !important;
+            padding: 40px 36px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+          }
+          .ticket-divider-container {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            width: 24px !important;
+            height: auto !important;
+            margin: 0 -12px !important;
+            position: relative !important;
+            z-index: 2 !important;
+          }
+          .ticket-notch-left {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-top: -12px !important;
+            margin-left: 0 !important;
+            box-shadow: inset 0 -4px 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-notch-right {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-bottom: -12px !important;
+            margin-right: 0 !important;
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-perforation-line {
+            flex: 1 !important;
+            border-left: 2px dashed rgba(245, 158, 11, 0.25) !important;
+            border-top: none !important;
+            width: 1px !important;
+            height: 100% !important;
+            margin: 8px 0 !important;
+          }
+          .desktop-only-brand {
+            display: block !important;
+          }
+          .outside-brand {
+            display: none !important;
+          }
+        }
+
+        /* Mobile/Tablet (Portrait Stacked) Styles */
+        @media (max-width: 767px) {
+          .ticket-card {
+            flex-direction: column !important;
+          }
+          .ticket-left {
+            width: 100% !important;
+          }
+          .ticket-right {
+            width: 100% !important;
+          }
+          .ticket-divider-container {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            margin: 24px -37px !important;
+            height: 24px !important;
+          }
+          .ticket-notch-left {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-left: -12px !important;
+            box-shadow: inset -4px 0 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-notch-right {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-right: -12px !important;
+            box-shadow: inset 4px 0 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-perforation-line {
+            flex: 1 !important;
+            border-top: 2px dashed rgba(245, 158, 11, 0.25) !important;
+            height: 1px !important;
+            margin: 0 8px !important;
+          }
+          .desktop-only-brand {
+            display: none !important;
+          }
+          .outside-brand {
+            display: block !important;
+          }
         }
       `}</style>
     </div>
@@ -315,13 +507,14 @@ const styles = {
     fontWeight: 500,
   },
   card: {
-    background: 'rgba(30, 41, 59, 0.7)',
+    background: 'rgba(30, 41, 59, 0.72)',
     backdropFilter: 'blur(24px)',
     WebkitBackdropFilter: 'blur(24px)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+    borderTop: '4px solid #f59e0b',
     borderRadius: '24px',
     padding: '36px',
-    boxShadow: '0 32px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
+    boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 50px rgba(245, 158, 11, 0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
   },
   cardHeader: {
     marginBottom: '28px',
@@ -495,8 +688,9 @@ const styles = {
     wordBreak: 'break-all',
   },
   successNote: {
-    fontSize: '13px',
-    color: '#475569',
+    fontSize: '13.5px',
+    fontWeight: 500,
+    color: '#cbd5e1',
     lineHeight: 1.6,
   },
   resendBtn: {
@@ -532,5 +726,45 @@ const styles = {
     marginTop: '24px',
     fontSize: '12px',
     color: '#334155',
+  },
+  ticketTop: {
+    width: '100%',
+  },
+  ticketBottom: {
+    width: '100%',
+  },
+  ticketDivider: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    margin: '24px -37px',
+    position: 'relative',
+    height: '24px',
+  },
+  notchLeft: {
+    width: '24px',
+    height: '24px',
+    borderRadius: '50%',
+    background: '#0f172a',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+    marginLeft: '-12px',
+    boxShadow: 'inset -4px 0 8px rgba(0, 0, 0, 0.4)',
+    zIndex: 2,
+  },
+  notchRight: {
+    width: '24px',
+    height: '24px',
+    borderRadius: '50%',
+    background: '#0f172a',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+    marginRight: '-12px',
+    boxShadow: 'inset 4px 0 8px rgba(0, 0, 0, 0.4)',
+    zIndex: 2,
+  },
+  perforation: {
+    flex: 1,
+    borderTop: '2px dashed rgba(245, 158, 11, 0.25)',
+    height: '1px',
+    margin: '0 8px',
   },
 };

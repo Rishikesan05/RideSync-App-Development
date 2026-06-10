@@ -20,16 +20,26 @@ export const PendingApproval = () => {
       <div style={styles.orb2} />
 
 
-      <div style={styles.container}>
+      <div className="ticket-container" style={styles.container}>
         {/* Logo */}
-        <div style={styles.brand}>
+        <div className="outside-brand" style={styles.brand}>
           <img src="/ridesync-logo.jpeg" alt="RideSync" style={styles.logoImg} />
         </div>
 
         {/* Card */}
-        <div style={styles.card}>
-          {/* Top section: Brand/Header & Status */}
-          <div style={styles.ticketTop}>
+        <div className="ticket-card" style={styles.card}>
+          {/* Left Section */}
+          <div className="ticket-left" style={styles.ticketTop}>
+            {/* Desktop Brand inside Left ticket stub */}
+            <div className="desktop-only-brand" style={{ ...styles.brand, marginBottom: '24px' }}>
+              <img
+                src="/ridesync-logo.jpeg"
+                alt="RideSync"
+                style={{ ...styles.logoImg, width: '160px', marginBottom: '4px' }}
+              />
+              <p style={{ fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#64748b', textAlign: 'center', fontWeight: 500 }}>Admin Portal</p>
+            </div>
+
             {/* Icon */}
             <div style={styles.iconWrap}>
               <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
@@ -54,15 +64,15 @@ export const PendingApproval = () => {
             </div>
           </div>
 
-          {/* Ticket Divider (Perforation & punch notches) */}
-          <div style={styles.ticketDivider}>
-            <div style={styles.notchLeft} />
-            <div style={styles.perforation} />
-            <div style={styles.notchRight} />
+          {/* Ticket Divider */}
+          <div className="ticket-divider-container" style={styles.ticketDivider}>
+            <div className="ticket-notch-left" style={styles.notchLeft} />
+            <div className="ticket-perforation-line" style={styles.perforation} />
+            <div className="ticket-notch-right" style={styles.notchRight} />
           </div>
 
-          {/* Bottom section: Steps & Actions */}
-          <div style={styles.ticketBottom}>
+          {/* Right Section */}
+          <div className="ticket-right" style={styles.ticketBottom}>
             {/* Steps */}
             <div style={styles.steps}>
               <div style={styles.step}>
@@ -98,12 +108,12 @@ export const PendingApproval = () => {
               <div style={styles.step}>
                 <div style={{ ...styles.stepIcon, background: 'rgba(100,116,139,0.08)', border: '1px solid rgba(100,116,139,0.15)' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 18l6-6-6-6" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 18l6-6-6-6" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
                 <div>
-                  <p style={{ ...styles.stepTitle, color: '#475569' }}>Access granted</p>
-                  <p style={styles.stepDesc}>You'll be able to sign in once approved.</p>
+                  <p style={{ ...styles.stepTitle, color: '#64748b' }}>Access granted</p>
+                  <p style={{ ...styles.stepDesc, color: '#5b6c80' }}>You'll be able to sign in once approved.</p>
                 </div>
               </div>
             </div>
@@ -141,6 +151,129 @@ export const PendingApproval = () => {
           background: rgba(239,68,68,0.15) !important;
           border-color: rgba(239,68,68,0.4) !important;
           color: #fca5a5 !important;
+        }
+
+        /* Desktop (Landscape) Ticket Styles */
+        @media (min-width: 768px) {
+          .ticket-container {
+            max-width: 860px !important;
+          }
+          .ticket-card {
+            display: flex !important;
+            flex-direction: row !important;
+            padding: 0 !important;
+            align-items: stretch !important;
+          }
+          .ticket-left {
+            width: 44% !important;
+            padding: 40px 36px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+          }
+          .ticket-right {
+            width: 56% !important;
+            padding: 40px 36px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+          }
+          .ticket-divider-container {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            width: 24px !important;
+            height: auto !important;
+            margin: 0 -12px !important;
+            position: relative !important;
+            z-index: 2 !important;
+          }
+          .ticket-notch-left {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-top: -12px !important;
+            margin-left: 0 !important;
+            box-shadow: inset 0 -4px 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-notch-right {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-bottom: -12px !important;
+            margin-right: 0 !important;
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-perforation-line {
+            flex: 1 !important;
+            border-left: 2px dashed rgba(245, 158, 11, 0.25) !important;
+            border-top: none !important;
+            width: 1px !important;
+            height: 100% !important;
+            margin: 8px 0 !important;
+          }
+          .desktop-only-brand {
+            display: block !important;
+          }
+          .outside-brand {
+            display: none !important;
+          }
+        }
+
+        /* Mobile/Tablet (Portrait Stacked) Styles */
+        @media (max-width: 767px) {
+          .ticket-card {
+            flex-direction: column !important;
+          }
+          .ticket-left {
+            width: 100% !important;
+          }
+          .ticket-right {
+            width: 100% !important;
+          }
+          .ticket-divider-container {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            margin: 24px -37px !important;
+            height: 24px !important;
+          }
+          .ticket-notch-left {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-left: -12px !important;
+            box-shadow: inset -4px 0 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-notch-right {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-right: -12px !important;
+            box-shadow: inset 4px 0 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-perforation-line {
+            flex: 1 !important;
+            border-top: 2px dashed rgba(245, 158, 11, 0.25) !important;
+            height: 1px !important;
+            margin: 0 8px !important;
+          }
+          .desktop-only-brand {
+            display: none !important;
+          }
+          .outside-brand {
+            display: block !important;
+          }
         }
       `}</style>
     </div>
@@ -213,7 +346,7 @@ const styles = {
   },
   subtitle: {
     fontSize: '14px',
-    color: '#64748b',
+    color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 1.7,
     marginBottom: '20px',
@@ -243,7 +376,7 @@ const styles = {
   },
   emailTag: {
     fontSize: '12px',
-    color: '#475569',
+    color: '#94a3b8',
     background: 'rgba(255,255,255,0.05)',
     border: '1px solid rgba(255,255,255,0.08)',
     borderRadius: '100px',
@@ -292,7 +425,7 @@ const styles = {
   },
   stepDesc: {
     fontSize: '12px',
-    color: '#475569',
+    color: '#94a3b8',
     lineHeight: 1.5,
   },
   pendingBadge: {
@@ -330,7 +463,7 @@ const styles = {
     textAlign: 'center',
     marginTop: '24px',
     fontSize: '12px',
-    color: '#334155',
+    color: '#5b6c80',
   },
   ticketTop: {
     width: '100%',

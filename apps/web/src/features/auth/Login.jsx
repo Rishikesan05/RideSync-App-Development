@@ -65,9 +65,9 @@ export const Login = () => {
 
 
 
-      <div style={styles.container}>
+      <div className="ticket-container" style={styles.container}>
         {/* Logo & Brand */}
-        <div style={styles.brand}>
+        <div className="outside-brand" style={styles.brand}>
           <img
             src="/ridesync-logo.jpeg"
             alt="RideSync"
@@ -77,126 +77,149 @@ export const Login = () => {
         </div>
 
         {/* Card */}
-        <div style={styles.card}>
-          <div style={styles.cardHeader}>
-            <h2 style={styles.cardTitle}>Welcome back</h2>
-            <p style={styles.cardSubtitle}>Sign in to your account to continue</p>
+        <div className="ticket-card" style={styles.card}>
+          {/* Left Section (Top on mobile, Left on desktop) */}
+          <div className="ticket-left" style={styles.ticketTop}>
+            {/* Desktop Brand inside Left ticket stub */}
+            <div className="desktop-only-brand" style={{ ...styles.brand, marginBottom: '24px' }}>
+              <img
+                src="/ridesync-logo.jpeg"
+                alt="RideSync"
+                style={{ ...styles.logoImg, width: '160px', marginBottom: '4px' }}
+              />
+              <p style={{ ...styles.brandSub, fontSize: '11px' }}>Admin Portal</p>
+            </div>
+            
+            <div style={styles.cardHeader}>
+              <h2 style={styles.cardTitle}>Welcome back</h2>
+              <p style={styles.cardSubtitle}>Sign in to your account to continue</p>
+            </div>
           </div>
 
-          {authError && (
-            <div style={styles.errorBanner}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{flexShrink: 0}}>
-                <circle cx="8" cy="8" r="7" stroke="#f87171" strokeWidth="1.5"/>
-                <path d="M8 5v3M8 11v.5" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-              <span>{authError}</span>
-            </div>
-          )}
+          {/* Ticket Divider */}
+          <div className="ticket-divider-container" style={styles.ticketDivider}>
+            <div className="ticket-notch-left" style={styles.notchLeft} />
+            <div className="ticket-perforation-line" style={styles.perforation} />
+            <div className="ticket-notch-right" style={styles.notchRight} />
+          </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} style={styles.form} noValidate>
-            <div style={styles.fieldGroup}>
-              <label style={styles.label} htmlFor="login-email">Email Address</label>
-              <div style={styles.inputWrapper}>
-                <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <polyline points="22,6 12,13 2,6" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          {/* Right Section (Bottom on mobile, Right on desktop) */}
+          <div className="ticket-right" style={styles.ticketBottom}>
+            {authError && (
+              <div style={styles.errorBanner}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{flexShrink: 0}}>
+                  <circle cx="8" cy="8" r="7" stroke="#f87171" strokeWidth="1.5"/>
+                  <path d="M8 5v3M8 11v.5" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round"/>
                 </svg>
-                <input
-                  id="login-email"
-                  type="email"
-                  placeholder="admin@ridesync.lk"
-                  style={{
-                    ...styles.input,
-                    ...(errors.email ? styles.inputError : {}),
-                  }}
-                  {...register('email')}
-                  autoComplete="email"
-                />
+                <span>{authError}</span>
               </div>
-              {errors.email && <p style={styles.fieldError}>{errors.email.message}</p>}
-            </div>
+            )}
 
-            <div style={styles.fieldGroup}>
-              <div style={styles.labelRow}>
-                <label style={styles.label} htmlFor="login-password">Password</label>
-                <RouterLink to="/forgot-password" style={styles.forgotLink}>
-                  Forgot password?
-                </RouterLink>
-              </div>
-              <div style={styles.inputWrapper}>
-                <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <input
-                  id="login-password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  style={{
-                    ...styles.input,
-                    ...styles.inputWithEndIcon,
-                    ...(errors.password ? styles.inputError : {}),
-                  }}
-                  {...register('password')}
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  style={styles.eyeBtn}
-                  onClick={() => setShowPassword(v => !v)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <line x1="1" y1="1" x2="23" y2="23" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
-                  ) : (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <circle cx="12" cy="12" r="3" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )}
-                </button>
-              </div>
-              {errors.password && <p style={styles.fieldError}>{errors.password.message}</p>}
-            </div>
-
-            <button
-              id="login-submit-btn"
-              type="submit"
-              disabled={isSubmitting}
-              style={{
-                ...styles.submitBtn,
-                ...(isSubmitting ? styles.submitBtnDisabled : {}),
-              }}
-            >
-              {isSubmitting ? (
-                <span style={styles.spinnerWrap}>
-                  <span style={styles.spinner} />
-                  Signing in…
-                </span>
-              ) : (
-                <>
-                  Sign In
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{marginLeft: 8}}>
-                    <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <form onSubmit={handleSubmit(onSubmit)} style={styles.form} noValidate>
+              <div style={styles.fieldGroup}>
+                <label style={styles.label} htmlFor="login-email">Email Address</label>
+                <div style={styles.inputWrapper}>
+                  <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <polyline points="22,6 12,13 2,6" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                </>
-              )}
-            </button>
-          </form>
+                  <input
+                    id="login-email"
+                    type="email"
+                    placeholder="admin@ridesync.lk"
+                    style={{
+                      ...styles.input,
+                      ...(errors.email ? styles.inputError : {}),
+                    }}
+                    {...register('email')}
+                    autoComplete="email"
+                  />
+                </div>
+                {errors.email && <p style={styles.fieldError}>{errors.email.message}</p>}
+              </div>
 
-          <div style={styles.divider}>
-            <span style={styles.dividerLine} />
-            <span style={styles.dividerText}>New to RideSync?</span>
-            <span style={styles.dividerLine} />
+              <div style={styles.fieldGroup}>
+                <div style={styles.labelRow}>
+                  <label style={styles.label} htmlFor="login-password">Password</label>
+                  <RouterLink to="/forgot-password" style={styles.forgotLink}>
+                    Forgot password?
+                  </RouterLink>
+                </div>
+                <div style={styles.inputWrapper}>
+                  <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <input
+                    id="login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    style={{
+                      ...styles.input,
+                      ...styles.inputWithEndIcon,
+                      ...(errors.password ? styles.inputError : {}),
+                    }}
+                    {...register('password')}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    style={styles.eyeBtn}
+                    onClick={() => setShowPassword(v => !v)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <line x1="1" y1="1" x2="23" y2="23" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="12" r="3" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                {errors.password && <p style={styles.fieldError}>{errors.password.message}</p>}
+              </div>
+
+              <button
+                id="login-submit-btn"
+                type="submit"
+                disabled={isSubmitting}
+                style={{
+                  ...styles.submitBtn,
+                  ...(isSubmitting ? styles.submitBtnDisabled : {}),
+                }}
+              >
+                {isSubmitting ? (
+                  <span style={styles.spinnerWrap}>
+                    <span style={styles.spinner} />
+                    Signing in…
+                  </span>
+                ) : (
+                  <>
+                    Sign In
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{marginLeft: 8}}>
+                      <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div style={styles.divider}>
+              <span style={styles.dividerLine} />
+              <span style={styles.dividerText}>New to RideSync?</span>
+              <span style={styles.dividerLine} />
+            </div>
+
+            <RouterLink to="/signup" style={styles.signupBtn} id="go-to-signup-btn">
+              Create an account
+            </RouterLink>
           </div>
-
-          <RouterLink to="/signup" style={styles.signupBtn} id="go-to-signup-btn">
-            Create an account
-          </RouterLink>
         </div>
 
         <p style={styles.footer}>
@@ -237,6 +260,129 @@ export const Login = () => {
           background: rgba(245,158,11,0.1) !important;
           border-color: #f59e0b !important;
           color: #f59e0b !important;
+        }
+
+        /* Desktop (Landscape) Ticket Styles */
+        @media (min-width: 768px) {
+          .ticket-container {
+            max-width: 820px !important;
+          }
+          .ticket-card {
+            display: flex !important;
+            flex-direction: row !important;
+            padding: 0 !important;
+            align-items: stretch !important;
+          }
+          .ticket-left {
+            width: 38% !important;
+            padding: 40px 36px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+          }
+          .ticket-right {
+            width: 62% !important;
+            padding: 40px 36px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+          }
+          .ticket-divider-container {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            width: 24px !important;
+            height: auto !important;
+            margin: 0 -12px !important;
+            position: relative !important;
+            z-index: 2 !important;
+          }
+          .ticket-notch-left {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-top: -12px !important;
+            margin-left: 0 !important;
+            box-shadow: inset 0 -4px 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-notch-right {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-bottom: -12px !important;
+            margin-right: 0 !important;
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-perforation-line {
+            flex: 1 !important;
+            border-left: 2px dashed rgba(245, 158, 11, 0.25) !important;
+            border-top: none !important;
+            width: 1px !important;
+            height: 100% !important;
+            margin: 8px 0 !important;
+          }
+          .desktop-only-brand {
+            display: block !important;
+          }
+          .outside-brand {
+            display: none !important;
+          }
+        }
+
+        /* Mobile/Tablet (Portrait Stacked) Styles */
+        @media (max-width: 767px) {
+          .ticket-card {
+            flex-direction: column !important;
+          }
+          .ticket-left {
+            width: 100% !important;
+          }
+          .ticket-right {
+            width: 100% !important;
+          }
+          .ticket-divider-container {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            margin: 24px -37px !important;
+            height: 24px !important;
+          }
+          .ticket-notch-left {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-left: -12px !important;
+            box-shadow: inset -4px 0 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-notch-right {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-right: -12px !important;
+            box-shadow: inset 4px 0 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-perforation-line {
+            flex: 1 !important;
+            border-top: 2px dashed rgba(245, 158, 11, 0.25) !important;
+            height: 1px !important;
+            margin: 0 8px !important;
+          }
+          .desktop-only-brand {
+            display: none !important;
+          }
+          .outside-brand {
+            display: block !important;
+          }
         }
       `}</style>
     </div>
@@ -305,13 +451,14 @@ const styles = {
     fontWeight: 500,
   },
   card: {
-    background: 'rgba(30, 41, 59, 0.7)',
+    background: 'rgba(30, 41, 59, 0.72)',
     backdropFilter: 'blur(24px)',
     WebkitBackdropFilter: 'blur(24px)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+    borderTop: '4px solid #f59e0b',
     borderRadius: '24px',
     padding: '36px',
-    boxShadow: '0 32px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
+    boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 50px rgba(245, 158, 11, 0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
   },
   cardHeader: {
     marginBottom: '28px',
@@ -464,12 +611,14 @@ const styles = {
   dividerLine: {
     flex: 1,
     height: '1px',
-    background: 'rgba(255,255,255,0.07)',
+    background: 'rgba(255, 255, 255, 0.12)',
   },
   dividerText: {
-    fontSize: '12px',
-    color: '#475569',
+    fontSize: '13px',
+    fontWeight: 500,
+    color: '#94a3b8',
     whiteSpace: 'nowrap',
+    letterSpacing: '0.02em',
   },
   signupBtn: {
     display: 'flex',
@@ -492,5 +641,45 @@ const styles = {
     marginTop: '24px',
     fontSize: '12px',
     color: '#334155',
+  },
+  ticketTop: {
+    width: '100%',
+  },
+  ticketBottom: {
+    width: '100%',
+  },
+  ticketDivider: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    margin: '24px -37px',
+    position: 'relative',
+    height: '24px',
+  },
+  notchLeft: {
+    width: '24px',
+    height: '24px',
+    borderRadius: '50%',
+    background: '#0f172a',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+    marginLeft: '-12px',
+    boxShadow: 'inset -4px 0 8px rgba(0, 0, 0, 0.4)',
+    zIndex: 2,
+  },
+  notchRight: {
+    width: '24px',
+    height: '24px',
+    borderRadius: '50%',
+    background: '#0f172a',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+    marginRight: '-12px',
+    boxShadow: 'inset 4px 0 8px rgba(0, 0, 0, 0.4)',
+    zIndex: 2,
+  },
+  perforation: {
+    flex: 1,
+    borderTop: '2px dashed rgba(245, 158, 11, 0.25)',
+    height: '1px',
+    margin: '0 8px',
   },
 };
