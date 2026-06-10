@@ -148,12 +148,6 @@ export const SignUp = () => {
       <div style={styles.container}>
         {/* Brand */}
         <div style={styles.brand}>
-          <RouterLink to="/login" style={styles.backLink} id="signup-back-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M19 12H5M12 5l-7 7 7 7" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Back to login
-          </RouterLink>
           <img
             src="/ridesync-logo.jpeg"
             alt="RideSync"
@@ -161,6 +155,14 @@ export const SignUp = () => {
           />
           <p style={styles.brandSub}>Create Your Admin Account</p>
         </div>
+
+        {/* Back Link */}
+        <RouterLink to="/login" style={styles.backLink} id="signup-back-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M12 5l-7 7 7 7" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Back to login
+        </RouterLink>
 
         {/* Card */}
         <div style={styles.card}>
@@ -373,6 +375,9 @@ export const SignUp = () => {
           box-shadow: 0 0 0 3px rgba(245,158,11,0.1) !important;
           outline: none;
         }
+        #signup-back-btn:hover {
+          color: #f8fafc !important;
+        }
       `}</style>
     </div>
   );
@@ -428,16 +433,14 @@ const styles = {
     position: 'relative',
   },
   backLink: {
-    position: 'absolute',
-    left: 0,
-    top: '4px',
-    display: 'flex',
+    display: 'inline-flex',
     alignItems: 'center',
     gap: '6px',
     color: '#94a3b8',
     textDecoration: 'none',
     fontSize: '13px',
     fontWeight: 500,
+    marginBottom: '16px',
     transition: 'color 0.2s',
   },
   logoImg: {
