@@ -16,14 +16,11 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
   final _emailC = TextEditingController();
   final _phoneC = TextEditingController(text: '+94');
   final _passC = TextEditingController();
-  final _licenseC = TextEditingController();
-  final _experienceC = TextEditingController();
   final _operatorIdC = TextEditingController();
   final _nicC = TextEditingController();
 
   int _currentStep = 0;
   bool _isLoading = false;
-  String _operatorType = 'driver'; // 'driver' or 'conductor'
 
   @override
   void dispose() {
@@ -31,8 +28,6 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
     _emailC.dispose();
     _phoneC.dispose();
     _passC.dispose();
-    _licenseC.dispose();
-    _experienceC.dispose();
     _operatorIdC.dispose();
     _nicC.dispose();
     super.dispose();
@@ -55,7 +50,6 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
       // 2. Create User Doc (role: operator, status: pending)
       await firestore.collection('users').doc(cred.user!.uid).set({
         'role': 'operator',
-        'operatorType': _operatorType,
         'status': 'pending_review',
         'displayName': _nameC.text.trim(),
         'email': _emailC.text.trim(),
@@ -68,10 +62,7 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
         'displayName': _nameC.text.trim(),
         'email': _emailC.text.trim(),
         'phone': _phoneC.text.trim(),
-        'operatorType': _operatorType,
         'nic': _nicC.text.trim(),
-        'licenseNumber': _operatorType == 'driver' ? _licenseC.text.trim() : null,
-        'experienceYears': _operatorType == 'driver' ? (int.tryParse(_experienceC.text.trim()) ?? 0) : 0,
         'status': 'pending_review',
         'registrationDate': FieldValue.serverTimestamp(),
       });
@@ -166,32 +157,6 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Select your role:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment<String>(
-                          value: 'driver',
-                          label: Text('Driver'),
-                        ),
-                        ButtonSegment<String>(
-                          value: 'conductor',
-                          label: Text('Conductor'),
-                        ),
-                      ],
-                      selected: {_operatorType},
-                      onSelectionChanged: (Set<String> newSelection) {
-                        setState(() => _operatorType = newSelection.first);
-                      },
-                      style: SegmentedButton.styleFrom(
-                        selectedBackgroundColor: blue.withValues(alpha: 0.2),
-                        selectedForegroundColor: blue,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
                   _formField(isDark, 'Full Name', Icons.person_outline, _nameC),
                   const SizedBox(height: 16),
                   _formField(isDark, 'Gmail Address', Icons.email_outlined, _emailC),
@@ -220,12 +185,6 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
                 _formField(isDark, 'Operator ID', Icons.badge, _operatorIdC),
                 const SizedBox(height: 16),
                 _formField(isDark, 'National Identity Card (NIC)', Icons.credit_card_outlined, _nicC),
-                if (_operatorType == 'driver') ...[
-                  const SizedBox(height: 16),
-                  _formField(isDark, 'License Number', Icons.drive_eta_outlined, _licenseC),
-                  const SizedBox(height: 16),
-                  _formField(isDark, 'Years of Experience', Icons.history_edu_outlined, _experienceC, keyboardType: TextInputType.number),
-                ],
               ],
             ),
           ),
