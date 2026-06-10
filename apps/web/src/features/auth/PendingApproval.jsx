@@ -182,10 +182,11 @@ const styles = {
     background: 'rgba(30, 41, 59, 0.72)',
     backdropFilter: 'blur(24px)',
     WebkitBackdropFilter: 'blur(24px)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+    borderTop: '4px solid #f59e0b',
     borderRadius: '24px',
     padding: '40px 36px',
-    boxShadow: '0 32px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
+    boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 50px rgba(245, 158, 11, 0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
   },
   iconWrap: {
     display: 'flex',
