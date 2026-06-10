@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ridesync/core/constants.dart';
+import 'package:intl/intl.dart';
 import 'dart:ui';
 
 class OperatorEarningsScreen extends StatefulWidget {
@@ -199,7 +200,15 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
               children: [
                 Text('LKR', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 18, fontWeight: FontWeight.bold, height: 2.2)),
                 const SizedBox(width: 8),
-                const Text('68,500', style: TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -1)),
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0, end: 68500),
+                  duration: const Duration(milliseconds: 1200),
+                  curve: Curves.easeOutQuart,
+                  builder: (context, value, child) {
+                    final formattedValue = NumberFormat('#,##0').format(value.toInt());
+                    return Text(formattedValue, style: const TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -1));
+                  },
+                ),
               ],
             ),
           ),
