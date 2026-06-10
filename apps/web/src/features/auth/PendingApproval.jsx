@@ -28,90 +28,101 @@ export const PendingApproval = () => {
 
         {/* Card */}
         <div style={styles.card}>
-          {/* Icon */}
-          <div style={styles.iconWrap}>
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-              <circle cx="24" cy="24" r="23" stroke="rgba(245,158,11,0.3)" strokeWidth="2"/>
-              <circle cx="24" cy="24" r="16" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.2)" strokeWidth="1.5"/>
-              <path d="M24 16v9" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round"/>
-              <circle cx="24" cy="30" r="1.5" fill="#f59e0b"/>
-            </svg>
-          </div>
-
-          <h2 style={styles.title}>Account Pending Approval</h2>
-          <p style={styles.subtitle}>
-            Hi <strong style={{ color: '#f8fafc' }}>{displayName}</strong>, your account has been created
-            but is awaiting admin approval before you can access the RideSync portal.
-          </p>
-
-          {/* Status pill */}
-          <div style={styles.statusRow}>
-            <span style={styles.statusDot} />
-            <span style={styles.statusText}>Pending review</span>
-            <span style={styles.emailTag}>{email}</span>
-          </div>
-
-          {/* Steps */}
-          <div style={styles.steps}>
-            <div style={styles.step}>
-              <div style={{ ...styles.stepIcon, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M9 12l2 2 4-4" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="12" cy="12" r="10" stroke="#22c55e" strokeWidth="1.5"/>
-                </svg>
-              </div>
-              <div>
-                <p style={styles.stepTitle}>Account created</p>
-                <p style={styles.stepDesc}>Your credentials have been registered securely.</p>
-              </div>
-            </div>
-
-            <div style={styles.stepConnector} />
-
-            <div style={styles.step}>
-              <div style={{ ...styles.stepIcon, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="#f59e0b" strokeWidth="1.5"/>
-                  <path d="M12 8v4M12 16v.01" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              </div>
-              <div>
-                <p style={styles.stepTitle}>Admin review <span style={styles.pendingBadge}>In progress</span></p>
-                <p style={styles.stepDesc}>An administrator will review and approve your account.</p>
-              </div>
-            </div>
-
-            <div style={styles.stepConnector} />
-
-            <div style={styles.step}>
-              <div style={{ ...styles.stepIcon, background: 'rgba(100,116,139,0.08)', border: '1px solid rgba(100,116,139,0.15)' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M9 18l6-6-6-6" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <div>
-                <p style={{ ...styles.stepTitle, color: '#475569' }}>Access granted</p>
-                <p style={styles.stepDesc}>You'll be able to sign in once approved.</p>
-              </div>
-            </div>
-          </div>
-
-
-
-          {/* Actions */}
-          <div style={styles.actions}>
-            <button
-              id="pending-signout-btn"
-              onClick={handleSignOut}
-              style={styles.signOutBtn}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <polyline points="16 17 21 12 16 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          {/* Top section: Brand/Header & Status */}
+          <div style={styles.ticketTop}>
+            {/* Icon */}
+            <div style={styles.iconWrap}>
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <circle cx="24" cy="24" r="23" stroke="rgba(245,158,11,0.3)" strokeWidth="2"/>
+                <circle cx="24" cy="24" r="16" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.2)" strokeWidth="1.5"/>
+                <path d="M24 16v9" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round"/>
+                <circle cx="24" cy="30" r="1.5" fill="#f59e0b"/>
               </svg>
-              Sign Out
-            </button>
+            </div>
+
+            <h2 style={styles.title}>Account Pending Approval</h2>
+            <p style={styles.subtitle}>
+              Hi <strong style={{ color: '#f8fafc' }}>{displayName}</strong>, your account has been created
+              but is awaiting admin approval before you can access the RideSync portal.
+            </p>
+
+            {/* Status pill */}
+            <div style={styles.statusRow}>
+              <span style={styles.statusDot} />
+              <span style={styles.statusText}>Pending review</span>
+              <span style={styles.emailTag}>{email}</span>
+            </div>
+          </div>
+
+          {/* Ticket Divider (Perforation & punch notches) */}
+          <div style={styles.ticketDivider}>
+            <div style={styles.notchLeft} />
+            <div style={styles.perforation} />
+            <div style={styles.notchRight} />
+          </div>
+
+          {/* Bottom section: Steps & Actions */}
+          <div style={styles.ticketBottom}>
+            {/* Steps */}
+            <div style={styles.steps}>
+              <div style={styles.step}>
+                <div style={{ ...styles.stepIcon, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 12l2 2 4-4" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="12" r="10" stroke="#22c55e" strokeWidth="1.5"/>
+                  </svg>
+                </div>
+                <div>
+                  <p style={styles.stepTitle}>Account created</p>
+                  <p style={styles.stepDesc}>Your credentials have been registered securely.</p>
+                </div>
+              </div>
+
+              <div style={styles.stepConnector} />
+
+              <div style={styles.step}>
+                <div style={{ ...styles.stepIcon, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="#f59e0b" strokeWidth="1.5"/>
+                    <path d="M12 8v4M12 16v.01" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <p style={styles.stepTitle}>Admin review <span style={styles.pendingBadge}>In progress</span></p>
+                  <p style={styles.stepDesc}>An administrator will review and approve your account.</p>
+                </div>
+              </div>
+
+              <div style={styles.stepConnector} />
+
+              <div style={styles.step}>
+                <div style={{ ...styles.stepIcon, background: 'rgba(100,116,139,0.08)', border: '1px solid rgba(100,116,139,0.15)' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 18l6-6-6-6" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <p style={{ ...styles.stepTitle, color: '#475569' }}>Access granted</p>
+                  <p style={styles.stepDesc}>You'll be able to sign in once approved.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={styles.actions}>
+              <button
+                id="pending-signout-btn"
+                onClick={handleSignOut}
+                style={styles.signOutBtn}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <polyline points="16 17 21 12 16 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
 
@@ -320,5 +331,45 @@ const styles = {
     marginTop: '24px',
     fontSize: '12px',
     color: '#334155',
+  },
+  ticketTop: {
+    width: '100%',
+  },
+  ticketBottom: {
+    width: '100%',
+  },
+  ticketDivider: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    margin: '24px -37px',
+    position: 'relative',
+    height: '24px',
+  },
+  notchLeft: {
+    width: '24px',
+    height: '24px',
+    borderRadius: '50%',
+    background: '#0f172a',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+    marginLeft: '-12px',
+    boxShadow: 'inset -4px 0 8px rgba(0, 0, 0, 0.4)',
+    zIndex: 2,
+  },
+  notchRight: {
+    width: '24px',
+    height: '24px',
+    borderRadius: '50%',
+    background: '#0f172a',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+    marginRight: '-12px',
+    boxShadow: 'inset 4px 0 8px rgba(0, 0, 0, 0.4)',
+    zIndex: 2,
+  },
+  perforation: {
+    flex: 1,
+    borderTop: '2px dashed rgba(245, 158, 11, 0.25)',
+    height: '1px',
+    margin: '0 8px',
   },
 };
