@@ -604,7 +604,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                   controller: coOpIdController,
                   decoration: InputDecoration(
                     labelText: 'Enter Co-Operator ID',
-                    hintText: 'e.g. OP_123',
+                    hintText: 'e.g. RSOP26-001',
                     prefixIcon: const Icon(Icons.badge_outlined),
                     filled: true,
                     fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,

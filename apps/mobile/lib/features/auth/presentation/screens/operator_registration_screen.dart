@@ -157,11 +157,11 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _formField(isDark, 'Full Name', Icons.person_outline, _nameC),
+                  _formField(isDark, 'Full Name', Icons.person_outline, _nameC, hintText: 'e.g. Nimal Perera'),
                   const SizedBox(height: 16),
-                  _formField(isDark, 'Gmail Address', Icons.email_outlined, _emailC),
+                  _formField(isDark, 'Gmail Address', Icons.email_outlined, _emailC, hintText: 'e.g. nimal@gmail.com'),
                   const SizedBox(height: 16),
-                  _formField(isDark, 'Phone Number', Icons.phone_outlined, _phoneC),
+                  _formField(isDark, 'Phone Number', Icons.phone_outlined, _phoneC, hintText: 'e.g. +94771234567'),
                 ],
               ),
             ),
@@ -171,7 +171,7 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
             isActive: _currentStep >= 1,
             content: Column(
               children: [
-                _formField(isDark, 'Password', Icons.lock_outline, _passC, isPassword: true),
+                _formField(isDark, 'Password', Icons.lock_outline, _passC, isPassword: true, hintText: 'Min 8 chars, 1 uppercase'),
                 const SizedBox(height: 16),
                 const Text('Choose a strong password for your operator portal.', style: TextStyle(fontSize: 12, color: Colors.grey)),
               ],
@@ -182,9 +182,9 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
             isActive: _currentStep >= 2,
             content: Column(
               children: [
-                _formField(isDark, 'Operator ID', Icons.badge, _operatorIdC),
+                _formField(isDark, 'Operator ID', Icons.badge, _operatorIdC, hintText: 'e.g. RSOP26-001'),
                 const SizedBox(height: 16),
-                _formField(isDark, 'National Identity Card (NIC)', Icons.credit_card_outlined, _nicC),
+                _formField(isDark, 'National Identity Card (NIC)', Icons.credit_card_outlined, _nicC, hintText: 'e.g. 199912345678 or 991234567V'),
               ],
             ),
           ),
@@ -193,17 +193,29 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
     );
   }
 
-  Widget _formField(bool isDark, String label, IconData icon, TextEditingController controller, {bool isPassword = false, TextInputType keyboardType = TextInputType.text}) {
+  Widget _formField(bool isDark, String label, IconData icon, TextEditingController controller, {bool isPassword = false, TextInputType keyboardType = TextInputType.text, String? hintText}) {
     return TextFormField(
       controller: controller,
       obscureText: isPassword,
       keyboardType: keyboardType,
+      style: TextStyle(fontWeight: FontWeight.w500, color: isDark ? Colors.white : AppColors.textDark),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon),
+        labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.grey.shade700),
+        hintText: hintText,
+        hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400, fontWeight: FontWeight.normal),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        prefixIcon: Icon(icon, color: isDark ? Colors.white54 : Colors.grey.shade500),
         filled: true,
-        fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.grey.shade300, width: 1.5),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primaryOrange, width: 2),
+        ),
       ),
     );
   }
