@@ -96,16 +96,7 @@ export const PendingApproval = () => {
             </div>
           </div>
 
-          {/* Info box */}
-          <div style={styles.infoBox}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <polyline points="22,6 12,13 2,6" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <p style={styles.infoText}>
-              You'll receive an email notification at <strong style={{ color: '#93c5fd' }}>{email}</strong> once your account is approved. If you haven't heard back in 24 hours, contact your system administrator.
-            </p>
-          </div>
+
 
           {/* Actions */}
           <div style={styles.actions}>
@@ -312,21 +303,7 @@ const styles = {
     padding: '1px 8px',
     letterSpacing: '0.04em',
   },
-  infoBox: {
-    display: 'flex',
-    gap: '10px',
-    alignItems: 'flex-start',
-    background: 'rgba(59,130,246,0.06)',
-    border: '1px solid rgba(59,130,246,0.2)',
-    borderRadius: '12px',
-    padding: '14px 16px',
-    marginBottom: '24px',
-  },
-  infoText: {
-    fontSize: '13px',
-    color: '#64748b',
-    lineHeight: 1.6,
-  },
+
   actions: {
     display: 'flex',
     justifyContent: 'center',
