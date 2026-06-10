@@ -156,16 +156,17 @@ export const SignUp = () => {
           <p style={styles.brandSub}>Create Your Admin Account</p>
         </div>
 
-        {/* Back Link */}
-        <RouterLink to="/login" style={styles.backLink} id="signup-back-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M12 5l-7 7 7 7" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          Back to login
-        </RouterLink>
+        <div className="auth-layout-wrapper">
+          {/* Back Link */}
+          <RouterLink to="/login" style={styles.backLink} id="signup-back-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M19 12H5M12 5l-7 7 7 7" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Back to login
+          </RouterLink>
 
-        {/* Card */}
-        <div className="ticket-card" style={styles.card}>
+          {/* Card */}
+          <div className="ticket-card" style={styles.card}>
           {success ? (
             /* Success State */
             <>
@@ -401,6 +402,7 @@ export const SignUp = () => {
             </>
           )}
         </div>
+        </div>
 
         <p style={styles.footer}>© 2025 RideSync LK · All rights reserved</p>
       </div>
@@ -435,6 +437,26 @@ export const SignUp = () => {
         }
         #signup-back-btn:active {
           transform: translateY(0);
+        }
+
+        /* Desktop Layout Wrapper (Side-by-side) */
+        @media (min-width: 1024px) {
+          .auth-layout-wrapper {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: flex-start !important;
+            gap: 32px !important;
+            width: 100% !important;
+            position: relative !important;
+          }
+          .ticket-container {
+            max-width: 1040px !important;
+          }
+          #signup-back-btn, #forgot-back-btn {
+            margin-bottom: 0 !important;
+            margin-top: 24px !important;
+            flex-shrink: 0 !important;
+          }
         }
 
         /* Desktop (Landscape) Ticket Styles */
