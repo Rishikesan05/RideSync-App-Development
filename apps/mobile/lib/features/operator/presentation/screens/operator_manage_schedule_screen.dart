@@ -22,6 +22,7 @@ class OperatorManageScheduleScreen extends StatefulWidget {
 class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScreen> {
   String _searchQuery = '';
   bool _isGridView = true;
+  String? _selectedStopFilter;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -83,7 +84,7 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
           return Column(
             children: [
               _buildHeader(widget.routeData, totalSeats, bookedCount, availableCount, boardedCount, isDark),
-              _buildSearchBar(isDark),
+              _buildFilterSection(liveSeats, isDark),
               if (_isGridView) _buildLegend(),
               Expanded(
                 child: _isGridView 
@@ -171,39 +172,82 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
     );
   }
 
-  Widget _buildSearchBar(bool isDark) {
+  Widget _buildFilterSection(List<Map<String, dynamic>> liveSeats, bool isDark) {
+    Set<String> stops = {};
+    for (var seat in liveSeats) {
+      if (seat['pickup'] != null) stops.add(seat['pickup'].toString());
+      if (seat['dropoff'] != null) stops.add(seat['dropoff'].toString());
+    }
+    List<String> sortedStops = stops.toList()..sort();
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-      child: TextField(
-        controller: _searchController,
-        onChanged: (val) {
-          setState(() {
-            _searchQuery = val.toLowerCase().trim();
-          });
-        },
-        decoration: InputDecoration(
-          hintText: 'Search by Name or Ticket ID (e.g. RS-1234)',
-          hintStyle: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade400, fontSize: 13),
-          prefixIcon: Icon(Icons.search, color: AppColors.primaryOrange),
-          suffixIcon: _searchQuery.isNotEmpty 
-              ? IconButton(
-                  icon: const Icon(Icons.clear, size: 20),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() {
-                      _searchQuery = '';
-                    });
-                  },
-                )
-              : null,
-          filled: true,
-          fillColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
+      child: Column(
+        children: [
+          TextField(
+            controller: _searchController,
+            onChanged: (val) {
+              setState(() {
+                _searchQuery = val.toLowerCase().trim();
+              });
+            },
+            decoration: InputDecoration(
+              hintText: 'Search by Name or Ticket ID (e.g. RS-1234)',
+              hintStyle: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade400, fontSize: 13),
+              prefixIcon: const Icon(Icons.search, color: AppColors.primaryOrange),
+              suffixIcon: _searchQuery.isNotEmpty 
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 20),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {
+                          _searchQuery = '';
+                        });
+                      },
+                    )
+                  : null,
+              filled: true,
+              fillColor: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 0),
+            ),
           ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 0),
-        ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _selectedStopFilter,
+                hint: Text('Filter by Stop (Pickup or Dropoff)', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 13)),
+                isExpanded: true,
+                dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                icon: const Icon(Icons.location_on, color: AppColors.primaryOrange, size: 20),
+                items: [
+                  DropdownMenuItem<String>(
+                    value: null,
+                    child: Text('All Stops', style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
+                  ),
+                  ...sortedStops.map((stop) => DropdownMenuItem(
+                    value: stop,
+                    child: Text(stop, style: TextStyle(color: isDark ? Colors.white : Colors.black87)),
+                  )),
+                ],
+                onChanged: (val) {
+                  setState(() {
+                    _selectedStopFilter = val;
+                  });
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -314,12 +358,30 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
             bool isBoarded = liveData['status'] == 'boarded';
 
             bool isHighlighted = false;
-            if (_searchQuery.isNotEmpty && (isBooked || isBoarded || isReserved)) {
-              final name = (liveData['passengerName'] ?? '').toString().toLowerCase();
-              final ticket = (liveData['ticketCode'] ?? '').toString().toLowerCase();
-              if (name.contains(_searchQuery) || ticket.contains(_searchQuery)) {
-                isHighlighted = true;
+            bool isDimmed = false;
+            
+            if (isBooked || isBoarded || isReserved) {
+              if (_searchQuery.isNotEmpty) {
+                final name = (liveData['passengerName'] ?? '').toString().toLowerCase();
+                final ticket = (liveData['ticketCode'] ?? '').toString().toLowerCase();
+                if (name.contains(_searchQuery) || ticket.contains(_searchQuery)) {
+                  isHighlighted = true;
+                }
               }
+              
+              if (_selectedStopFilter != null) {
+                final pickup = liveData['pickup']?.toString();
+                final dropoff = liveData['dropoff']?.toString();
+                if (pickup != _selectedStopFilter && dropoff != _selectedStopFilter) {
+                  isDimmed = true;
+                  isHighlighted = false; // Overrule highlight if it doesn't match the stop
+                } else if (_searchQuery.isEmpty) {
+                  isHighlighted = true; // Highlight if it matches stop filter and no search query is typed
+                }
+              }
+            } else if (_selectedStopFilter != null || _searchQuery.isNotEmpty) {
+               // Dim empty seats when a filter is active
+               isDimmed = true;
             }
 
             return _OperatorSeatWidget(
@@ -329,6 +391,7 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
               isBoarded: isBoarded,
               isBlocked: isBlocked,
               isHighlighted: isHighlighted,
+              isDimmed: isDimmed,
               isDark: isDark,
               onTap: () {
                 if (isBooked || isReserved || isBoarded) {
@@ -361,19 +424,30 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
       return ['sold', 'occupied', 'boarded', 'reserved'].contains(status);
     }).toList();
 
-    // Apply search filter if active
-    final List<Map<String, dynamic>> displayedSeats = _searchQuery.isEmpty 
-        ? bookedSeats 
-        : bookedSeats.where((s) {
-            final name = (s['passengerName'] ?? '').toString().toLowerCase();
-            final ticket = (s['ticketCode'] ?? '').toString().toLowerCase();
-            return name.contains(_searchQuery) || ticket.contains(_searchQuery);
-          }).toList();
+    // Apply search and stop filters if active
+    final List<Map<String, dynamic>> displayedSeats = bookedSeats.where((s) {
+      bool matchesSearch = true;
+      bool matchesStop = true;
+      
+      if (_searchQuery.isNotEmpty) {
+        final name = (s['passengerName'] ?? '').toString().toLowerCase();
+        final ticket = (s['ticketCode'] ?? '').toString().toLowerCase();
+        matchesSearch = name.contains(_searchQuery) || ticket.contains(_searchQuery);
+      }
+      
+      if (_selectedStopFilter != null) {
+        final pickup = s['pickup']?.toString();
+        final dropoff = s['dropoff']?.toString();
+        matchesStop = (pickup == _selectedStopFilter || dropoff == _selectedStopFilter);
+      }
+      
+      return matchesSearch && matchesStop;
+    }).toList();
 
     if (displayedSeats.isEmpty) {
       return Center(
         child: Text(
-          _searchQuery.isNotEmpty ? 'No passengers found matching "$_searchQuery"' : 'No passengers booked yet.',
+          (_searchQuery.isNotEmpty || _selectedStopFilter != null) ? 'No passengers found matching the filters' : 'No passengers booked yet.',
           style: TextStyle(color: isDark ? Colors.white54 : AppColors.textLight, fontSize: 16),
         ),
       );
@@ -638,6 +712,7 @@ class _OperatorSeatWidget extends StatelessWidget {
   final bool isBoarded;
   final bool isBlocked;
   final bool isHighlighted;
+  final bool isDimmed;
   final bool isDark;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
@@ -649,6 +724,7 @@ class _OperatorSeatWidget extends StatelessWidget {
     required this.isBoarded,
     required this.isBlocked,
     this.isHighlighted = false,
+    this.isDimmed = false,
     required this.isDark,
     required this.onTap,
     this.onLongPress,
@@ -676,37 +752,40 @@ class _OperatorSeatWidget extends StatelessWidget {
       textColor = isDark ? Colors.white70 : AppColors.textDark;
     }
 
-    return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      child: Container(
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(8),
-          border: isHighlighted
-              ? Border.all(color: Colors.yellowAccent, width: 3)
-              : Border.all(
-                  color: isReserved 
-                      ? AppColors.primaryOrange 
-                      : ((isBooked || isBoarded || isBlocked) ? Colors.transparent : (isDark ? Colors.white10 : Colors.grey.shade200)),
-                ),
-          boxShadow: isHighlighted 
-              ? [BoxShadow(color: Colors.yellowAccent.withValues(alpha: 0.6), blurRadius: 12, spreadRadius: 2)]
-              : (isReserved ? [BoxShadow(color: AppColors.primaryOrange.withValues(alpha: 0.3), blurRadius: 8)] : null),
+    return Opacity(
+      opacity: isDimmed ? 0.3 : 1.0,
+      child: GestureDetector(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: Container(
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(8),
+            border: isHighlighted
+                ? Border.all(color: Colors.yellowAccent, width: 3)
+                : Border.all(
+                    color: isReserved 
+                        ? AppColors.primaryOrange 
+                        : ((isBooked || isBoarded || isBlocked) ? Colors.transparent : (isDark ? Colors.white10 : Colors.grey.shade200)),
+                  ),
+            boxShadow: isHighlighted 
+                ? [BoxShadow(color: Colors.yellowAccent.withValues(alpha: 0.6), blurRadius: 12, spreadRadius: 2)]
+                : (isReserved ? [BoxShadow(color: AppColors.primaryOrange.withValues(alpha: 0.3), blurRadius: 8)] : null),
+          ),
+          child: isBlocked
+              ? const Icon(Icons.close, color: Colors.white, size: 16)
+              : (isBoarded
+                  ? const Icon(Icons.check, color: Colors.white, size: 16)
+                  : Text(
+                      number,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: (isBooked || isReserved) ? FontWeight.bold : FontWeight.w500,
+                        color: textColor,
+                      ),
+                    )),
         ),
-        child: isBlocked
-            ? const Icon(Icons.close, color: Colors.white, size: 16)
-            : (isBoarded
-                ? const Icon(Icons.check, color: Colors.white, size: 16)
-                : Text(
-                    number,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: (isBooked || isReserved) ? FontWeight.bold : FontWeight.w500,
-                      color: textColor,
-                    ),
-                  )),
       ),
     );
   }
