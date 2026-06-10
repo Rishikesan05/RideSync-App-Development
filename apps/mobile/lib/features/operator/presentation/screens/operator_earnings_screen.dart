@@ -203,6 +203,29 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Cash out request initiated!')),
+              );
+            },
+            icon: const Icon(Icons.account_balance_rounded, size: 18),
+            label: const Text('Cash Out to Bank', style: TextStyle(fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFFE65100),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              elevation: 8,
+              shadowColor: Colors.black.withValues(alpha: 0.2),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Next automatic payout: Friday, 12th June',
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.w500),
+          ),
           const SizedBox(height: 32),
           // Glassmorphic Stats Row
           ClipRRect(
