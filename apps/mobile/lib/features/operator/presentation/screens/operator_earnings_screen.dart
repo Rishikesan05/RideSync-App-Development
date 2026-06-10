@@ -218,11 +218,11 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
           ElevatedButton.icon(
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Cash out request initiated!')),
+                const SnackBar(content: Text('Cash handover logged!')),
               );
             },
             icon: const Icon(Icons.account_balance_rounded, size: 18),
-            label: const Text('Cash Out to Bank', style: TextStyle(fontWeight: FontWeight.bold)),
+            label: const Text('Log Cash Handover', style: TextStyle(fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: const Color(0xFFE65100),
@@ -234,7 +234,7 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Next automatic payout: Friday, 12th June',
+            'Next required depot handover: Friday, 12th June',
             style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 32),
@@ -301,17 +301,17 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(color: isDark ? Colors.green.withValues(alpha: 0.15) : Colors.green.shade50, borderRadius: BorderRadius.circular(8)),
-                      child: Icon(Icons.payments_rounded, color: Colors.green.shade600, size: 16),
+                      decoration: BoxDecoration(color: isDark ? Colors.orange.withValues(alpha: 0.15) : Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
+                      child: Icon(Icons.warning_amber_rounded, color: Colors.orange.shade600, size: 16),
                     ),
                     const SizedBox(width: 8),
-                    Text('Cash in Hand', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w600)),
+                    Text('Pending Handover', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w600)),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text('LKR 12,500', style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                Text('Collected physically', style: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400, fontSize: 10)),
+                Text('Cash currently in hand', style: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400, fontSize: 10)),
               ],
             ),
           ),
@@ -335,17 +335,17 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(color: isDark ? Colors.blue.withValues(alpha: 0.15) : Colors.blue.shade50, borderRadius: BorderRadius.circular(8)),
-                      child: Icon(Icons.account_balance_rounded, color: Colors.blue.shade600, size: 16),
+                      decoration: BoxDecoration(color: isDark ? Colors.green.withValues(alpha: 0.15) : Colors.green.shade50, borderRadius: BorderRadius.circular(8)),
+                      child: Icon(Icons.check_circle_outline_rounded, color: Colors.green.shade600, size: 16),
                     ),
                     const SizedBox(width: 8),
-                    Text('Digital / Card', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w600)),
+                    Text('Deposited to Depot', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w600)),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text('LKR 56,000', style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                Text('Owed by RideSync', style: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400, fontSize: 10)),
+                Text('Already handed over', style: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400, fontSize: 10)),
               ],
             ),
           ),
