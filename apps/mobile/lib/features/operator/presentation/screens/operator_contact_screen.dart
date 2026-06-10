@@ -219,41 +219,77 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
   }
 
   void _showNewTicketBottomSheet(BuildContext context, bool isDark) {
+    String selectedIssue = '🚍 Bus Breakdown';
+    final List<String> issues = [
+      '🚍 Bus Breakdown',
+      '⏱️ Heavy Traffic / Schedule Delay',
+      '👥 Passenger Dispute',
+      '📱 Ticket Scanner Issue',
+      '➕ Other',
+    ];
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 24,
-          right: 24,
-          top: 24,
-        ),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? Colors.white24 : Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 24,
+              right: 24,
+              top: 24,
             ),
-            const SizedBox(height: 24),
-            Text('Report an Issue', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
-            const SizedBox(height: 16),
-            TextField(
-              decoration: InputDecoration(
-                hintText: 'Ticket Subject',
-                hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400),
-                filled: true,
-                fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-              ),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             ),
-            const SizedBox(height: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? Colors.white24 : Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+                ),
+                const SizedBox(height: 24),
+                Text('Report an Issue', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedIssue,
+                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  ),
+                  items: issues.map((String issue) {
+                    return DropdownMenuItem<String>(
+                      value: issue,
+                      child: Text(issue, style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontSize: 14, fontWeight: FontWeight.w500)),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        selectedIssue = newValue;
+                      });
+                    }
+                  },
+                ),
+                if (selectedIssue == '➕ Other') ...[
+                  const SizedBox(height: 16),
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Specify reason...',
+                      hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400),
+                      filled: true,
+                      fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
             TextField(
               maxLines: 4,
               decoration: InputDecoration(
@@ -318,9 +354,11 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
             const SizedBox(height: 24),
           ],
         ),
-      ),
-    );
-  }
+      );
+    },
+  ),
+);
+}
 
   Future<void> _launchWhatsApp(String phone) async {
     final Uri url = Uri.parse('https://wa.me/$phone');
