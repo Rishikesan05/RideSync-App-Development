@@ -107,31 +107,26 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
 
   // ── Submit ─────────────────────────────────────────────────────────────────
   const handleFormSubmit = async (data) => {
-    // Validate opId
+    // Validate opId against the operator collection
     try {
-      let isValidOperator = false;
-      
-      // 1. Check if the ID exists in the dedicated 'operator' collection
+      // Check operator collection (document ID = opId)
       const opRef = doc(db, 'operator', data.opId);
       const opSnap = await getDoc(opRef);
-      if (opSnap.exists()) {
-        isValidOperator = true;
-      } else {
-        // 2. Fallback: check if it exists in 'users' collection with role 'operator'
-        const userRef = doc(db, 'users', data.opId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists() && userSnap.data().role === 'operator') {
-          isValidOperator = true;
-        }
+
+      if (!opSnap.exists()) {
+        setError('opId', { type: 'manual', message: 'Operator ID not found. Please enter a valid Operator ID.' });
+        return;
       }
 
-      if (!isValidOperator) {
-        setError('opId', { type: 'manual', message: 'Operator ID does not exist or user is not an operator' });
+      // Extra safety: ensure the document has role === 'operator'
+      const opData = opSnap.data();
+      if (opData.role && opData.role !== 'operator') {
+        setError('opId', { type: 'manual', message: 'This ID does not belong to an operator.' });
         return;
       }
     } catch (err) {
       console.error('Error validating operator ID', err);
-      setError('opId', { type: 'manual', message: 'Error validating Operator ID' });
+      setError('opId', { type: 'manual', message: err.message || 'Error validating Operator ID' });
       return;
     }
 
