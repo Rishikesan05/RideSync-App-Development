@@ -140,7 +140,7 @@ export const SignUp = () => {
 
   return (
     <div style={styles.page}>
-      <div style={styles.orb1} />
+
       <div style={styles.orb2} />
       <div style={styles.orb3} />
 
@@ -355,7 +355,7 @@ export const SignUp = () => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        @keyframes orb1Float { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(40px,-60px) scale(1.1); } }
+
         @keyframes orb2Float { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-50px,40px) scale(0.9); } }
         @keyframes orb3Float { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,50px) scale(1.05); } }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -390,17 +390,7 @@ const styles = {
     overflow: 'hidden',
     padding: '24px 0',
   },
-  orb1: {
-    position: 'fixed',
-    top: '-10%',
-    left: '-5%',
-    width: '500px',
-    height: '500px',
-    borderRadius: '50%',
-    background: 'radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%)',
-    animation: 'orb1Float 8s ease-in-out infinite',
-    pointerEvents: 'none',
-  },
+
   orb2: {
     position: 'fixed',
     bottom: '-15%',

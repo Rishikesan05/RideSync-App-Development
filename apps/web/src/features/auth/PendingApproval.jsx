@@ -16,7 +16,7 @@ export const PendingApproval = () => {
 
   return (
     <div style={styles.page}>
-      <div style={styles.orb1} />
+
       <div style={styles.orb2} />
 
 
@@ -121,7 +121,7 @@ export const PendingApproval = () => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        @keyframes orb1Float { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(40px,-60px) scale(1.1); } }
+
         @keyframes orb2Float { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-50px,40px) scale(0.9); } }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity: 0.4; } }
@@ -148,17 +148,7 @@ const styles = {
     overflow: 'hidden',
     padding: '32px 20px',
   },
-  orb1: {
-    position: 'fixed',
-    top: '-10%',
-    left: '-5%',
-    width: '500px',
-    height: '500px',
-    borderRadius: '50%',
-    background: 'radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)',
-    animation: 'orb1Float 8s ease-in-out infinite',
-    pointerEvents: 'none',
-  },
+
   orb2: {
     position: 'fixed',
     bottom: '-15%',
