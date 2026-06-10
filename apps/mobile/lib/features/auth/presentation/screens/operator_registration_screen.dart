@@ -3,14 +3,14 @@ import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:ridesync/core/constants.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class DriverRegistrationScreen extends StatefulWidget {
-  const DriverRegistrationScreen({super.key});
+class OperatorRegistrationScreen extends StatefulWidget {
+  const OperatorRegistrationScreen({super.key});
 
   @override
-  State<DriverRegistrationScreen> createState() => _DriverRegistrationScreenState();
+  State<OperatorRegistrationScreen> createState() => _OperatorRegistrationScreenState();
 }
 
-class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
+class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameC = TextEditingController();
   final _emailC = TextEditingController();
@@ -18,6 +18,8 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
   final _passC = TextEditingController();
   final _licenseC = TextEditingController();
   final _experienceC = TextEditingController();
+  final _operatorIdC = TextEditingController();
+  final _nicC = TextEditingController();
 
   int _currentStep = 0;
   bool _isLoading = false;
@@ -31,6 +33,8 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
     _passC.dispose();
     _licenseC.dispose();
     _experienceC.dispose();
+    _operatorIdC.dispose();
+    _nicC.dispose();
     super.dispose();
   }
 
@@ -60,11 +64,13 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
 
       // 3. Create Operator Profile Doc
       await firestore.collection('operators').doc(cred.user!.uid).set({
+        'operatorId': _operatorIdC.text.trim(),
         'displayName': _nameC.text.trim(),
         'email': _emailC.text.trim(),
         'phone': _phoneC.text.trim(),
         'operatorType': _operatorType,
-        'licenseOrNIC': _licenseC.text.trim(),
+        'nic': _nicC.text.trim(),
+        'licenseNumber': _operatorType == 'driver' ? _licenseC.text.trim() : null,
         'experienceYears': _operatorType == 'driver' ? (int.tryParse(_experienceC.text.trim()) ?? 0) : 0,
         'status': 'pending_review',
         'registrationDate': FieldValue.serverTimestamp(),
@@ -211,8 +217,12 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
             isActive: _currentStep >= 2,
             content: Column(
               children: [
-                _formField(isDark, _operatorType == 'driver' ? 'License Number' : 'National Identity Card (NIC)', Icons.badge_outlined, _licenseC),
+                _formField(isDark, 'Operator ID', Icons.badge, _operatorIdC),
+                const SizedBox(height: 16),
+                _formField(isDark, 'National Identity Card (NIC)', Icons.credit_card_outlined, _nicC),
                 if (_operatorType == 'driver') ...[
+                  const SizedBox(height: 16),
+                  _formField(isDark, 'License Number', Icons.drive_eta_outlined, _licenseC),
                   const SizedBox(height: 16),
                   _formField(isDark, 'Years of Experience', Icons.history_edu_outlined, _experienceC, keyboardType: TextInputType.number),
                 ],
