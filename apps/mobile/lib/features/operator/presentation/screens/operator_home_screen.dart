@@ -591,12 +591,25 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Enter Trip Code', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                    Text('Start Scheduled Journey', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
                     IconButton(
                       icon: Icon(Icons.close, color: isDark ? Colors.white54 : Colors.black54),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
+                ),
+                const SizedBox(height: 16),
+                
+                TextField(
+                  controller: coOpIdController,
+                  decoration: InputDecoration(
+                    labelText: 'Enter Co-Operator ID',
+                    hintText: 'e.g. OP_123',
+                    prefixIcon: const Icon(Icons.badge_outlined),
+                    filled: true,
+                    fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 
@@ -625,8 +638,19 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: isSubmitting ? null : () async {
+                      if (coOpIdController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter the assigned Co-Operator ID to start')));
+                        return;
+                      }
+
+                      final scheduledCoOpId = trip['coOperatorId']?.toString().trim() ?? '';
+                      if (scheduledCoOpId.isNotEmpty && coOpIdController.text.trim() != scheduledCoOpId) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Co-Operator ID does not match the scheduled route!')));
+                        return;
+                      }
+
                       setStateModal(() => isSubmitting = true);
-                      await _startJourney(trip['id'], '', ''); // No co-operator
+                      await _startJourney(trip['id'], '', coOpIdController.text.trim());
                       setStateModal(() => isSubmitting = false);
                       
                       if (context.mounted) {
