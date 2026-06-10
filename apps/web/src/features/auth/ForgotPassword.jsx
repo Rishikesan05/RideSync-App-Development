@@ -183,21 +183,7 @@ export const ForgotPassword = () => {
                 </button>
               </form>
 
-              {/* Tips */}
-              <div style={styles.tipsBox}>
-                <p style={styles.tipsTitle}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{flexShrink: 0}}>
-                    <circle cx="12" cy="12" r="10" stroke="#f59e0b" strokeWidth="1.5"/>
-                    <path d="M12 8v4M12 16v.01" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                  Tips
-                </p>
-                <ul style={styles.tipsList}>
-                  <li>Check your spam or junk folder</li>
-                  <li>The link expires in 1 hour</li>
-                  <li>Use the same email you signed up with</li>
-                </ul>
-              </div>
+
 
               <p style={styles.loginPrompt}>
                 Remember your password?{' '}
@@ -458,29 +444,7 @@ const styles = {
     borderRadius: '50%',
     animation: 'spin 0.8s linear infinite',
   },
-  tipsBox: {
-    marginTop: '20px',
-    background: 'rgba(245,158,11,0.05)',
-    border: '1px solid rgba(245,158,11,0.15)',
-    borderRadius: '12px',
-    padding: '14px 16px',
-  },
-  tipsTitle: {
-    fontSize: '13px',
-    fontWeight: 600,
-    color: '#f59e0b',
-    marginBottom: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-  },
-  tipsList: {
-    listStyle: 'none',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-    paddingLeft: '20px',
-  },
+
   loginPrompt: {
     textAlign: 'center',
     marginTop: '20px',
