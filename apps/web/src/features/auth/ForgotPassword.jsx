@@ -520,7 +520,7 @@ const styles = {
   },
   successNote: {
     fontSize: '13px',
-    color: '#475569',
+    color: '#94a3b8',
     lineHeight: 1.6,
   },
   resendBtn: {
