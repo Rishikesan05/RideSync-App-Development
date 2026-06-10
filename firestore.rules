@@ -21,9 +21,9 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.token.role == 'admin';
     }
 
-    // NEW: operator collection
+    // NEW: operator collection - public read so opId can be validated
     match /operator/{uid} {
-      allow read: if request.auth != null;
+      allow read: if true;
       allow write: if hasRole('admin');
     }
 
