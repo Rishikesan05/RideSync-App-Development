@@ -59,6 +59,8 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _buildEarningsBreakdown(isDark),
+                        const SizedBox(height: 24),
                         _buildChartSection(isDark),
                         const SizedBox(height: 32),
                         Row(
@@ -274,6 +276,80 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
         Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
         const SizedBox(height: 2),
         Text(label, style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w500)),
+      ],
+    );
+  }
+
+  Widget _buildEarningsBreakdown(bool isDark) {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+              boxShadow: [
+                if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(color: isDark ? Colors.green.withValues(alpha: 0.15) : Colors.green.shade50, borderRadius: BorderRadius.circular(8)),
+                      child: Icon(Icons.payments_rounded, color: Colors.green.shade600, size: 16),
+                    ),
+                    const SizedBox(width: 8),
+                    Text('Cash in Hand', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text('LKR 12,500', style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text('Collected physically', style: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400, fontSize: 10)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+              boxShadow: [
+                if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(color: isDark ? Colors.blue.withValues(alpha: 0.15) : Colors.blue.shade50, borderRadius: BorderRadius.circular(8)),
+                      child: Icon(Icons.account_balance_rounded, color: Colors.blue.shade600, size: 16),
+                    ),
+                    const SizedBox(width: 8),
+                    Text('Digital / Card', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text('LKR 56,000', style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text('Owed by RideSync', style: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400, fontSize: 10)),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
