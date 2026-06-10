@@ -59,12 +59,11 @@ export const Login = () => {
   return (
     <div style={styles.page}>
       {/* Animated background orbs */}
-      <div style={styles.orb1} />
+
       <div style={styles.orb2} />
       <div style={styles.orb3} />
 
-      {/* Grid overlay */}
-      <div style={styles.gridOverlay} />
+
 
       <div style={styles.container}>
         {/* Logo & Brand */}
@@ -210,10 +209,7 @@ export const Login = () => {
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        @keyframes orb1Float {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(40px, -60px) scale(1.1); }
-        }
+
         @keyframes orb2Float {
           0%, 100% { transform: translate(0, 0) scale(1); }
           50% { transform: translate(-50px, 40px) scale(0.9); }
@@ -258,17 +254,7 @@ const styles = {
     position: 'relative',
     overflow: 'hidden',
   },
-  orb1: {
-    position: 'fixed',
-    top: '-10%',
-    left: '-5%',
-    width: '500px',
-    height: '500px',
-    borderRadius: '50%',
-    background: 'radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%)',
-    animation: 'orb1Float 8s ease-in-out infinite',
-    pointerEvents: 'none',
-  },
+
   orb2: {
     position: 'fixed',
     bottom: '-15%',
@@ -291,13 +277,7 @@ const styles = {
     animation: 'orb3Float 12s ease-in-out infinite',
     pointerEvents: 'none',
   },
-  gridOverlay: {
-    position: 'fixed',
-    inset: 0,
-    backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
-    backgroundSize: '60px 60px',
-    pointerEvents: 'none',
-  },
+
   container: {
     position: 'relative',
     zIndex: 10,

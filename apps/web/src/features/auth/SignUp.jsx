@@ -140,20 +140,14 @@ export const SignUp = () => {
 
   return (
     <div style={styles.page}>
-      <div style={styles.orb1} />
+
       <div style={styles.orb2} />
       <div style={styles.orb3} />
-      <div style={styles.gridOverlay} />
+
 
       <div style={styles.container}>
         {/* Brand */}
         <div style={styles.brand}>
-          <RouterLink to="/login" style={styles.backLink} id="signup-back-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M19 12H5M12 5l-7 7 7 7" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Back to login
-          </RouterLink>
           <img
             src="/ridesync-logo.jpeg"
             alt="RideSync"
@@ -161,6 +155,14 @@ export const SignUp = () => {
           />
           <p style={styles.brandSub}>Create Your Admin Account</p>
         </div>
+
+        {/* Back Link */}
+        <RouterLink to="/login" style={styles.backLink} id="signup-back-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M12 5l-7 7 7 7" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Back to login
+        </RouterLink>
 
         {/* Card */}
         <div style={styles.card}>
@@ -355,7 +357,7 @@ export const SignUp = () => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        @keyframes orb1Float { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(40px,-60px) scale(1.1); } }
+
         @keyframes orb2Float { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-50px,40px) scale(0.9); } }
         @keyframes orb3Float { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,50px) scale(1.05); } }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -372,6 +374,16 @@ export const SignUp = () => {
           border-color: rgba(245,158,11,0.5) !important;
           box-shadow: 0 0 0 3px rgba(245,158,11,0.1) !important;
           outline: none;
+        }
+        #signup-back-btn:hover {
+          color: #f8fafc !important;
+          background: rgba(245, 158, 11, 0.1) !important;
+          border-color: rgba(245, 158, 11, 0.4) !important;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        #signup-back-btn:active {
+          transform: translateY(0);
         }
       `}</style>
     </div>
@@ -390,17 +402,7 @@ const styles = {
     overflow: 'hidden',
     padding: '24px 0',
   },
-  orb1: {
-    position: 'fixed',
-    top: '-10%',
-    left: '-5%',
-    width: '500px',
-    height: '500px',
-    borderRadius: '50%',
-    background: 'radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%)',
-    animation: 'orb1Float 8s ease-in-out infinite',
-    pointerEvents: 'none',
-  },
+
   orb2: {
     position: 'fixed',
     bottom: '-15%',
@@ -423,13 +425,7 @@ const styles = {
     animation: 'orb3Float 12s ease-in-out infinite',
     pointerEvents: 'none',
   },
-  gridOverlay: {
-    position: 'fixed',
-    inset: 0,
-    backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
-    backgroundSize: '60px 60px',
-    pointerEvents: 'none',
-  },
+
   container: {
     position: 'relative',
     zIndex: 10,
@@ -444,17 +440,21 @@ const styles = {
     position: 'relative',
   },
   backLink: {
-    position: 'absolute',
-    left: 0,
-    top: '4px',
-    display: 'flex',
+    display: 'inline-flex',
     alignItems: 'center',
-    gap: '6px',
+    gap: '8px',
     color: '#94a3b8',
+    background: 'rgba(30, 41, 59, 0.5)',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    borderRadius: '10px',
+    padding: '8px 16px',
     textDecoration: 'none',
     fontSize: '13px',
     fontWeight: 500,
-    transition: 'color 0.2s',
+    marginBottom: '16px',
+    transition: 'all 0.25s ease',
   },
   logoImg: {
     width: '200px',
