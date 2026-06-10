@@ -604,7 +604,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                   controller: coOpIdController,
                   decoration: InputDecoration(
                     labelText: 'Enter Co-Operator ID',
-                    hintText: 'e.g. RSOP26-001',
+                    hintText: 'e.g. RSCOP26-001',
                     prefixIcon: const Icon(Icons.badge_outlined),
                     filled: true,
                     fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
@@ -638,13 +638,19 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: isSubmitting ? null : () async {
-                      if (coOpIdController.text.trim().isEmpty) {
+                      final enteredId = coOpIdController.text.trim().toUpperCase();
+                      if (enteredId.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter the assigned Co-Operator ID to start')));
                         return;
                       }
+                      
+                      if (!enteredId.startsWith('RSCOP')) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('A Driver (RSCOP format) must be assigned as Co-Operator!')));
+                        return;
+                      }
 
-                      final scheduledCoOpId = trip['coOperatorId']?.toString().trim() ?? '';
-                      if (scheduledCoOpId.isNotEmpty && coOpIdController.text.trim() != scheduledCoOpId) {
+                      final scheduledCoOpId = trip['coOperatorId']?.toString().trim().toUpperCase() ?? '';
+                      if (scheduledCoOpId.isNotEmpty && enteredId != scheduledCoOpId) {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Co-Operator ID does not match the scheduled route!')));
                         return;
                       }
