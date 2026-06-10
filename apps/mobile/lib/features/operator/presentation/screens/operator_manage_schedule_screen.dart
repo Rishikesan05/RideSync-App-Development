@@ -35,10 +35,7 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
-    // Use route id as schedule ID, or fallback
     final scheduleId = widget.routeData['id'] ?? 'dummy_schedule_id';
-    
-    // Default capacity to 54 if not provided
     final capacity = (widget.routeData['capacity'] ?? 54).toString();
 
     return Scaffold(
@@ -71,11 +68,6 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
           List<Map<String, dynamic>> liveSeats = snapshot.data ?? [];
           final blueprint = SeatLayoutEngine.generateLayout(capacity);
 
-          // Generate dummy bookings if none exist for demonstration purposes
-          if (liveSeats.isEmpty) {
-            liveSeats = _generateDummyBookings(blueprint);
-          }
-
           int bookedCount = liveSeats.where((s) => s['status'] == 'sold' || s['status'] == 'occupied' || s['status'] == 'boarded').length;
           int boardedCount = liveSeats.where((s) => s['status'] == 'boarded').length;
           int totalSeats = int.tryParse(capacity) ?? 54;
@@ -100,30 +92,6 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
       ),
     );
   }
-
-  List<Map<String, dynamic>> _generateDummyBookings(List<BusSeatBlueprint> blueprint) {
-    final random = math.Random(widget.routeData['id'].hashCode);
-    List<Map<String, dynamic>> dummies = [];
-    for (var bp in blueprint) {
-      if (!bp.isAisle && !bp.isSpacer) {
-        // Randomly assign some seats as booked or boarded
-        if (random.nextDouble() > 0.7) {
-          bool isBoarded = random.nextDouble() > 0.5;
-          dummies.add({
-            'seatNumber': bp.seatNumber,
-            'status': isBoarded ? 'boarded' : 'sold',
-            'ticketCode': 'RS-${random.nextInt(9000) + 1000}',
-            'passengerId': 'USR-${random.nextInt(9000) + 1000}',
-            'passengerName': 'Passenger ${random.nextInt(100)}',
-            'pickup': 'Stop ${random.nextInt(5) + 1}',
-            'dropoff': 'Stop ${random.nextInt(5) + 6}',
-          });
-        }
-      }
-    }
-    return dummies;
-  }
-
   Widget _buildHeader(Map<String, dynamic> route, int total, int booked, int available, int boarded, bool isDark) {
     return Container(
       width: double.infinity,
@@ -406,7 +374,6 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
               },
               onLongPress: () {
                 if (!isBooked && !isReserved && !isBoarded) {
-                  // Pass a dummy scheduleId for demonstration if routeData lacks it
                   _showBlockSeatDialog(context, widget.routeData['id'] ?? 'dummy_schedule_id', bp.seatNumber, isBlocked);
                 }
               },
@@ -669,6 +636,36 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
             const SizedBox(height: 16),
             _detailRow(Icons.location_on, 'Drop-off', bookingData['dropoff'] ?? 'Kaduwela', isDark),
             const SizedBox(height: 32),
+            if (bookingData['status'] == 'boarded') ...[
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    final scheduleId = widget.routeData['id'] ?? 'dummy_schedule_id';
+                    await FirebaseFirestore.instance
+                        .collection('schedules')
+                        .doc(scheduleId)
+                        .collection('seats')
+                        .doc(seatNumber)
+                        .delete();
+                    
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Passenger at seat $seatNumber has been dropped off.')),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade600,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Drop Off Passenger', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
