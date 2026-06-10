@@ -3,6 +3,9 @@
  *
  * Central Express setup with all middleware and route mounting.
  */
+// Load environment variables from .env FIRST — must be before any module that reads process.env
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -23,6 +26,11 @@ const usersController = require('./modules/users/users.controller');
 
 const app = express();
 
+// ─── Trust Proxy (REQUIRED for Cloud Run / Firebase Functions) ───
+// Cloud Run runs behind Google's load balancer which sets X-Forwarded-For.
+// Without this, express-rate-limit throws a ValidationError on every request.
+app.set('trust proxy', 1);
+
 // ─── Global Middleware ───────────────────────────────────────────
 
 // CORS — allow all origins for development, restrict in production
@@ -42,6 +50,8 @@ app.use(
     max: 100,
     standardHeaders: true,
     legacyHeaders: false,
+    // Required for Cloud Run — trust the X-Forwarded-For header from the load balancer
+    validate: { xForwardedForHeader: false },
     message: { success: false, error: 'Too many requests, please try again later.' },
   })
 );

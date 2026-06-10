@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/core/widgets/ridesync_ui.dart';
@@ -26,6 +27,8 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
 
   late AnimationController _animController;
   late AnimationController _radarAnimController;
+  final TextEditingController _ticketController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -47,6 +50,8 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
   void dispose() {
     _animController.dispose();
     _radarAnimController.dispose();
+    _ticketController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -172,6 +177,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
         onRefresh: _fetchOperatorData,
         color: AppColors.primaryOrange,
         child: SingleChildScrollView(
+          controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.only(bottom: 120),
           child: Stack(
@@ -199,12 +205,12 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                         if (_isLoading)
                           _buildSkeletonLoading(isDark)
                         else ...[
-                          _buildSummaryCards(isDark),
-                          const SizedBox(height: 18),
-                          _buildQuickActions(isDark),
+                          _buildTicketVerification(isDark),
                           const SizedBox(height: AppStyles.sectionSpacing),
                           if (_activeTrip != null) ...[
                             _buildActiveTripCard(_activeTrip!, isDark),
+                            const SizedBox(height: AppStyles.sectionSpacing),
+                            _buildLiveTrackingMap(isDark),
                             const SizedBox(height: AppStyles.sectionSpacing),
                           ],
                           const RideSyncSectionHeader(title: 'Today\'s Schedule'),
@@ -256,209 +262,90 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
     );
   }
 
-  Widget _buildQuickActions(bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const RideSyncSectionHeader(
-          title: 'Quick Actions',
-          subtitle: 'Essential operator tools.',
-        ),
-        const SizedBox(height: 16),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          mainAxisSpacing: 14,
-          crossAxisSpacing: 14,
-          childAspectRatio: 1.12,
-          children: [
-            _quickActionGridBtn(
-              Icons.qr_code_scanner, 
-              'Scan Ticket', 
-              'Validate passenger QR', 
-              const LinearGradient(colors: [Color(0xFFFFA726), Color(0xFFFF7043)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-            ),
-            _quickActionGridBtn(
-              Icons.groups_outlined, 
-              'Passengers', 
-              'View bus manifest', 
-              const LinearGradient(colors: [Color(0xFF42A5F5), Color(0xFF5C6BC0)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-            ),
-            _quickActionGridBtn(
-              Icons.car_crash_outlined, 
-              'Emergency', 
-              'Report an incident', 
-              const LinearGradient(colors: [Color(0xFFEF5350), Color(0xFFC62828)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-            ),
-            _quickActionGridBtn(
-              Icons.assignment_turned_in_outlined, 
-              'Check', 
-              'Routine fleet check', 
-              const LinearGradient(colors: [Color(0xFF26A69A), Color(0xFF00897B)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _quickActionGridBtn(IconData icon, String title, String subtitle, LinearGradient gradient) {
-    return GestureDetector(
-      onTap: () {
-        if (title == 'Scan Ticket') {
-          _showScanTicketSheet(Theme.of(context).brightness == Brightness.dark);
-        } else if (title == 'Passengers') {
-          _showManifestDialog(Theme.of(context).brightness == Brightness.dark);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$title Screen Coming Soon')));
-        }
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: gradient,
-          boxShadow: [
+  Widget _buildTicketVerification(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          if (!isDark)
             BoxShadow(
-              color: gradient.colors.first.withValues(alpha: 0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            // Glassmorphism shine overlay
-            Positioned(
-              top: -20,
-              right: -20,
-              child: Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.2),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.confirmation_number_outlined, color: AppColors.primaryOrange, size: 24),
+              const SizedBox(width: 8),
+              Text('Verify Passenger Ticket', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+            ]
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _ticketController,
+                  decoration: InputDecoration(
+                    hintText: 'Enter Ticket ID',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: isDark ? Colors.white12 : Colors.grey.shade50,
+                  ),
                 ),
               ),
-            ),
-            Positioned(
-              bottom: -30,
-              left: -10,
-              child: Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.1),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: () {
+                  if (_ticketController.text.isEmpty) return;
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Verifying ticket: ${_ticketController.text}')));
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryOrange,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
+                child: const Text('Verify', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      icon,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      height: 1.2,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle.toUpperCase(),
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      letterSpacing: 0.5,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  // _buildHeader replaced by _CurvedHeaderText and AppBar
+  Widget _buildLiveTrackingMap(bool isDark) {
+    final status = _activeTrip?['status'];
+    final isTransit = status == 'active' || status == 'in-transit';
+    final screenHeight = MediaQuery.of(context).size.height;
+    final mapHeight = isTransit ? screenHeight * 0.75 : 300.0;
 
-  Widget _buildSummaryCards(bool isDark) {
-    return Row(
-      children: [
-        _statCard('Total Revenue', 'LKR ${_totalRevenue.toStringAsFixed(0)}', Icons.payments_outlined, Colors.green, isDark),
-        const SizedBox(width: 16),
-        _statCard('Trips Today', '$_tripsToday', Icons.route_outlined, AppColors.primaryOrange, isDark),
-      ],
-    );
-  }
-
-  Widget _statCard(String label, String value, IconData icon, Color color, bool isDark) {
-    return Expanded(
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade200),
-          boxShadow: [
-            if (!isDark)
-              BoxShadow(
-                color: color.withValues(alpha: 0.1),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
-              ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : AppColors.textDark,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white70 : AppColors.textLight,
-                ),
-              ),
-            ],
+    return Container(
+      height: mapHeight,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade200),
+        boxShadow: [
+          if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: const GoogleMap(
+          initialCameraPosition: CameraPosition(
+            target: LatLng(6.9271, 79.8612), // Colombo default
+            zoom: 12,
           ),
+          mapToolbarEnabled: false,
+          zoomControlsEnabled: false,
+          myLocationEnabled: true,
         ),
       ),
     );
@@ -734,36 +621,12 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // Form
-                Text('Co-Operator Details', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: coOpNameController,
-                  decoration: InputDecoration(
-                    labelText: 'Co-Operator Name',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    filled: true,
-                    fillColor: isDark ? Colors.black12 : Colors.grey.shade50,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: coOpIdController,
-                  decoration: InputDecoration(
-                    labelText: 'Co-Operator ID',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    filled: true,
-                    fillColor: isDark ? Colors.black12 : Colors.grey.shade50,
-                  ),
-                ),
-                const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: isSubmitting ? null : () async {
                       setStateModal(() => isSubmitting = true);
-                      await _startJourney(trip['id'], coOpNameController.text.trim(), coOpIdController.text.trim());
+                      await _startJourney(trip['id'], '', ''); // No co-operator
                       setStateModal(() => isSubmitting = false);
                       
                       if (context.mounted) {
@@ -771,13 +634,13 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _blue,
+                      backgroundColor: AppColors.primaryOrange,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: isSubmitting
                         ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text('Pair Trip', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                        : const Text('Start Journey', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
                 ),
               ],
@@ -833,6 +696,15 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Journey started successfully!')));
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted && _scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeOutCubic,
+            );
+          }
+        });
       }
     } catch (e) {
       if (mounted) {

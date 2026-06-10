@@ -104,13 +104,26 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
 
   // ── Submit ─────────────────────────────────────────────────────────────────
   const handleFormSubmit = async (data) => {
-    // Combine separate date + time into a single ISO string
     const combinedDateTime = new Date(`${data.departureDate}T${data.departureTime}:00`).toISOString();
     const now = new Date().toISOString();
 
+    const capacity = selectedBus?.capacity || 54;
+    const seatMap = {};
+    const seatsPerRow = 4;
+    const totalRows = Math.ceil(capacity / seatsPerRow);
+    for (let row = 0; row < totalRows; row++) {
+      const rowLetter = String.fromCharCode(65 + row);
+      for (let seat = 1; seat <= seatsPerRow; seat++) {
+        const seatIndex = row * seatsPerRow + seat;
+        if (seatIndex <= capacity) {
+          seatMap[`${rowLetter}${seat}`] = 'available';
+        }
+      }
+    }
+
     const formattedData = {
       busId:         data.busId,
-      busCapacity:   selectedBus?.capacity     || 54,
+      busCapacity:   capacity,
       busPlateNumber:selectedBus?.plateNumber  || 'N/A',
       routeId:       data.routeId,
       routeName:     selectedRoute?.name       || selectedRoute?.routeName || 'Unnamed Route',
@@ -121,7 +134,8 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
       createdAt:     now,
       updatedAt:     now,
       delayMinutes:  0,
-      eta:           null
+      eta:           null,
+      seatMap:       seatMap
     };
 
     await onSubmit(formattedData);

@@ -6,6 +6,7 @@ const Joi = require('joi');
 
 /**
  * RideSync — Chatbot Controller
+ * Powered by Google Gemini AI via the @google/generative-ai SDK.
  */
 
 const messageSchema = Joi.object({
@@ -14,7 +15,7 @@ const messageSchema = Joi.object({
 
 /**
  * POST /api/chatbot/message
- * Send a message to the AI Chatbot and receive a reply.
+ * Send a message to the Gemini AI Chatbot and receive a reply.
  * Requires Authentication.
  */
 router.post('/message', authMiddleware, async (req, res, next) => {
@@ -26,12 +27,12 @@ router.post('/message', authMiddleware, async (req, res, next) => {
       throw validationError;
     }
 
-    // We use the authenticated user's UID as the Dialogflow Session ID
-    // This allows Dialogflow to remember context for this specific user.
+    // Use the authenticated user's Firebase UID as the session ID
+    // so Gemini context fetcher can load personalised booking data.
     const sessionId = req.user.uid;
     const userMessage = value.message;
 
-    // Send to Dialogflow service
+    // Send to Gemini AI service
     const response = await chatbotService.detectIntent(sessionId, userMessage);
 
     res.json({
@@ -44,7 +45,9 @@ router.post('/message', authMiddleware, async (req, res, next) => {
     });
 
   } catch (err) {
-    if (err.message.includes('credentials') || err.message.includes('unavailable')) {
+    console.error('[Chatbot Controller Error]', err.stack || err.message || err);
+
+    if (err.message && (err.message.includes('unavailable') || err.message.includes('usage limits'))) {
       err.statusCode = 503; // Service Unavailable
     }
     next(err);

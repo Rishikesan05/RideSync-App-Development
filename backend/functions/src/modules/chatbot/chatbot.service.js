@@ -1,10 +1,9 @@
 /**
- * RideSync — Chatbot Service (Gemini 1.5 Flash)
+ * RideSync — Chatbot Service (Google Gemini AI)
  *
- * Replaces the previous Dialogflow ES integration.
- * Uses Google Gemini 1.5 Flash via the @google/generative-ai SDK.
- * Live Firestore context is injected into every prompt via context_fetcher.js
- * so the AI always answers with real route, schedule, fare, and booking data.
+ * Uses Google Gemini via the @google/generative-ai SDK.
+ * Live Firestore context (routes, schedules, fares, bookings) is injected
+ * into every prompt via context_fetcher.js so the AI answers with real data.
  */
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { buildContext } = require('./context_fetcher');
@@ -21,7 +20,7 @@ let genAI;
 
 try {
   if (apiKey) {
-    genAI = new GoogleGenerativeAI(apiKey, { apiVersion: 'v1' });
+    genAI = new GoogleGenerativeAI(apiKey);
   }
 } catch (error) {
   console.error('[ChatbotService] Failed to initialise Gemini client:', error.message);
@@ -106,11 +105,9 @@ Now answer the user's question helpfully based on the data above.`;
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
 /**
- * Sends a message to Gemini 1.5 Flash with live Firestore context.
- * Maintains the same export signature as the old Dialogflow service
- * so chatbot.controller.js requires zero changes.
+ * Sends a message to Gemini AI with live Firestore context injected into the prompt.
  *
- * @param {string} sessionId - The authenticated user's Firebase UID
+ * @param {string} sessionId - The authenticated user's Firebase UID (used to load personal booking data)
  * @param {string} text - The user's message
  * @returns {Object} { fulfillmentText, intent, confidence, action, parameters }
  */
@@ -129,8 +126,10 @@ exports.detectIntent = async (sessionId, text) => {
     const systemPrompt = buildSystemPrompt(context);
 
     // Step 3: Create a personalised model instance and send to Gemini
+    // We use gemini-2.5-flash because gemini-flash-latest is frequently throwing
+    // "503 Model overloaded" errors on the Google API servers right now.
     const userSpecificModel = genAI.getGenerativeModel({ 
-      model: 'gemini-flash-latest',
+      model: 'gemini-2.5-flash',
       systemInstruction: systemPrompt
     });
 
