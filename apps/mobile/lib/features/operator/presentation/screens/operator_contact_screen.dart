@@ -13,7 +13,7 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
   final List<Map<String, dynamic>> _recentTickets = [
     {
       'id': 'TCK-892',
-      'title': 'Scanner Not Reading QR Codes',
+      'title': 'App Not Syncing Data',
       'status': 'Pending',
       'date': 'Today, 10:30 AM',
       'type': 'Technical',
@@ -224,7 +224,7 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
       '🚍 Bus Breakdown',
       '⏱️ Heavy Traffic / Schedule Delay',
       '👥 Passenger Dispute',
-      '📱 Ticket Scanner Issue',
+      '📱 App / Tech Issue',
       '➕ Other',
     ];
 
