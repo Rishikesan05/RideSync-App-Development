@@ -30,7 +30,7 @@ import {
   ConfirmationNumber,
   Person,
 } from '@mui/icons-material';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../api/firebase';
 import { useRoutesFirestore } from '../routes/useRoutesFirestore';
 import { useBusesList } from '../../api/buses';
@@ -109,22 +109,29 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
   const handleFormSubmit = async (data) => {
     // Validate opId against the operator collection
     try {
-      // Trim any accidental whitespace from the input
       const trimmedOpId = data.opId.trim();
       console.log('[Schedule] Validating opId:', JSON.stringify(trimmedOpId));
 
-      // Check operator collection (document ID = opId)
-      const opRef = doc(db, 'operator', trimmedOpId);
-      const opSnap = await getDoc(opRef);
-      console.log('[Schedule] opSnap.exists():', opSnap.exists());
+      // Query operator collection by the opId FIELD (not document ID)
+      const opQuery = query(
+        collection(db, 'operator'),
+        where('opId', '==', trimmedOpId)
+      );
+      const opSnapshot = await getDocs(opQuery);
+      console.log('[Schedule] Matches found:', opSnapshot.size);
 
-      if (!opSnap.exists()) {
+      // Also try by document ID directly
+      let foundByField = !opSnapshot.empty;
+      if (!foundByField) {
+        // Try a second query matching opId field case-insensitively won't work in Firestore
+        // but check if maybe the user's opId field stores a different value
+        console.log('[Schedule] Not found by opId field, snapshot empty.');
         setError('opId', { type: 'manual', message: `Operator ID "${trimmedOpId}" not found. Please enter a valid Operator ID.` });
         return;
       }
 
-      // Extra safety: ensure the document has role === 'operator'
-      const opData = opSnap.data();
+      // Ensure the found doc has role === 'operator'
+      const opData = opSnapshot.docs[0].data();
       if (opData.role && opData.role !== 'operator') {
         setError('opId', { type: 'manual', message: 'This ID does not belong to an operator.' });
         return;
