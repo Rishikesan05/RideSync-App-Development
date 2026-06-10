@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ridesync/core/constants.dart';
+import 'package:ridesync/features/operator/presentation/screens/operator_manage_schedule_screen.dart';
 
 class OperatorRoutesScreen extends StatefulWidget {
   const OperatorRoutesScreen({super.key});
@@ -177,7 +178,12 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Manage Schedule Screen Coming Soon')));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => OperatorManageScheduleScreen(routeData: route),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryNavy,
