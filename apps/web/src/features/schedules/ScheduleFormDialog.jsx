@@ -30,6 +30,8 @@ import {
   ConfirmationNumber,
   Person,
 } from '@mui/icons-material';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../api/firebase';
 import { useRoutesFirestore } from '../routes/useRoutesFirestore';
 import { useBusesList } from '../../api/buses';
 
@@ -66,6 +68,7 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
     handleSubmit,
     reset,
     watch,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(scheduleSchema),
@@ -104,6 +107,20 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
 
   // ── Submit ─────────────────────────────────────────────────────────────────
   const handleFormSubmit = async (data) => {
+    // Validate opId
+    try {
+      const opRef = doc(db, 'operator', data.opId);
+      const opSnap = await getDoc(opRef);
+      if (!opSnap.exists()) {
+        setError('opId', { type: 'manual', message: 'Operator ID does not exist' });
+        return;
+      }
+    } catch (err) {
+      console.error('Error validating operator ID', err);
+      setError('opId', { type: 'manual', message: 'Error validating Operator ID' });
+      return;
+    }
+
     const combinedDateTime = new Date(`${data.departureDate}T${data.departureTime}:00`).toISOString();
     const now = new Date().toISOString();
 
