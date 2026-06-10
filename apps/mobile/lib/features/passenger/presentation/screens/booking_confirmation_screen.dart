@@ -13,6 +13,7 @@ class BookingConfirmationScreen extends StatelessWidget {
   final double distanceKm;
   final int seatCount;
   final String plateNumber;
+  final String ticketCode;
 
   const BookingConfirmationScreen({
     super.key,
@@ -25,6 +26,7 @@ class BookingConfirmationScreen extends StatelessWidget {
     required this.distanceKm,
     required this.seatCount,
     required this.plateNumber,
+    required this.ticketCode,
   });
 
   @override
@@ -219,7 +221,12 @@ class BookingConfirmationScreen extends StatelessWidget {
                         }),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 8),
+                    Text(
+                      ticketCode,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 4),
+                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),

@@ -305,7 +305,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
               ElevatedButton(
                 onPressed: () {
                   if (_ticketController.text.isEmpty) return;
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Verifying ticket: ${_ticketController.text}')));
+                  _verifyTicket(_ticketController.text);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryOrange,
@@ -659,6 +659,62 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
         Text(value, style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.w600, fontSize: 13)),
       ],
     );
+  }
+
+  Future<void> _verifyTicket(String ticketCode) async {
+    try {
+      // 1. Find the booking by ticketCode
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('bookings')
+          .where('ticketCode', isEqualTo: ticketCode.toUpperCase().trim())
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Ticket not found or invalid'), backgroundColor: Colors.red),
+          );
+        }
+        return;
+      }
+
+      final bookingDoc = querySnapshot.docs.first;
+      final bookingData = bookingDoc.data();
+      final scheduleId = bookingData['scheduleId'];
+      final List<dynamic> seats = bookingData['seats'] ?? [];
+
+      if (seats.isEmpty) return;
+
+      // 2. Update the seats to 'boarded' in the schedule's seats subcollection
+      final batch = FirebaseFirestore.instance.batch();
+      for (final seatNum in seats) {
+        final seatRef = FirebaseFirestore.instance
+            .collection('schedules')
+            .doc(scheduleId)
+            .collection('seats')
+            .doc(seatNum);
+        batch.update(seatRef, {'status': 'boarded', 'updatedAt': FieldValue.serverTimestamp()});
+      }
+
+      await batch.commit();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ticket $ticketCode verified! ${seats.join(', ')} marked as boarded.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _ticketController.clear();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Verification error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
 

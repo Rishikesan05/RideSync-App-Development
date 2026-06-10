@@ -47,13 +47,14 @@ class OperatorManageScheduleScreen extends StatelessWidget {
             liveSeats = _generateDummyBookings(blueprint);
           }
 
-          int bookedCount = liveSeats.where((s) => s['status'] == 'sold' || s['status'] == 'occupied').length;
+          int bookedCount = liveSeats.where((s) => s['status'] == 'sold' || s['status'] == 'occupied' || s['status'] == 'boarded').length;
+          int boardedCount = liveSeats.where((s) => s['status'] == 'boarded').length;
           int totalSeats = int.tryParse(capacity) ?? 54;
           int availableCount = totalSeats - bookedCount;
 
           return Column(
             children: [
-              _buildHeader(routeData, totalSeats, bookedCount, availableCount, isDark),
+              _buildHeader(routeData, totalSeats, bookedCount, availableCount, boardedCount, isDark),
               _buildLegend(),
               Expanded(
                 child: SingleChildScrollView(
@@ -73,11 +74,12 @@ class OperatorManageScheduleScreen extends StatelessWidget {
     List<Map<String, dynamic>> dummies = [];
     for (var bp in blueprint) {
       if (!bp.isAisle && !bp.isSpacer) {
-        // Randomly assign some seats as booked
+        // Randomly assign some seats as booked or boarded
         if (random.nextDouble() > 0.7) {
+          bool isBoarded = random.nextDouble() > 0.5;
           dummies.add({
             'seatNumber': bp.seatNumber,
-            'status': 'sold',
+            'status': isBoarded ? 'boarded' : 'sold',
             'passengerId': 'USR-${random.nextInt(9000) + 1000}',
             'passengerName': 'Passenger ${random.nextInt(100)}',
             'pickup': 'Stop ${random.nextInt(5) + 1}',
@@ -89,7 +91,7 @@ class OperatorManageScheduleScreen extends StatelessWidget {
     return dummies;
   }
 
-  Widget _buildHeader(Map<String, dynamic> route, int total, int booked, int available, bool isDark) {
+  Widget _buildHeader(Map<String, dynamic> route, int total, int booked, int available, int boarded, bool isDark) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -97,7 +99,7 @@ class OperatorManageScheduleScreen extends StatelessWidget {
         color: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 5)),
         ],
       ),
       child: Column(
@@ -111,9 +113,9 @@ class OperatorManageScheduleScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _statBox('Total', total.toString(), Colors.white.withOpacity(0.2)),
+              _statBox('Total', total.toString(), Colors.white.withValues(alpha: 0.2)),
               _statBox('Booked', booked.toString(), Colors.orange.shade800),
-              _statBox('Available', available.toString(), Colors.green.shade600),
+              _statBox('Boarded', boarded.toString(), Colors.green.shade600),
             ],
           ),
         ],
@@ -144,10 +146,21 @@ class OperatorManageScheduleScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _legendItem('Available', Colors.white, border: Colors.grey.shade300),
-          const SizedBox(width: 20),
+          const SizedBox(width: 16),
           _legendItem('Booked', Colors.grey.shade400),
-          const SizedBox(width: 20),
-          _legendItem('Reserved', AppColors.primaryOrange),
+          const SizedBox(width: 16),
+          Row(
+            children: [
+              Container(
+                width: 14,
+                height: 14,
+                decoration: BoxDecoration(color: Colors.green.shade400, borderRadius: BorderRadius.circular(3)),
+                child: const Icon(Icons.check, size: 10, color: Colors.white),
+              ),
+              const SizedBox(width: 6),
+              const Text('Boarded', style: TextStyle(fontSize: 12, color: AppColors.textLight, fontWeight: FontWeight.w600)),
+            ],
+          ),
         ],
       ),
     );
@@ -215,14 +228,16 @@ class OperatorManageScheduleScreen extends StatelessWidget {
 
             bool isBooked = ['occupied', 'sold'].contains(liveData['status']);
             bool isReserved = ['blocked', 'reserved'].contains(liveData['status']);
+            bool isBoarded = liveData['status'] == 'boarded';
 
             return _OperatorSeatWidget(
               number: bp.seatNumber,
               isBooked: isBooked,
               isReserved: isReserved,
+              isBoarded: isBoarded,
               isDark: isDark,
               onTap: () {
-                if (isBooked || isReserved) {
+                if (isBooked || isReserved || isBoarded) {
                   _showBookingDetails(context, bp.seatNumber, liveData, isDark);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -258,13 +273,17 @@ class OperatorManageScheduleScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: bookingData['status'] == 'reserved' ? AppColors.primaryOrange.withOpacity(0.2) : Colors.green.withOpacity(0.2),
+                    color: bookingData['status'] == 'boarded' 
+                        ? Colors.green.withValues(alpha: 0.2)
+                        : (bookingData['status'] == 'reserved' ? AppColors.primaryOrange.withValues(alpha: 0.2) : Colors.blue.withValues(alpha: 0.2)),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     (bookingData['status'] ?? 'Unknown').toString().toUpperCase(),
                     style: TextStyle(
-                      color: bookingData['status'] == 'reserved' ? AppColors.primaryOrange : Colors.green,
+                      color: bookingData['status'] == 'boarded' 
+                          ? Colors.green
+                          : (bookingData['status'] == 'reserved' ? AppColors.primaryOrange : Colors.blue),
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -319,6 +338,7 @@ class _OperatorSeatWidget extends StatelessWidget {
   final String number;
   final bool isBooked;
   final bool isReserved;
+  final bool isBoarded;
   final bool isDark;
   final VoidCallback onTap;
 
@@ -326,6 +346,7 @@ class _OperatorSeatWidget extends StatelessWidget {
     required this.number,
     required this.isBooked,
     required this.isReserved,
+    required this.isBoarded,
     required this.isDark,
     required this.onTap,
   });
@@ -335,7 +356,10 @@ class _OperatorSeatWidget extends StatelessWidget {
     Color bgColor;
     Color textColor;
 
-    if (isBooked) {
+    if (isBoarded) {
+      bgColor = Colors.green.shade400;
+      textColor = Colors.white;
+    } else if (isBooked) {
       bgColor = isDark ? Colors.white10 : Colors.grey.shade300;
       textColor = AppColors.textLight;
     } else if (isReserved) {
@@ -356,18 +380,20 @@ class _OperatorSeatWidget extends StatelessWidget {
           border: Border.all(
             color: isReserved 
                 ? AppColors.primaryOrange 
-                : (isBooked ? Colors.transparent : (isDark ? Colors.white10 : Colors.grey.shade200)),
+                : ((isBooked || isBoarded) ? Colors.transparent : (isDark ? Colors.white10 : Colors.grey.shade200)),
           ),
-          boxShadow: isReserved ? [BoxShadow(color: AppColors.primaryOrange.withOpacity(0.3), blurRadius: 8)] : null,
+          boxShadow: isReserved ? [BoxShadow(color: AppColors.primaryOrange.withValues(alpha: 0.3), blurRadius: 8)] : null,
         ),
-        child: Text(
-          number,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: (isBooked || isReserved) ? FontWeight.bold : FontWeight.w500,
-            color: textColor,
-          ),
-        ),
+        child: isBoarded
+            ? const Icon(Icons.check, color: Colors.white, size: 16)
+            : Text(
+                number,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: (isBooked || isReserved) ? FontWeight.bold : FontWeight.w500,
+                  color: textColor,
+                ),
+              ),
       ),
     );
   }
