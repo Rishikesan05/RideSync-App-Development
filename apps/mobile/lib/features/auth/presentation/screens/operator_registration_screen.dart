@@ -68,11 +68,11 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
       });
 
       if (mounted) {
-        // Show success and go back to role selection
+        // Show success and go to pending screen
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Registration submitted! We will review your application.')),
         );
-        Navigator.pushNamedAndRemoveUntil(context, '/role-selection', (r) => false);
+        Navigator.pushNamedAndRemoveUntil(context, '/operator-pending', (r) => false);
       }
     } catch (e) {
       if (mounted) {
@@ -218,11 +218,11 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _formField(isDark, 'Full Name', Icons.person_outline, _nameC, hintText: 'e.g. Nimal Perera'),
+                  _formField(isDark, 'Full Name', Icons.person_outline, _nameC, hintText: 'e.g. Nimal Perera', validator: (val) => val == null || val.trim().isEmpty ? 'Please enter your full name' : null),
                   const SizedBox(height: 16),
-                  _formField(isDark, 'Gmail Address', Icons.email_outlined, _emailC, hintText: 'e.g. nimal@gmail.com'),
+                  _formField(isDark, 'Gmail Address', Icons.email_outlined, _emailC, hintText: 'e.g. nimal@gmail.com', validator: (val) => val == null || !val.endsWith('@gmail.com') ? 'Must be a valid @gmail.com address' : null),
                   const SizedBox(height: 16),
-                  _formField(isDark, 'Phone Number', Icons.phone_outlined, _phoneC, hintText: 'e.g. +94771234567'),
+                  _formField(isDark, 'Phone Number', Icons.phone_outlined, _phoneC, hintText: 'e.g. +94771234567', validator: (val) => val == null || !RegExp(r'^\+94\d{9}$').hasMatch(val) ? 'Format: +94 followed by 9 digits' : null),
                 ],
               ),
             ),
@@ -232,7 +232,11 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
             isActive: _currentStep >= 1,
             content: Column(
               children: [
-                _formField(isDark, 'Password', Icons.lock_outline, _passC, isPassword: true, hintText: 'Min 8 chars, 1 uppercase'),
+                _formField(isDark, 'Password', Icons.lock_outline, _passC, isPassword: true, hintText: 'Min 8 chars, 1 uppercase', validator: (val) {
+                  if (val == null || val.length < 8) return 'Minimum 8 characters required';
+                  if (!val.contains(RegExp(r'[A-Z]'))) return 'Must contain at least 1 uppercase letter';
+                  return null;
+                }),
                 const SizedBox(height: 16),
                 const Text('Choose a strong password for your operator portal.', style: TextStyle(fontSize: 12, color: Colors.grey)),
               ],
@@ -243,9 +247,18 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
             isActive: _currentStep >= 2,
             content: Column(
               children: [
-                _formField(isDark, 'Operator ID', Icons.badge, _operatorIdC, hintText: 'e.g. RSOP26-001 or RSCOP26-001'),
+                _formField(isDark, 'Operator ID', Icons.badge, _operatorIdC, hintText: 'e.g. RSOP26-001 or RSCOP26-001', validator: (val) {
+                  if (val == null || val.trim().isEmpty) return 'Operator ID is required';
+                  if (!val.startsWith('RSOP') && !val.startsWith('RSCOP')) return 'Must start with RSOP or RSCOP';
+                  return null;
+                }),
                 const SizedBox(height: 16),
-                _formField(isDark, 'National Identity Card (NIC)', Icons.credit_card_outlined, _nicC, hintText: 'e.g. 199912345678 or 991234567V'),
+                _formField(isDark, 'National Identity Card (NIC)', Icons.credit_card_outlined, _nicC, hintText: 'e.g. 199912345678 or 991234567V', validator: (val) {
+                  if (val == null || (!RegExp(r'^\d{9}[vVxX]$').hasMatch(val) && !RegExp(r'^\d{12}$').hasMatch(val))) {
+                    return 'Must be 9 digits+V/X or 12 digits';
+                  }
+                  return null;
+                }),
               ],
             ),
           ),
@@ -258,9 +271,10 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
     );
   }
 
-  Widget _formField(bool isDark, String label, IconData icon, TextEditingController controller, {bool isPassword = false, TextInputType keyboardType = TextInputType.text, String? hintText}) {
+  Widget _formField(bool isDark, String label, IconData icon, TextEditingController controller, {bool isPassword = false, TextInputType keyboardType = TextInputType.text, String? hintText, String? Function(String?)? validator}) {
     return TextFormField(
       controller: controller,
+      validator: validator,
       obscureText: isPassword,
       keyboardType: keyboardType,
       style: TextStyle(fontWeight: FontWeight.w500, color: isDark ? Colors.white : AppColors.textDark),
@@ -280,6 +294,14 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.primaryOrange, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 2),
         ),
       ),
     );

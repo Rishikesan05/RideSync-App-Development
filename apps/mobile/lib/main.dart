@@ -12,6 +12,7 @@ import 'package:ridesync/features/auth/presentation/screens/passenger_auth_choic
 import 'package:ridesync/features/auth/presentation/screens/operator_auth_choice_screen.dart';
 import 'package:ridesync/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:ridesync/features/auth/presentation/screens/operator_registration_screen.dart';
+import 'package:ridesync/features/auth/presentation/screens/operator_pending_screen.dart';
 import 'package:ridesync/features/passenger/presentation/screens/splash_screen.dart';
 
 import 'package:ridesync/core/constants.dart';
@@ -74,6 +75,7 @@ class RideSyncApp extends StatelessWidget {
         '/operator-auth-choice': (context) => const OperatorAuthChoiceScreen(),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/driver-registration': (context) => const OperatorRegistrationScreen(),
+        '/operator-pending': (context) => const OperatorPendingScreen(),
         '/main': (context) => const PassengerNavigationHub(),
         '/operator-main': (context) => const BusOperatorNavigationHub(),
         '/splash': (context) => const SplashScreen(),
