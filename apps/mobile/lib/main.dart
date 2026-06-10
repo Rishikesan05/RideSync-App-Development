@@ -13,6 +13,7 @@ import 'package:ridesync/features/auth/presentation/screens/operator_auth_choice
 import 'package:ridesync/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:ridesync/features/auth/presentation/screens/operator_registration_screen.dart';
 import 'package:ridesync/features/auth/presentation/screens/operator_pending_screen.dart';
+import 'package:ridesync/features/auth/presentation/screens/operator_rejected_screen.dart';
 import 'package:ridesync/features/passenger/presentation/screens/splash_screen.dart';
 
 import 'package:ridesync/core/constants.dart';
@@ -104,6 +105,11 @@ class AuthWrapper extends StatelessWidget {
     // Determine target screen
     if (authProvider.isAuthenticated || authProvider.isGuest) {
       if (authProvider.currentRole == UserRole.operator) {
+        if (authProvider.status == 'pending_review') {
+          return const OperatorPendingScreen();
+        } else if (authProvider.status == 'rejected') {
+          return const OperatorRejectedScreen();
+        }
         return const BusOperatorNavigationHub();
       } else {
         return const PassengerNavigationHub();
