@@ -478,12 +478,14 @@ const styles = {
   dividerLine: {
     flex: 1,
     height: '1px',
-    background: 'rgba(255,255,255,0.07)',
+    background: 'rgba(255, 255, 255, 0.12)',
   },
   dividerText: {
-    fontSize: '12px',
-    color: '#475569',
+    fontSize: '13px',
+    fontWeight: 500,
+    color: '#94a3b8',
     whiteSpace: 'nowrap',
+    letterSpacing: '0.02em',
   },
   signupBtn: {
     display: 'flex',
