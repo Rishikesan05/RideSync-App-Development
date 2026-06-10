@@ -80,117 +80,140 @@ export const ForgotPassword = () => {
         <div style={styles.card}>
           {status === 'success' ? (
             /* Success State */
-            <div style={styles.successState}>
-              <div style={styles.successIconWrap}>
-                <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-                  <circle cx="28" cy="28" r="27" stroke="rgba(245,158,11,0.3)" strokeWidth="2"/>
-                  <circle cx="28" cy="28" r="20" fill="rgba(245,158,11,0.1)"/>
-                  <path d="M18 28h20M28 18l10 10-10 10" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+            <>
+              <div style={styles.ticketTop}>
+                <div style={styles.successState}>
+                  <div style={styles.successIconWrap}>
+                    <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                      <circle cx="28" cy="28" r="27" stroke="rgba(245,158,11,0.3)" strokeWidth="2"/>
+                      <circle cx="28" cy="28" r="20" fill="rgba(245,158,11,0.1)"/>
+                      <path d="M18 28h20M28 18l10 10-10 10" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <h2 style={styles.successTitle}>Check your inbox</h2>
+                  <p style={styles.successText}>
+                    We've sent a password reset link to
+                  </p>
+                  <div style={styles.emailBadge}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{flexShrink: 0}}>
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <polyline points="22,6 12,13 2,6" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span style={styles.emailText}>{sentEmail}</span>
+                  </div>
+                  <p style={styles.successNote}>
+                    Didn't receive it? Check your spam folder or{' '}
+                    <button
+                      style={styles.resendBtn}
+                      id="forgot-resend-btn"
+                      onClick={() => setStatus('idle')}
+                    >
+                      try again
+                    </button>
+                  </p>
+                </div>
               </div>
-              <h2 style={styles.successTitle}>Check your inbox</h2>
-              <p style={styles.successText}>
-                We've sent a password reset link to
-              </p>
-              <div style={styles.emailBadge}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{flexShrink: 0}}>
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <polyline points="22,6 12,13 2,6" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span style={styles.emailText}>{sentEmail}</span>
+
+              <div style={styles.ticketDivider}>
+                <div style={styles.notchLeft} />
+                <div style={styles.perforation} />
+                <div style={styles.notchRight} />
               </div>
-              <p style={styles.successNote}>
-                Didn't receive it? Check your spam folder or{' '}
-                <button
-                  style={styles.resendBtn}
-                  id="forgot-resend-btn"
-                  onClick={() => setStatus('idle')}
-                >
-                  try again
-                </button>
-              </p>
-              <RouterLink to="/login" style={styles.backToLoginBtn} id="forgot-success-login-btn">
-                Back to Sign In
-              </RouterLink>
-            </div>
+
+              <div style={styles.ticketBottom}>
+                <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                  <RouterLink to="/login" style={styles.backToLoginBtn} id="forgot-success-login-btn">
+                    Back to Sign In
+                  </RouterLink>
+                </div>
+              </div>
+            </>
           ) : (
             /* Form State */
             <>
-              <div style={styles.cardHeader}>
-                <div style={styles.iconCircle}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <circle cx="12" cy="16" r="1.5" fill="#f59e0b"/>
-                  </svg>
+              <div style={styles.ticketTop}>
+                <div style={styles.cardHeader}>
+                  <div style={styles.iconCircle}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="12" cy="16" r="1.5" fill="#f59e0b"/>
+                    </svg>
+                  </div>
+                  <h2 style={styles.cardTitle}>Forgot your password?</h2>
+                  <p style={styles.cardSubtitle}>
+                    No worries! Enter your email address and we'll send you a link to reset your password.
+                  </p>
                 </div>
-                <h2 style={styles.cardTitle}>Forgot your password?</h2>
-                <p style={styles.cardSubtitle}>
-                  No worries! Enter your email address and we'll send you a link to reset your password.
-                </p>
+
+                {status === 'error' && (
+                  <div style={styles.errorBanner}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{flexShrink: 0}}>
+                      <circle cx="8" cy="8" r="7" stroke="#f87171" strokeWidth="1.5"/>
+                      <path d="M8 5v3M8 11v.5" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit(onSubmit)} style={styles.form} noValidate>
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label} htmlFor="forgot-email">Email Address</label>
+                    <div style={styles.inputWrapper}>
+                      <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <polyline points="22,6 12,13 2,6" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <input
+                        id="forgot-email"
+                        type="email"
+                        placeholder="admin@ridesync.lk"
+                        style={{ ...styles.input, ...(errors.email ? styles.inputError : {}) }}
+                        {...register('email')}
+                        autoComplete="email"
+                      />
+                    </div>
+                    {errors.email && <p style={styles.fieldError}>{errors.email.message}</p>}
+                  </div>
+
+                  <button
+                    id="forgot-submit-btn"
+                    type="submit"
+                    disabled={isSubmitting}
+                    style={{ ...styles.submitBtn, ...(isSubmitting ? styles.submitBtnDisabled : {}) }}
+                  >
+                    {isSubmitting ? (
+                      <span style={styles.spinnerWrap}>
+                        <span style={styles.spinner} />
+                        Sending reset link…
+                      </span>
+                    ) : (
+                      <>
+                        Send Reset Link
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{marginLeft: 8}}>
+                          <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <polygon points="22 2 15 22 11 13 2 9 22 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        </svg>
+                      </>
+                    )}
+                  </button>
+                </form>
               </div>
 
-              {status === 'error' && (
-                <div style={styles.errorBanner}>
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{flexShrink: 0}}>
-                    <circle cx="8" cy="8" r="7" stroke="#f87171" strokeWidth="1.5"/>
-                    <path d="M8 5v3M8 11v.5" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                  <span>{errorMsg}</span>
-                </div>
-              )}
+              <div style={styles.ticketDivider}>
+                <div style={styles.notchLeft} />
+                <div style={styles.perforation} />
+                <div style={styles.notchRight} />
+              </div>
 
-              <form onSubmit={handleSubmit(onSubmit)} style={styles.form} noValidate>
-                <div style={styles.fieldGroup}>
-                  <label style={styles.label} htmlFor="forgot-email">Email Address</label>
-                  <div style={styles.inputWrapper}>
-                    <svg style={styles.inputIcon} width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <polyline points="22,6 12,13 2,6" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <input
-                      id="forgot-email"
-                      type="email"
-                      placeholder="admin@ridesync.lk"
-                      style={{ ...styles.input, ...(errors.email ? styles.inputError : {}) }}
-                      {...register('email')}
-                      autoComplete="email"
-                    />
-                  </div>
-                  {errors.email && <p style={styles.fieldError}>{errors.email.message}</p>}
-                </div>
-
-                <button
-                  id="forgot-submit-btn"
-                  type="submit"
-                  disabled={isSubmitting}
-                  style={{ ...styles.submitBtn, ...(isSubmitting ? styles.submitBtnDisabled : {}) }}
-                >
-                  {isSubmitting ? (
-                    <span style={styles.spinnerWrap}>
-                      <span style={styles.spinner} />
-                      Sending reset link…
-                    </span>
-                  ) : (
-                    <>
-                      Send Reset Link
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{marginLeft: 8}}>
-                        <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                      </svg>
-                    </>
-                  )}
-                </button>
-              </form>
-
-
-
-              <p style={styles.loginPrompt}>
-                Remember your password?{' '}
-                <RouterLink to="/login" style={styles.loginLink} id="forgot-go-login-link">
-                  Sign in
-                </RouterLink>
-              </p>
+              <div style={styles.ticketBottom}>
+                <p style={styles.loginPrompt}>
+                  Remember your password?{' '}
+                  <RouterLink to="/login" style={styles.loginLink} id="forgot-go-login-link">
+                    Sign in
+                  </RouterLink>
+                </p>
+              </div>
             </>
           )}
         </div>
@@ -315,13 +338,14 @@ const styles = {
     fontWeight: 500,
   },
   card: {
-    background: 'rgba(30, 41, 59, 0.7)',
+    background: 'rgba(30, 41, 59, 0.72)',
     backdropFilter: 'blur(24px)',
     WebkitBackdropFilter: 'blur(24px)',
-    border: '1px solid rgba(255,255,255,0.08)',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+    borderTop: '4px solid #f59e0b',
     borderRadius: '24px',
     padding: '36px',
-    boxShadow: '0 32px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
+    boxShadow: '0 32px 80px rgba(0,0,0,0.5), 0 0 50px rgba(245, 158, 11, 0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
   },
   cardHeader: {
     marginBottom: '28px',
@@ -532,5 +556,45 @@ const styles = {
     marginTop: '24px',
     fontSize: '12px',
     color: '#334155',
+  },
+  ticketTop: {
+    width: '100%',
+  },
+  ticketBottom: {
+    width: '100%',
+  },
+  ticketDivider: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    margin: '24px -37px',
+    position: 'relative',
+    height: '24px',
+  },
+  notchLeft: {
+    width: '24px',
+    height: '24px',
+    borderRadius: '50%',
+    background: '#0f172a',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+    marginLeft: '-12px',
+    boxShadow: 'inset -4px 0 8px rgba(0, 0, 0, 0.4)',
+    zIndex: 2,
+  },
+  notchRight: {
+    width: '24px',
+    height: '24px',
+    borderRadius: '50%',
+    background: '#0f172a',
+    border: '1px solid rgba(245, 158, 11, 0.25)',
+    marginRight: '-12px',
+    boxShadow: 'inset 4px 0 8px rgba(0, 0, 0, 0.4)',
+    zIndex: 2,
+  },
+  perforation: {
+    flex: 1,
+    borderTop: '2px dashed rgba(245, 158, 11, 0.25)',
+    height: '1px',
+    margin: '0 8px',
   },
 };
