@@ -145,9 +145,9 @@ export const SignUp = () => {
       <div style={styles.orb3} />
 
 
-      <div style={styles.container}>
+      <div className="ticket-container" style={styles.container}>
         {/* Brand */}
-        <div style={styles.brand}>
+        <div className="outside-brand" style={styles.brand}>
           <img
             src="/ridesync-logo.jpeg"
             alt="RideSync"
@@ -165,31 +165,79 @@ export const SignUp = () => {
         </RouterLink>
 
         {/* Card */}
-        <div style={styles.card}>
+        <div className="ticket-card" style={styles.card}>
           {success ? (
-            <div style={styles.successState}>
-              <div style={styles.successIcon}>
-                <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-                  <circle cx="20" cy="20" r="19" stroke="#22c55e" strokeWidth="2"/>
-                  <path d="M12 20L17 25L28 14" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <h3 style={{ color: '#f8fafc', fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>
-                Account Created!
-              </h3>
-              <p style={{ color: '#64748b', fontSize: '14px' }}>
-                Redirecting you to the dashboard…
-              </p>
-            </div>
-          ) : (
+            /* Success State */
             <>
-              {/* Top section: Header & Signup Form */}
-              <div style={styles.ticketTop}>
+              {/* Left Column */}
+              <div className="ticket-left" style={styles.ticketTop}>
+                <div className="desktop-only-brand" style={{ ...styles.brand, marginBottom: '24px' }}>
+                  <img
+                    src="/ridesync-logo.jpeg"
+                    alt="RideSync"
+                    style={{ ...styles.logoImg, width: '160px', marginBottom: '4px' }}
+                  />
+                  <p style={{ ...styles.brandSub, fontSize: '11px' }}>Create Your Admin Account</p>
+                </div>
+                <div style={styles.successState}>
+                  <div style={styles.successIcon}>
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                      <circle cx="20" cy="20" r="19" stroke="#22c55e" strokeWidth="2"/>
+                      <path d="M12 20L17 25L28 14" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <h3 style={{ color: '#f8fafc', fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>
+                    Account Created!
+                  </h3>
+                </div>
+              </div>
+
+              {/* Ticket Divider */}
+              <div className="ticket-divider-container" style={styles.ticketDivider}>
+                <div className="ticket-notch-left" style={styles.notchLeft} />
+                <div className="ticket-perforation-line" style={styles.perforation} />
+                <div className="ticket-notch-right" style={styles.notchRight} />
+              </div>
+
+              {/* Right Column */}
+              <div className="ticket-right" style={styles.ticketBottom}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                  <p style={{ color: '#94a3b8', fontSize: '14px', fontWeight: 500 }}>
+                    Redirecting you to the dashboard…
+                  </p>
+                </div>
+              </div>
+            </>
+          ) : (
+            /* Form State */
+            <>
+              {/* Left Column */}
+              <div className="ticket-left" style={styles.ticketTop}>
+                {/* Desktop Brand inside Left ticket stub */}
+                <div className="desktop-only-brand" style={{ ...styles.brand, marginBottom: '24px' }}>
+                  <img
+                    src="/ridesync-logo.jpeg"
+                    alt="RideSync"
+                    style={{ ...styles.logoImg, width: '160px', marginBottom: '4px' }}
+                  />
+                  <p style={{ ...styles.brandSub, fontSize: '11px' }}>Create Your Admin Account</p>
+                </div>
+
                 <div style={styles.cardHeader}>
                   <h2 style={styles.cardTitle}>Create account</h2>
                   <p style={styles.cardSubtitle}>Fill in your details to get started</p>
                 </div>
+              </div>
 
+              {/* Ticket Divider */}
+              <div className="ticket-divider-container" style={styles.ticketDivider}>
+                <div className="ticket-notch-left" style={styles.notchLeft} />
+                <div className="ticket-perforation-line" style={styles.perforation} />
+                <div className="ticket-notch-right" style={styles.notchRight} />
+              </div>
+
+              {/* Right Column */}
+              <div className="ticket-right" style={styles.ticketBottom}>
                 {authError && (
                   <div style={styles.errorBanner}>
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{flexShrink: 0}}>
@@ -342,17 +390,7 @@ export const SignUp = () => {
                     )}
                   </button>
                 </form>
-              </div>
 
-              {/* Ticket Divider (Perforation & punch notches) */}
-              <div style={styles.ticketDivider}>
-                <div style={styles.notchLeft} />
-                <div style={styles.perforation} />
-                <div style={styles.notchRight} />
-              </div>
-
-              {/* Bottom section: Login Redirect */}
-              <div style={styles.ticketBottom}>
                 <p style={styles.loginPrompt}>
                   Already have an account?{' '}
                   <RouterLink to="/login" style={styles.loginLink} id="signup-go-login-link">
@@ -397,6 +435,129 @@ export const SignUp = () => {
         }
         #signup-back-btn:active {
           transform: translateY(0);
+        }
+
+        /* Desktop (Landscape) Ticket Styles */
+        @media (min-width: 768px) {
+          .ticket-container {
+            max-width: 820px !important;
+          }
+          .ticket-card {
+            display: flex !important;
+            flex-direction: row !important;
+            padding: 0 !important;
+            align-items: stretch !important;
+          }
+          .ticket-left {
+            width: 38% !important;
+            padding: 40px 36px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+          }
+          .ticket-right {
+            width: 62% !important;
+            padding: 40px 36px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+          }
+          .ticket-divider-container {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            width: 24px !important;
+            height: auto !important;
+            margin: 0 -12px !important;
+            position: relative !important;
+            z-index: 2 !important;
+          }
+          .ticket-notch-left {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-top: -12px !important;
+            margin-left: 0 !important;
+            box-shadow: inset 0 -4px 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-notch-right {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-bottom: -12px !important;
+            margin-right: 0 !important;
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-perforation-line {
+            flex: 1 !important;
+            border-left: 2px dashed rgba(245, 158, 11, 0.25) !important;
+            border-top: none !important;
+            width: 1px !important;
+            height: 100% !important;
+            margin: 8px 0 !important;
+          }
+          .desktop-only-brand {
+            display: block !important;
+          }
+          .outside-brand {
+            display: none !important;
+          }
+        }
+
+        /* Mobile/Tablet (Portrait Stacked) Styles */
+        @media (max-width: 767px) {
+          .ticket-card {
+            flex-direction: column !important;
+          }
+          .ticket-left {
+            width: 100% !important;
+          }
+          .ticket-right {
+            width: 100% !important;
+          }
+          .ticket-divider-container {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            margin: 24px -37px !important;
+            height: 24px !important;
+          }
+          .ticket-notch-left {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-left: -12px !important;
+            box-shadow: inset -4px 0 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-notch-right {
+            width: 24px !important;
+            height: 24px !important;
+            border-radius: 50% !important;
+            background: #0f172a !important;
+            border: 1px solid rgba(245, 158, 11, 0.25) !important;
+            margin-right: -12px !important;
+            box-shadow: inset 4px 0 8px rgba(0, 0, 0, 0.4) !important;
+          }
+          .ticket-perforation-line {
+            flex: 1 !important;
+            border-top: 2px dashed rgba(245, 158, 11, 0.25) !important;
+            height: 1px !important;
+            margin: 0 8px !important;
+          }
+          .desktop-only-brand {
+            display: none !important;
+          }
+          .outside-brand {
+            display: block !important;
+          }
         }
       `}</style>
     </div>
