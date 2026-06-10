@@ -109,10 +109,24 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
   const handleFormSubmit = async (data) => {
     // Validate opId
     try {
+      let isValidOperator = false;
+      
+      // 1. Check if the ID exists in the dedicated 'operator' collection
       const opRef = doc(db, 'operator', data.opId);
       const opSnap = await getDoc(opRef);
-      if (!opSnap.exists()) {
-        setError('opId', { type: 'manual', message: 'Operator ID does not exist' });
+      if (opSnap.exists()) {
+        isValidOperator = true;
+      } else {
+        // 2. Fallback: check if it exists in 'users' collection with role 'operator'
+        const userRef = doc(db, 'users', data.opId);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists() && userSnap.data().role === 'operator') {
+          isValidOperator = true;
+        }
+      }
+
+      if (!isValidOperator) {
+        setError('opId', { type: 'manual', message: 'Operator ID does not exist or user is not an operator' });
         return;
       }
     } catch (err) {
