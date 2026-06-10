@@ -29,15 +29,25 @@ class ScheduleModel {
 
   factory ScheduleModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+
+    // departureTime may be stored as a Firestore Timestamp OR as an ISO-8601 String
+    DateTime parseDepartureTime(dynamic raw) {
+      if (raw is Timestamp) return raw.toDate();
+      if (raw is String) return DateTime.parse(raw).toLocal();
+      return DateTime.now(); // fallback — should never happen
+    }
+
     return ScheduleModel(
       id: doc.id,
       routeId: data['routeId'] ?? '',
-      busId: data['busId'] ?? '',
-      departureTime: (data['departureTime'] as Timestamp).toDate(),
+      busId: data['busId'] ?? data['busNumber'] ?? '',
+      departureTime: parseDepartureTime(data['departureTime']),
       status: data['status'] ?? 'scheduled',
-      capacity: data['capacity'] ?? 54,
+      capacity: (data['capacity'] ?? data['busCapacity'] ?? 54) is int
+          ? (data['capacity'] ?? data['busCapacity'] ?? 54)
+          : int.tryParse((data['capacity'] ?? data['busCapacity'] ?? 54).toString()) ?? 54,
       routeName: data['routeName'],
-      plateNumber: data['plateNumber'],
+      plateNumber: data['plateNumber'] ?? data['busPlateNumber'],
     );
   }
 }
@@ -216,13 +226,15 @@ class BookingProvider extends ChangeNotifier {
       for (var doc in routesSnapshot.docs) {
         final data = doc.data();
         
-        // Check start/end
-        if (data['startPoint'] != null) {
-          final start = data['startPoint'].toString().split(',')[0].trim();
+        // Firestore stores these as 'origin'/'destination' (with fallback to old names)
+        final startVal = (data['origin'] ?? data['startPoint'])?.toString();
+        if (startVal != null) {
+          final start = startVal.split(',')[0].trim();
           if (start.toLowerCase().contains(query.toLowerCase())) allResults.add(start);
         }
-        if (data['endPoint'] != null) {
-          final end = data['endPoint'].toString().split(',')[0].trim();
+        final endVal = (data['destination'] ?? data['endPoint'])?.toString();
+        if (endVal != null) {
+          final end = endVal.split(',')[0].trim();
           if (end.toLowerCase().contains(query.toLowerCase())) allResults.add(end);
         }
         
@@ -289,16 +301,27 @@ class BookingProvider extends ChangeNotifier {
       
       final matchingRouteIds = routesSnapshot.docs.where((doc) {
         final data = doc.data();
-        final start = (data['startPoint'] ?? '').toString().toLowerCase();
-        final end = (data['endPoint'] ?? '').toString().toLowerCase();
+        // Firestore stores these fields as 'origin' and 'destination'
+        final start = (data['origin'] ?? data['startPoint'] ?? '').toString().toLowerCase();
+        final end = (data['destination'] ?? data['endPoint'] ?? '').toString().toLowerCase();
         final name = (data['name'] ?? '').toString().toLowerCase();
-        
+        // Also check stop names within the route
+        final stopsText = (data['stops'] as List? ?? [])
+            .map((s) => (s['name'] ?? '').toString().toLowerCase())
+            .join(' ');
+
         final originName = origin!.name.toLowerCase();
         final destName = destination!.name.toLowerCase();
-        
-        // Match if origin is in start or route name, AND destination is in end or route name
-        return (start.contains(originName) || name.contains(originName)) &&
-               (end.contains(destName) || name.contains(destName));
+
+        // Match if origin is in start/stops/name AND destination is in end/stops/name
+        final originMatches = start.contains(originName) ||
+            name.contains(originName) ||
+            stopsText.contains(originName);
+        final destMatches = end.contains(destName) ||
+            name.contains(destName) ||
+            stopsText.contains(destName);
+
+        return originMatches && destMatches;
       }).map((doc) => doc.id).toList();
 
       if (matchingRouteIds.isEmpty) {
@@ -308,28 +331,43 @@ class BookingProvider extends ChangeNotifier {
         return;
       }
 
-      // Step 2: Fetch schedules for those routes on the selected date
-      final startOfDay = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
-      final endOfDay = startOfDay.add(const Duration(days: 1));
-
-      // Limit to avoid Firestore whereIn limit (30)
+      // Step 2: Fetch schedules for those routes
+      // NOTE: departureTime may be stored as a Firestore Timestamp OR as an ISO string.
+      // To handle both, we fetch ALL schedules for matching routes and filter in-memory by date.
       final limitedRouteIds = matchingRouteIds.take(10).toList();
 
       final schedulesSnapshot = await FirebaseFirestore.instance
           .collection('schedules')
           .where('routeId', whereIn: limitedRouteIds)
-          .where('departureTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('departureTime', isLessThan: Timestamp.fromDate(endOfDay))
           .get();
 
-      // Filter by status 'scheduled' manually to avoid needing a complex composite index
+      final startOfDay = DateTime(
+          selectedDate.year, selectedDate.month, selectedDate.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+
+      // Accept any non-cancelled status, and filter by selected date in-memory
+      const validStatuses = {'scheduled', 'active', 'on_time', 'expired'};
       availableSchedules = schedulesSnapshot.docs
-          .map((doc) => ScheduleModel.fromFirestore(doc))
-          .where((s) => s.status == 'scheduled')
-          .toList();
-      
+          .map((doc) {
+            try {
+              return ScheduleModel.fromFirestore(doc);
+            } catch (e) {
+              debugPrint('Skipping malformed schedule ${doc.id}: $e');
+              return null;
+            }
+          })
+          .whereType<ScheduleModel>()
+          .where((s) {
+            final dep = s.departureTime;
+            return validStatuses.contains(s.status) &&
+                !dep.isBefore(startOfDay) &&
+                dep.isBefore(endOfDay);
+          })
+          .toList()
+        ..sort((a, b) => a.departureTime.compareTo(b.departureTime));
+
       if (availableSchedules.isEmpty) {
-        errorMessage = 'No buses scheduled for this date';
+        errorMessage = 'No buses found for this route on the selected date';
       }
     } catch (e) {
       debugPrint('Firestore Error: $e');

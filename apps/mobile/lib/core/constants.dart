@@ -36,9 +36,9 @@ class AppStyles {
 
 // App-wide constants
 class AppConstants {
-  /// Backend base URL — change to your Firebase Functions URL when deployed.
-  /// For local emulator: 'http://10.0.2.2:5001/ridesync-lk/asia-south1/api'
+  /// Deployed Firebase Cloud Functions v2 URL (asia-south1, project: ridesync-lk).
+  /// For local emulator use: 'http://10.0.2.2:5001/ridesync-lk/asia-south1/api'
   static const String backendBaseUrl =
-      'http://10.0.2.2:5001/ridesync-lk/asia-south1/api';
+      'https://asia-south1-ridesync-lk.cloudfunctions.net/api';
 }
 

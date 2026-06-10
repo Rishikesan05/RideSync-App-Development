@@ -44,6 +44,23 @@ function errorHandler(err, req, res, _next) {
     });
   }
 
+  // express-rate-limit proxy validation — should not happen after trust proxy is set,
+  // but guard defensively
+  if (err.code === 'ERR_ERL_UNEXPECTED_X_FORWARDED_FOR') {
+    return res.status(500).json({
+      success: false,
+      error: 'Server proxy configuration error. Please contact support.',
+    });
+  }
+
+  // Gemini / Google AI API errors (model not found, quota, etc.)
+  if (err.message?.includes('[GoogleGenerativeAI Error]') || err.message?.includes('RESOURCE_EXHAUSTED')) {
+    return res.status(503).json({
+      success: false,
+      error: 'AI service temporarily unavailable. Please try again later.',
+    });
+  }
+
   // Default: 500 Internal Server Error
   return res.status(500).json({
     success: false,
