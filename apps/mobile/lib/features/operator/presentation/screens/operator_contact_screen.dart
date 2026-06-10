@@ -263,6 +263,40 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
             ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    icon: Icon(Icons.add_a_photo_rounded, color: isDark ? Colors.white70 : Colors.grey.shade700),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Camera opened')));
+                    },
+                    tooltip: 'Attach Photo',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    icon: Icon(Icons.mic_none_rounded, color: isDark ? Colors.white70 : Colors.grey.shade700),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Recording voice note...')));
+                    },
+                    tooltip: 'Record Voice Note',
+                  ),
+                ),
+                const Spacer(),
+                Text('Add Attachments', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade500, fontSize: 12)),
+              ],
+            ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
