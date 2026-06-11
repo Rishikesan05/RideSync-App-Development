@@ -15,7 +15,7 @@ const SeatContainer = styled(motion.div)(({ theme, status, type }) => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  cursor: status === 'available' ? 'pointer' : 'not-allowed',
+  cursor: type === 'driver' ? 'default' : 'pointer',
   border: '2px solid',
   transition: 'all 0.2s ease',
   
@@ -69,7 +69,7 @@ const Seat = ({ seat, onSelect, isSelected }) => {
         status={displayStatus}
         type={seat.type}
         whileTap={{ scale: 0.95 }}
-        onClick={() => seat.status === 'available' && onSelect(seat)}
+        onClick={() => seat.type !== 'driver' && onSelect(seat)}
       >
         <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>
           {seat.seatNumber}

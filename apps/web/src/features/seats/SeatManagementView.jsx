@@ -76,12 +76,31 @@ const SeatManagementView = () => {
         <Grid container spacing={3}>
           {activeSchedules.map((schedule) => (
             <Grid item xs={12} md={6} lg={4} key={schedule.id}>
-              <Card sx={{ 
-                borderRadius: 3, 
-                border: '1px solid rgba(255,255,255,0.05)',
-                transition: 'transform 0.2s',
-                '&:hover': { transform: 'translateY(-4px)' }
-              }}>
+              <Card sx={(theme) => ({ 
+                borderRadius: '16px', 
+                border: '1.5px solid rgba(230, 141, 51, 0.25)',
+                borderTop: '4px solid #E68D33',
+                background: theme.palette.mode === 'dark' 
+                  ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.8) 100%)'
+                  : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%)',
+                backdropFilter: 'blur(20px)',
+                boxShadow: theme.palette.mode === 'dark' 
+                  ? '0 4px 20px -2px rgba(0, 0, 0, 0.3)' 
+                  : '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                position: 'relative',
+                overflow: 'visible',
+                '&:hover': { 
+                  transform: 'translateY(-6px)',
+                  boxShadow: theme.palette.mode === 'dark' 
+                    ? '0 16px 28px -10px rgba(230, 141, 51, 0.25), 0 8px 30px rgba(0,0,0,0.4)' 
+                    : '0 16px 24px -10px rgba(230, 141, 51, 0.18), 0 6px 20px rgba(0,0,0,0.06)',
+                  borderColor: '#E68D33',
+                  '& .ticket-notch': {
+                    borderColor: '#E68D33',
+                  }
+                }
+              })}>
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                     <Chip 
@@ -105,14 +124,84 @@ const SeatManagementView = () => {
                     <Typography variant="body2">{formatTime(schedule.departureTime)}</Typography>
                   </Box>
 
-                  <Divider sx={{ my: 2 }} />
+                  {/* Ticket Divider & Cutout Notches */}
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    mx: -3, 
+                    my: 2.5,
+                    height: '20px',
+                    position: 'relative'
+                  }}>
+                    {/* Left Notch */}
+                    <Box 
+                      className="ticket-notch"
+                      sx={(theme) => ({
+                        position: 'absolute',
+                        left: '-10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: theme.palette.background.default,
+                        border: '1.5px solid rgba(230, 141, 51, 0.25)',
+                        borderLeftColor: 'transparent',
+                        borderTopColor: 'transparent',
+                        borderBottomColor: 'transparent',
+                        zIndex: 2,
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      })} 
+                    />
+                    
+                    {/* Perforation Line */}
+                    <Box sx={(theme) => ({ 
+                      flex: 1, 
+                      borderTop: `1.2px dashed ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'}`, 
+                      height: '1px', 
+                      mx: 1.5
+                    })} />
+                    
+                    {/* Right Notch */}
+                    <Box 
+                      className="ticket-notch"
+                      sx={(theme) => ({
+                        position: 'absolute',
+                        right: '-10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: theme.palette.background.default,
+                        border: '1.5px solid rgba(230, 141, 51, 0.25)',
+                        borderRightColor: 'transparent',
+                        borderTopColor: 'transparent',
+                        borderBottomColor: 'transparent',
+                        zIndex: 2,
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      })} 
+                    />
+                  </Box>
 
                   <Button 
                     fullWidth 
                     variant="contained" 
                     startIcon={<EventSeat />}
                     onClick={() => setSelectedRide(schedule)}
-                    sx={{ borderRadius: 2, py: 1.2 }}
+                    sx={{ 
+                      borderRadius: 2, 
+                      py: 1.2,
+                      fontWeight: 600,
+                      background: 'linear-gradient(135deg, #E68D33, #c9731a)',
+                      color: '#ffffff',
+                      boxShadow: '0 4px 12px rgba(230, 141, 51, 0.2)',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #f09e48, #E68D33)',
+                        boxShadow: '0 6px 16px rgba(230, 141, 51, 0.3)',
+                      }
+                    }}
                   >
                     Manage Seat Map
                   </Button>
