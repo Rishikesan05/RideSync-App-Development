@@ -90,7 +90,7 @@ export const updateSeatMeta = async (rideId, seatNumber, updates) => {
 };
 
 /**
- * Admin: Move a booking from an old seat to a new seat atomically using a transaction
+ * Admin: Move booking from old seat to new seat atomically
  */
 export const relocateSeat = async (rideId, oldSeatNumber, newSeatNumber, oldSeatData) => {
   const oldSeatRef = doc(db, "schedules", rideId, "seats", oldSeatNumber.toString());
@@ -108,7 +108,7 @@ export const relocateSeat = async (rideId, oldSeatNumber, newSeatNumber, oldSeat
         throw new Error(`Target seat ${newSeatNumber} is already ${newSeatData.status}`);
       }
 
-      // Free old seat (reset status and clear passenger info)
+      // Free old seat (resetting status, passenger, booking time)
       transaction.update(oldSeatRef, {
         status: 'available',
         passengerId: null,
@@ -116,7 +116,7 @@ export const relocateSeat = async (rideId, oldSeatNumber, newSeatNumber, oldSeat
         updatedAt: serverTimestamp()
       });
 
-      // Move booking info to target seat
+      // Move booking details to target seat
       transaction.update(newSeatRef, {
         status: oldSeatData.status || 'booked',
         passengerId: oldSeatData.passengerId || null,
@@ -126,8 +126,7 @@ export const relocateSeat = async (rideId, oldSeatNumber, newSeatNumber, oldSeat
     });
     return { success: true };
   } catch (error) {
-    console.error("Relocation Transaction Failed: ", error);
+    console.error("Relocation transaction failed:", error);
     return { success: false, error: error.message };
   }
 };
-
