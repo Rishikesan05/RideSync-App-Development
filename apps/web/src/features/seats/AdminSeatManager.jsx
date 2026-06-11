@@ -13,7 +13,7 @@ import {
   Paper
 } from '@mui/material';
 import BusSeatMap from './BusSeatMap';
-import { bookSeat, updateSeatMeta, initializeRideSeats } from './SeatService';
+import { bookSeat, updateSeatMeta, initializeRideSeats, relocateSeat } from './SeatService';
 import { useSeatMap } from './useSeatMap';
 
 /**
@@ -24,6 +24,8 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
   const { seats, loading } = useSeatMap(rideId);
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [initializing, setInitializing] = useState(false);
+  const [isRelocating, setIsRelocating] = useState(false);
+  const [seatToRelocate, setSeatToRelocate] = useState(null);
 
   // Automatically initialize seats if they don't exist
   useEffect(() => {
@@ -42,8 +44,33 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
     }
   }, [open, loading, seats.length, rideId, layoutType, initializing]);
 
-  const handleSeatClick = (seat) => {
-    setSelectedSeat(seat);
+  const handleSeatClick = async (seat) => {
+    if (isRelocating) {
+      if (seat.status === 'available' && seat.type !== 'driver') {
+        const confirmMove = window.confirm(`Move booking from Seat ${seatToRelocate.seatNumber} to Seat ${seat.seatNumber}?`);
+        if (confirmMove) {
+          const res = await relocateSeat(rideId, seatToRelocate.seatNumber, seat.seatNumber, seatToRelocate);
+          if (res.success) {
+            alert(`Successfully relocated booking to Seat ${seat.seatNumber}.`);
+          } else {
+            alert(`Failed to relocate booking: ${res.error}`);
+          }
+          setIsRelocating(false);
+          setSeatToRelocate(null);
+          setSelectedSeat(null);
+        }
+      } else {
+        alert("Please select an available seat to complete the move.");
+      }
+    } else {
+      setSelectedSeat(seat);
+    }
+  };
+
+  const handleStartRelocate = () => {
+    if (!selectedSeat) return;
+    setSeatToRelocate(selectedSeat);
+    setIsRelocating(true);
   };
 
   const handleBlockSeat = async () => {
@@ -64,8 +91,15 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
     setSelectedSeat(null);
   };
 
+  const handleClose = () => {
+    setIsRelocating(false);
+    setSeatToRelocate(null);
+    setSelectedSeat(null);
+    onClose();
+  };
+
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="md">
       <DialogTitle sx={{ fontWeight: 800 }}>
         Admin: Seat Management
       </DialogTitle>
@@ -84,7 +118,19 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
           {/* Right: Actions */}
           <Box sx={{ flex: 1, p: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Seat Actions</Typography>
-            {selectedSeat ? (
+            {isRelocating ? (
+              <Box sx={{ p: 3, textAlign: 'center', border: '2px dashed #E68D33', borderRadius: 2, bgcolor: 'rgba(230, 141, 51, 0.05)' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: '#E68D33' }}>
+                  Relocating Seat {seatToRelocate.seatNumber}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                  Click on an available seat on the map to move this booking.
+                </Typography>
+                <Button size="small" variant="outlined" color="warning" onClick={() => { setIsRelocating(false); setSeatToRelocate(null); setSelectedSeat(null); }}>
+                  Cancel Move
+                </Button>
+              </Box>
+            ) : selectedSeat ? (
               <Stack spacing={2}>
                 <Box sx={(theme) => ({
                   p: 2,
@@ -176,19 +222,56 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
                   </Box>
                 </Box>
 
-                <Button fullWidth variant="contained" color="error" onClick={handleBlockSeat}>
-                  Block Seat (Maintenance)
-                </Button>
-                <Button fullWidth variant="contained" color="warning" onClick={handleMarkVIP}>
-                  Set as VIP Seat
-                </Button>
-                <Button fullWidth variant="outlined" onClick={handleMakeAvailable}>
-                  Reset to Available
-                </Button>
+                {selectedSeat.type === 'blocked' ? (
+                  <Button fullWidth variant="contained" color="success" onClick={handleMakeAvailable} sx={{ fontWeight: 600 }}>
+                    Unblock Seat (Make Available)
+                  </Button>
+                ) : selectedSeat.type === 'vip' ? (
+                  <Stack spacing={1.5}>
+                    <Button fullWidth variant="outlined" color="warning" onClick={handleMakeAvailable} sx={{ fontWeight: 600 }}>
+                      Remove VIP Status (Set to Standard)
+                    </Button>
+                    {selectedSeat.status !== 'booked' && selectedSeat.status !== 'reserved' && (
+                      <Button fullWidth variant="contained" color="error" onClick={handleBlockSeat}>
+                        Block Seat (Maintenance)
+                      </Button>
+                    )}
+                  </Stack>
+                ) : selectedSeat.status === 'booked' || selectedSeat.status === 'reserved' ? (
+                  <Stack spacing={1.5}>
+                    <Button 
+                      fullWidth 
+                      variant="contained" 
+                      onClick={handleStartRelocate}
+                      sx={{ 
+                        fontWeight: 600,
+                        background: 'linear-gradient(135deg, #E68D33, #c9731a)',
+                        color: '#ffffff',
+                        '&:hover': {
+                          background: 'linear-gradient(135deg, #f09e48, #E68D33)',
+                        }
+                      }}
+                    >
+                      Move Booking (Change Seat)
+                    </Button>
+                    <Button fullWidth variant="outlined" color="error" onClick={handleMakeAvailable} sx={{ fontWeight: 600 }}>
+                      Cancel Booking (Make Available)
+                    </Button>
+                  </Stack>
+                ) : (
+                  <Stack spacing={1.5}>
+                    <Button fullWidth variant="contained" color="error" onClick={handleBlockSeat}>
+                      Block Seat (Maintenance)
+                    </Button>
+                    <Button fullWidth variant="contained" color="warning" onClick={handleMarkVIP}>
+                      Set as VIP Seat
+                    </Button>
+                  </Stack>
+                )}
               </Stack>
             ) : (
               <Box sx={{ p: 4, textAlign: 'center', border: '2px dashed #E2E8F0', borderRadius: 2 }}>
-                 <Typography color="text.secondary">Select a seat on the map to manage</Typography>
+                <Typography color="text.secondary">Select a seat on the map to manage</Typography>
               </Box>
             )}
 
@@ -218,7 +301,7 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Close Manager</Button>
+        <Button onClick={handleClose}>Close Manager</Button>
       </DialogActions>
     </Dialog>
   );
