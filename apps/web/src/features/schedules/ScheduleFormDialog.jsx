@@ -93,9 +93,10 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
       if (initialData) {
         const dt = initialData.departureTime ? new Date(initialData.departureTime) : null;
         reset({
-          routeId:       initialData.routeId       || '',
-          busId:         initialData.busId         || '',
-          opId:          initialData.opId          || '',
+          routeId:       initialData.routeId                              || '',
+          busId:         initialData.busId                                || '',
+          // Schedules store the field as 'operatorId'; fall back to legacy 'opId'
+          opId:          initialData.operatorId || initialData.opId       || '',
           departureDate: dt ? dt.toISOString().slice(0, 10) : '',
           departureTime: dt ? dt.toTimeString().slice(0, 5)  : '',
         });
@@ -104,6 +105,7 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
       }
     }
   }, [open, initialData, reset]);
+
 
   // ── Submit ─────────────────────────────────────────────────────────────────
   const handleFormSubmit = async (data) => {
