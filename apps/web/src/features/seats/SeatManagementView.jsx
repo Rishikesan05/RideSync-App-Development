@@ -76,12 +76,24 @@ const SeatManagementView = () => {
         <Grid container spacing={3}>
           {activeSchedules.map((schedule) => (
             <Grid item xs={12} md={6} lg={4} key={schedule.id}>
-              <Card sx={{ 
-                borderRadius: 3, 
-                border: '1px solid rgba(255,255,255,0.05)',
-                transition: 'transform 0.2s',
-                '&:hover': { transform: 'translateY(-4px)' }
-              }}>
+              <Card sx={(theme) => ({ 
+                borderRadius: '20px', 
+                border: '1px solid rgba(245, 158, 11, 0.25)',
+                borderTop: '4px solid #f59e0b',
+                background: theme.palette.mode === 'dark' ? 'rgba(30, 41, 59, 0.72)' : 'rgba(255, 255, 255, 0.85)',
+                backdropFilter: 'blur(24px)',
+                boxShadow: theme.palette.mode === 'dark' 
+                  ? '0 12px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)' 
+                  : '0 12px 30px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.5)',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                position: 'relative',
+                overflow: 'hidden',
+                '&:hover': { 
+                  transform: 'translateY(-6px)',
+                  boxShadow: '0 20px 40px rgba(245, 158, 11, 0.15)',
+                  borderColor: 'rgba(245, 158, 11, 0.45)'
+                }
+              })}>
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                     <Chip 
@@ -105,14 +117,72 @@ const SeatManagementView = () => {
                     <Typography variant="body2">{formatTime(schedule.departureTime)}</Typography>
                   </Box>
 
-                  <Divider sx={{ my: 2 }} />
+                  {/* Ticket Divider & Cutout Notches */}
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    mx: -3, 
+                    my: 2.5,
+                    height: '24px',
+                    position: 'relative'
+                  }}>
+                    {/* Left Notch */}
+                    <Box sx={(theme) => ({
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      background: theme.palette.background.default,
+                      border: '1px solid rgba(245, 158, 11, 0.25)',
+                      marginLeft: '-12px',
+                      boxShadow: theme.palette.mode === 'dark' 
+                        ? 'inset -4px 0 8px rgba(0, 0, 0, 0.5)' 
+                        : 'inset -4px 0 8px rgba(0, 0, 0, 0.1)',
+                      zIndex: 2,
+                      transition: 'background-color 0.3s',
+                    })} />
+                    
+                    {/* Perforation Line */}
+                    <Box sx={{ 
+                      flex: 1, 
+                      borderTop: '2px dashed rgba(245, 158, 11, 0.25)', 
+                      height: '1px', 
+                      mx: 1 
+                    }} />
+                    
+                    {/* Right Notch */}
+                    <Box sx={(theme) => ({
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      background: theme.palette.background.default,
+                      border: '1px solid rgba(245, 158, 11, 0.25)',
+                      marginRight: '-12px',
+                      boxShadow: theme.palette.mode === 'dark' 
+                        ? 'inset 4px 0 8px rgba(0, 0, 0, 0.5)' 
+                        : 'inset 4px 0 8px rgba(0, 0, 0, 0.1)',
+                      zIndex: 2,
+                      transition: 'background-color 0.3s',
+                    })} />
+                  </Box>
 
                   <Button 
                     fullWidth 
                     variant="contained" 
                     startIcon={<EventSeat />}
                     onClick={() => setSelectedRide(schedule)}
-                    sx={{ borderRadius: 2, py: 1.2 }}
+                    sx={{ 
+                      borderRadius: 2, 
+                      py: 1.2,
+                      fontWeight: 600,
+                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                      color: '#0f172a',
+                      boxShadow: '0 4px 12px rgba(245, 158, 11, 0.2)',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                        boxShadow: '0 6px 16px rgba(245, 158, 11, 0.3)',
+                      }
+                    }}
                   >
                     Manage Seat Map
                   </Button>
