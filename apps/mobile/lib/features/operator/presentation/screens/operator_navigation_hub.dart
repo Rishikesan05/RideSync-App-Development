@@ -4,7 +4,7 @@ import 'package:ridesync/features/operator/presentation/screens/operator_home_sc
 import 'package:ridesync/features/operator/presentation/screens/operator_profile_screen.dart';
 import 'package:ridesync/features/operator/presentation/screens/operator_routes_screen.dart';
 import 'package:ridesync/features/operator/presentation/screens/operator_earnings_screen.dart';
-import 'package:ridesync/features/operator/presentation/screens/operator_fleet_screen.dart';
+import 'package:ridesync/features/operator/presentation/screens/operator_contact_screen.dart';
 
 class BusOperatorNavigationHub extends StatefulWidget {
   const BusOperatorNavigationHub({super.key});
@@ -20,7 +20,7 @@ class _BusOperatorNavigationHubState extends State<BusOperatorNavigationHub> {
     const OperatorHomeScreen(),
     const OperatorRoutesScreen(),
     const OperatorEarningsScreen(),
-    const OperatorFleetScreen(),
+    const OperatorContactScreen(),
     const OperatorProfileScreen(),
   ];
 
@@ -54,9 +54,9 @@ class _BusOperatorNavigationHubState extends State<BusOperatorNavigationHub> {
           unselectedFontSize: 12,
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.route_outlined), activeIcon: Icon(Icons.route), label: 'Routes'),
+            BottomNavigationBarItem(icon: Icon(Icons.schedule_outlined), activeIcon: Icon(Icons.schedule), label: 'Schedules'),
             BottomNavigationBarItem(icon: Icon(Icons.payments_outlined), activeIcon: Icon(Icons.payments), label: 'Earnings'),
-            BottomNavigationBarItem(icon: Icon(Icons.directions_bus_outlined), activeIcon: Icon(Icons.directions_bus), label: 'Fleet'),
+            BottomNavigationBarItem(icon: Icon(Icons.support_agent_outlined), activeIcon: Icon(Icons.support_agent), label: 'Contact'),
             BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
           ],
         ),

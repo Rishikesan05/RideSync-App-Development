@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ridesync/core/constants.dart';
+import 'package:ridesync/features/operator/presentation/screens/operator_manage_schedule_screen.dart';
 
 class OperatorRoutesScreen extends StatefulWidget {
   const OperatorRoutesScreen({super.key});
@@ -49,7 +50,7 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
         backgroundColor: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
         elevation: 0,
         title: const Text(
-          'My Routes',
+          'My Schedules',
           style: TextStyle(
             color: Colors.white,
             fontSize: 20,
@@ -68,13 +69,15 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
             children: [
               _buildSearchBar(isDark),
               const SizedBox(height: 24),
-              Text('My Assigned Routes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+              Text('Assigned Schedules', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
               const SizedBox(height: 16),
               ..._mockRoutes.where((r) => r['isAssigned'] == true).map((route) => _buildRouteCard(route, isDark)),
-              const SizedBox(height: 24),
-              Text('Other Fleet Routes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
-              const SizedBox(height: 16),
-              ..._mockRoutes.where((r) => r['isAssigned'] == false).map((route) => _buildRouteCard(route, isDark)),
+              if (_mockRoutes.any((r) => r['isAssigned'] == false)) ...[
+                const SizedBox(height: 24),
+                Text('New Routes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                const SizedBox(height: 16),
+                ..._mockRoutes.where((r) => r['isAssigned'] == false).map((route) => _buildRouteCard(route, isDark)),
+              ],
             ],
           ),
         ),
@@ -96,7 +99,7 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
       child: TextField(
         style: TextStyle(color: isDark ? Colors.white : AppColors.textDark),
         decoration: InputDecoration(
-          hintText: 'Search routes, destinations...',
+          hintText: 'Search schedules, destinations...',
           hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400),
           border: InputBorder.none,
           icon: Icon(Icons.search, color: isDark ? Colors.white54 : Colors.grey),
@@ -173,25 +176,23 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
                   label: const Text('View Stops'),
                   style: TextButton.styleFrom(foregroundColor: AppColors.primaryOrange),
                 ),
-                if (route['isAssigned'])
-                  ElevatedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Manage Schedule Screen Coming Soon')));
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryNavy,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
-                    ),
-                    child: const Text('Manage'),
-                  )
-                else
-                  TextButton(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(foregroundColor: Colors.grey),
-                    child: const Text('Request'),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => OperatorManageScheduleScreen(routeData: route),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryNavy,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
                   ),
+                  child: const Text('Manage'),
+                ),
               ],
             ),
           ),
@@ -270,7 +271,26 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Stop ${index + 1}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : AppColors.textDark)),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Stop ${index + 1}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : AppColors.textDark)),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primaryOrange.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.people, size: 12, color: AppColors.primaryOrange),
+                                          const SizedBox(width: 4),
+                                          Text('${(index * 7 + 3) % 15 + 1} Booked', style: const TextStyle(color: AppColors.primaryOrange, fontSize: 11, fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                                 const SizedBox(height: 4),
                                 Text('Estimated arrival: +${index * 5} mins', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 12)),
                               ],

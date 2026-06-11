@@ -305,7 +305,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
               ElevatedButton(
                 onPressed: () {
                   if (_ticketController.text.isEmpty) return;
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Verifying ticket: ${_ticketController.text}')));
+                  _verifyTicket(_ticketController.text);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryOrange,
@@ -591,12 +591,25 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Enter Trip Code', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                    Text('Start Scheduled Journey', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
                     IconButton(
                       icon: Icon(Icons.close, color: isDark ? Colors.white54 : Colors.black54),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
+                ),
+                const SizedBox(height: 16),
+                
+                TextField(
+                  controller: coOpIdController,
+                  decoration: InputDecoration(
+                    labelText: 'Enter Co-Operator ID',
+                    hintText: 'e.g. RSCOP26-001',
+                    prefixIcon: const Icon(Icons.badge_outlined),
+                    filled: true,
+                    fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 
@@ -625,8 +638,25 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: isSubmitting ? null : () async {
+                      final enteredId = coOpIdController.text.trim().toUpperCase();
+                      if (enteredId.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter the assigned Co-Operator ID to start')));
+                        return;
+                      }
+                      
+                      if (!enteredId.startsWith('RSCOP')) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('A Driver (RSCOP format) must be assigned as Co-Operator!')));
+                        return;
+                      }
+
+                      final scheduledCoOpId = trip['coOperatorId']?.toString().trim().toUpperCase() ?? '';
+                      if (scheduledCoOpId.isNotEmpty && enteredId != scheduledCoOpId) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Co-Operator ID does not match the scheduled route!')));
+                        return;
+                      }
+
                       setStateModal(() => isSubmitting = true);
-                      await _startJourney(trip['id'], '', ''); // No co-operator
+                      await _startJourney(trip['id'], '', coOpIdController.text.trim());
                       setStateModal(() => isSubmitting = false);
                       
                       if (context.mounted) {
@@ -659,6 +689,62 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
         Text(value, style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.w600, fontSize: 13)),
       ],
     );
+  }
+
+  Future<void> _verifyTicket(String ticketCode) async {
+    try {
+      // 1. Find the booking by ticketCode
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('bookings')
+          .where('ticketCode', isEqualTo: ticketCode.toUpperCase().trim())
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Ticket not found or invalid'), backgroundColor: Colors.red),
+          );
+        }
+        return;
+      }
+
+      final bookingDoc = querySnapshot.docs.first;
+      final bookingData = bookingDoc.data();
+      final scheduleId = bookingData['scheduleId'];
+      final List<dynamic> seats = bookingData['seats'] ?? [];
+
+      if (seats.isEmpty) return;
+
+      // 2. Update the seats to 'boarded' in the schedule's seats subcollection
+      final batch = FirebaseFirestore.instance.batch();
+      for (final seatNum in seats) {
+        final seatRef = FirebaseFirestore.instance
+            .collection('schedules')
+            .doc(scheduleId)
+            .collection('seats')
+            .doc(seatNum);
+        batch.update(seatRef, {'status': 'boarded', 'updatedAt': FieldValue.serverTimestamp()});
+      }
+
+      await batch.commit();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ticket $ticketCode verified! ${seats.join(', ')} marked as boarded.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _ticketController.clear();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Verification error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
 

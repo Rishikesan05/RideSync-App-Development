@@ -66,6 +66,7 @@ class BookingProvider extends ChangeNotifier {
   List<Map<String, dynamic>> currentSeats = [];
   Set<String> selectedSeatNumbers = {};
   bool isBooking = false;
+  String? lastGeneratedTicketCode;
 
   // --- Fare Calculation ---
   static const double _farePerKm = 15.0;
@@ -155,12 +156,17 @@ class BookingProvider extends ChangeNotifier {
           }
         }
 
+        // 1.5 Generate Ticket Code
+        final String ticketCode = 'RS-${math.Random().nextInt(9000) + 1000}';
+        lastGeneratedTicketCode = ticketCode;
+
         // 2. Perform updates
         for (final seatNum in selectedSeatNumbers) {
           final seatRef = scheduleRef.collection('seats').doc(seatNum);
           transaction.update(seatRef, {
             'status': 'sold',
             'passengerId': passengerId,
+            'ticketCode': ticketCode,
             'updatedAt': FieldValue.serverTimestamp(),
           });
         }
@@ -183,6 +189,7 @@ class BookingProvider extends ChangeNotifier {
           'plateNumber': selectedSchedule!.plateNumber ?? '',
           'timestamp': FieldValue.serverTimestamp(),
           'status': 'confirmed',
+          'ticketCode': ticketCode,
         });
       });
 

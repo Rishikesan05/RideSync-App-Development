@@ -234,6 +234,7 @@ class SeatSelectionScreen extends StatelessWidget {
           distanceKm: booking.distanceKm,
           seatCount: booking.selectedSeatNumbers.length,
           plateNumber: booking.selectedSchedule?.plateNumber ?? '',
+          ticketCode: booking.lastGeneratedTicketCode ?? 'TKT-PEND',
         ),
       ),
     );
