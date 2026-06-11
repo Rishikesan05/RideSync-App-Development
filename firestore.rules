@@ -24,7 +24,9 @@ service cloud.firestore {
       allow write: if hasRole('admin');
     }
 
-    // NEW: operator collection - public read so opId can be validated
+    // LEGACY: 'operator' (singular) collection — kept for backward compatibility only.
+    // New code should use 'operators' (plural) with the 'operatorId' field.
+    // Do NOT write to this collection in new features.
     match /operator/{uid} {
       allow read: if true;
       allow write: if hasRole('admin');
