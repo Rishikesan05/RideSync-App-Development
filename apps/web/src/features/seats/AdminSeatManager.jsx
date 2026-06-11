@@ -88,12 +88,12 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
               <Stack spacing={2}>
                 <Box sx={(theme) => ({
                   p: 2,
-                  borderRadius: '16px',
-                  border: '1px solid rgba(245, 158, 11, 0.25)',
-                  borderLeft: '4px solid #f59e0b',
+                  borderRadius: '12px',
+                  border: '1.5px solid rgba(230, 141, 51, 0.25)',
+                  borderLeft: '4px solid #E68D33',
                   background: theme.palette.mode === 'dark' ? 'rgba(30, 41, 59, 0.4)' : 'rgba(255, 255, 255, 0.5)',
                   position: 'relative',
-                  overflow: 'hidden'
+                  overflow: 'visible'
                 })}>
                   {/* Top: Seat Number & Status */}
                   <Box>
@@ -112,40 +112,52 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
                     position: 'relative'
                   }}>
                     {/* Left Notch */}
-                    <Box sx={(theme) => ({
-                      width: '16px',
-                      height: '16px',
-                      borderRadius: '50%',
-                      background: theme.palette.background.paper,
-                      border: '1px solid rgba(245, 158, 11, 0.25)',
-                      marginLeft: '-8px',
-                      boxShadow: theme.palette.mode === 'dark' 
-                        ? 'inset -2px 0 4px rgba(0, 0, 0, 0.5)' 
-                        : 'inset -2px 0 4px rgba(0, 0, 0, 0.1)',
-                      zIndex: 2,
-                    })} />
+                    <Box 
+                      className="ticket-notch"
+                      sx={(theme) => ({
+                        position: 'absolute',
+                        left: '-8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        backgroundColor: theme.palette.background.paper,
+                        border: '1.5px solid rgba(230, 141, 51, 0.25)',
+                        borderLeftColor: 'transparent',
+                        borderTopColor: 'transparent',
+                        borderBottomColor: 'transparent',
+                        zIndex: 2,
+                      })} 
+                    />
                     
                     {/* Perforation Line */}
-                    <Box sx={{ 
+                    <Box sx={(theme) => ({ 
                       flex: 1, 
-                      borderTop: '1px dashed rgba(245, 158, 11, 0.2)', 
+                      borderTop: `1px dashed ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'}`, 
                       height: '1px', 
-                      mx: 0.5 
-                    }} />
+                      mx: 1 
+                    })} />
                     
                     {/* Right Notch */}
-                    <Box sx={(theme) => ({
-                      width: '16px',
-                      height: '16px',
-                      borderRadius: '50%',
-                      background: theme.palette.background.paper,
-                      border: '1px solid rgba(245, 158, 11, 0.25)',
-                      marginRight: '-8px',
-                      boxShadow: theme.palette.mode === 'dark' 
-                        ? 'inset 2px 0 4px rgba(0, 0, 0, 0.5)' 
-                        : 'inset 2px 0 4px rgba(0, 0, 0, 0.1)',
-                      zIndex: 2,
-                    })} />
+                    <Box 
+                      className="ticket-notch"
+                      sx={(theme) => ({
+                        position: 'absolute',
+                        right: '-8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        backgroundColor: theme.palette.background.paper,
+                        border: '1.5px solid rgba(230, 141, 51, 0.25)',
+                        borderRightColor: 'transparent',
+                        borderTopColor: 'transparent',
+                        borderBottomColor: 'transparent',
+                        zIndex: 2,
+                      })} 
+                    />
                   </Box>
 
                   {/* Bottom: Seat Type Tag */}
@@ -156,9 +168,9 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
                       sx={{ 
                         fontWeight: 600, 
                         fontSize: '0.7rem',
-                        bgcolor: 'rgba(245, 158, 11, 0.12)', 
-                        color: '#f59e0b', 
-                        border: '1px solid rgba(245, 158, 11, 0.25)' 
+                        bgcolor: 'rgba(230, 141, 51, 0.12)', 
+                        color: '#E68D33', 
+                        border: '1px solid rgba(230, 141, 51, 0.25)' 
                       }} 
                     />
                   </Box>
