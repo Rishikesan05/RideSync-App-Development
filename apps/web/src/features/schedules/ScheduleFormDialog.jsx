@@ -107,25 +107,21 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
 
   // ── Submit ─────────────────────────────────────────────────────────────────
   const handleFormSubmit = async (data) => {
-    // Validate opId against the operator collection
+    // Validate opId against the 'operators' collection using the 'operatorId' field
     try {
       const trimmedOpId = data.opId.trim();
-      console.log('[Schedule] Validating opId:', JSON.stringify(trimmedOpId));
+      console.log('[Schedule] Validating operatorId against operators collection:', JSON.stringify(trimmedOpId));
 
-      // Query operator collection by the opId FIELD (not document ID)
+      // Query 'operators' collection by the 'operatorId' FIELD
       const opQuery = query(
-        collection(db, 'operator'),
-        where('opId', '==', trimmedOpId)
+        collection(db, 'operators'),
+        where('operatorId', '==', trimmedOpId)
       );
       const opSnapshot = await getDocs(opQuery);
-      console.log('[Schedule] Matches found:', opSnapshot.size);
+      console.log('[Schedule] Matches found in operators collection:', opSnapshot.size);
 
-      // Also try by document ID directly
-      let foundByField = !opSnapshot.empty;
-      if (!foundByField) {
-        // Try a second query matching opId field case-insensitively won't work in Firestore
-        // but check if maybe the user's opId field stores a different value
-        console.log('[Schedule] Not found by opId field, snapshot empty.');
+      if (opSnapshot.empty) {
+        console.log('[Schedule] Not found by operatorId field in operators collection.');
         setError('opId', { type: 'manual', message: `Operator ID "${trimmedOpId}" not found. Please enter a valid Operator ID.` });
         return;
       }
@@ -133,11 +129,11 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
       // Ensure the found doc has role === 'operator'
       const opData = opSnapshot.docs[0].data();
       if (opData.role && opData.role !== 'operator') {
-        setError('opId', { type: 'manual', message: 'This ID does not belong to an operator.' });
+        setError('opId', { type: 'manual', message: 'This ID does not belong to an operator account.' });
         return;
       }
     } catch (err) {
-      console.error('Error validating operator ID', err);
+      console.error('Error validating operator ID against operators collection', err);
       setError('opId', { type: 'manual', message: err.message || 'Error validating Operator ID' });
       return;
     }
@@ -381,11 +377,12 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
                 <TextField
                   {...field}
                   fullWidth
-                  label="Operator ID (opId)"
+                  label="Operator ID"
+                  placeholder="Enter the operatorId from the operators collection"
                   variant="outlined"
                   margin="dense"
                   error={!!errors.opId}
-                  helperText={errors.opId?.message}
+                  helperText={errors.opId?.message || 'Must match an operatorId in the operators collection'}
                   disabled={!!initialData}
                   InputLabelProps={{ shrink: true }}
                 />
