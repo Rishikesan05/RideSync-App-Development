@@ -46,7 +46,7 @@ const menuItems = [
   { text: 'Dashboard', icon: <Dashboard />, path: '/' },
   { text: 'Routes', icon: <RouteIcon />, path: '/routes' },
   { text: 'Schedules', icon: <EventNote />, path: '/schedules' },
-  { text: 'Fleet', icon: <DirectionsBus />, path: '/fleet' },
+  { text: 'Bus Management', icon: <DirectionsBus />, path: '/fleet' },
   { text: 'Seat Management', icon: <EventSeat />, path: '/seats' },
   { text: 'Live Tracking', icon: <Map />, path: '/live' },
   { text: 'Users', icon: <People />, path: '/users' },
@@ -211,7 +211,7 @@ export const AdminLayout = () => {
           </IconButton>
           
           <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, color: 'inherit', display: { xs: 'none', sm: 'block' }, fontSize: '1.5rem', textTransform: 'uppercase' }}>
-            {menuItems.find(m => m.path === location.pathname)?.text || 'Dashboard'}
+            {menuItems.find(m => m.path === location.pathname || (m.path !== '/' && location.pathname.startsWith(m.path)))?.text || 'Dashboard'}
           </Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 'auto' }}>
