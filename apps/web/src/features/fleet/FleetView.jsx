@@ -172,7 +172,7 @@ export const FleetView = () => {
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 700 }}>Bus Management</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Register, edit, and manage your fleet of buses — synced live with Firestore.
+            Register, edit and manage your fleet of buses.
           </Typography>
         </Box>
         <Button 
