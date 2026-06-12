@@ -441,6 +441,7 @@ const styles = {
     height: 'auto',
     objectFit: 'contain',
     marginBottom: '8px',
+    mixBlendMode: 'screen',
   },
   brandSub: {
     fontSize: '13px',

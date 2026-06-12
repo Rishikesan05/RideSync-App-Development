@@ -320,6 +320,7 @@ const styles = {
     width: '200px',
     height: 'auto',
     objectFit: 'contain',
+    mixBlendMode: 'screen',
   },
   card: {
     background: 'rgba(30, 41, 59, 0.72)',
