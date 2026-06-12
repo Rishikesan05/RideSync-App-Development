@@ -260,14 +260,28 @@ export const FleetView = () => {
             <Card
               sx={{
                 height: '100%',
+                borderRadius: '16px',
+                border: '1.5px solid rgba(230, 141, 51, 0.25)',
+                borderTop: '4px solid #E68D33',
+                background: theme.palette.mode === 'dark'
+                  ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.8) 100%)'
+                  : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%)',
+                backdropFilter: 'blur(20px)',
+                boxShadow: theme.palette.mode === 'dark'
+                  ? '0 4px 20px -2px rgba(0, 0, 0, 0.3)'
+                  : '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 position: 'relative',
                 overflow: 'visible',
-                transition: 'transform 0.2s, box-shadow 0.2s',
                 '&:hover': {
-                  transform: 'translateY(-3px)',
+                  transform: 'translateY(-6px)',
                   boxShadow: theme.palette.mode === 'dark'
-                    ? '0 12px 32px rgba(0,0,0,0.5)'
-                    : '0 12px 32px rgba(0,0,0,0.1)',
+                    ? '0 16px 28px -10px rgba(230, 141, 51, 0.25), 0 8px 30px rgba(0,0,0,0.4)'
+                    : '0 16px 24px -10px rgba(230, 141, 51, 0.18), 0 6px 20px rgba(0,0,0,0.06)',
+                  borderColor: '#E68D33',
+                  '& .ticket-notch': {
+                    borderColor: '#E68D33',
+                  }
                 },
               }}
             >
@@ -316,7 +330,66 @@ export const FleetView = () => {
                   </Box>
                 </Box>
                 
-                <Divider sx={{ my: 2, borderColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)' }} />
+                {/* Ticket Divider & Cutout Notches */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  mx: -3, 
+                  my: 2.5,
+                  height: '20px',
+                  position: 'relative'
+                }}>
+                  {/* Left Notch */}
+                  <Box 
+                    className="ticket-notch"
+                    sx={{
+                      position: 'absolute',
+                      left: '-10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      backgroundColor: theme.palette.background.default,
+                      border: '1.5px solid rgba(230, 141, 51, 0.25)',
+                      borderLeftColor: 'transparent',
+                      borderTopColor: 'transparent',
+                      borderBottomColor: 'transparent',
+                      zIndex: 2,
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }} 
+                  />
+                  
+                  {/* Perforation Line */}
+                  <Box sx={{ 
+                    flex: 1, 
+                    borderTop: `1.2px dashed ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'}`, 
+                    height: '1px', 
+                    mx: 1.5
+                  }} />
+                  
+                  {/* Right Notch */}
+                  <Box 
+                    className="ticket-notch"
+                    sx={{
+                      position: 'absolute',
+                      right: '-10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      backgroundColor: theme.palette.background.default,
+                      border: '1.5px solid rgba(230, 141, 51, 0.25)',
+                      borderRightColor: 'transparent',
+                      borderTopColor: 'transparent',
+                      borderBottomColor: 'transparent',
+                      zIndex: 2,
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }} 
+                  />
+                </Box>
                 
                 {/* ── Details grid ────────────────────────────────────── */}
                 <Grid container spacing={2}>
