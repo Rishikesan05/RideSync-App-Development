@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,7 +35,7 @@ const PasswordStrength = ({ password }) => {
   ];
   const score = checks.filter(c => c.valid).length;
   const colors = ['#ef4444', '#f97316', '#22c55e'];
-  const labels = ['Weak', 'Fair', 'Strong'];
+
 
   if (!password) return null;
 

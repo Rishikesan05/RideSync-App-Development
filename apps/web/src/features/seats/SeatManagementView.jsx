@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   Box, 
   Typography, 
@@ -7,7 +7,6 @@ import {
   CardContent, 
   Button, 
   Chip, 
-  Divider,
   CircularProgress,
   Alert
 } from '@mui/material';
@@ -53,7 +52,7 @@ const SeatManagementView = () => {
         date = new Date(dateValue);
       }
       return isValid(date) ? format(date, 'hh:mm a') : 'Invalid Time';
-    } catch (e) {
+    } catch {
       return 'N/A';
     }
   };
