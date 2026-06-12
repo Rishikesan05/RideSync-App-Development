@@ -270,7 +270,7 @@ export const BusFormDialog = ({ open, onClose, onSubmit, initialData, existingPl
             margin="normal"
             {...register('operatorId')}
             error={!!errors.operatorId}
-            helperText={errors.operatorId?.message || 'Copy the operator's UID from the Users section'}
+            helperText={errors.operatorId?.message || "Copy the operator's UID from the Users section"}
             sx={{ mb: isEdit ? 2 : 0 }}
           />
 
