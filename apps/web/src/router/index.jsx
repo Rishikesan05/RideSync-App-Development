@@ -33,6 +33,7 @@ export const AppRouter = () => {
           <Route path="routes" element={<RoutesView />} />
           <Route path="schedules" element={<SchedulesView />} />
           <Route path="fleet" element={<FleetView />} />
+          <Route path="fleet/buses" element={<FleetView />} />
           <Route path="seats" element={<SeatManagementView />} />
           <Route path="live" element={<LiveMapView />} />
           <Route path="users" element={<UsersView />} />

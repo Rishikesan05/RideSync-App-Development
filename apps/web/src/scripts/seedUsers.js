@@ -3,14 +3,17 @@ import { db } from '../api/firebase';
 
 export const seedOperatorAndAdmin = async () => {
   try {
-    // Create an operator document where document ID is opId
-    const opId = 'OP-12345';
-    await setDoc(doc(db, 'operator', opId), {
+    // Create an operator document in the canonical 'operators' collection.
+    // The 'operatorId' field must match the document ID so the schedule form
+    // can validate via: where('operatorId', '==', typedValue)
+    const operatorId = 'OP-12345';
+    await setDoc(doc(db, 'operators', operatorId), {
+      operatorId,                           // explicit field for Firestore queries
       fullName: 'John Operator',
       role: 'operator',
       email: 'operator@ridesync.com'
     });
-    console.log(`Created operator with ID: ${opId}`);
+    console.log(`Created operator with ID: ${operatorId}`);
 
     // Create an admin document where document ID is aId
     const aId = 'ADM-98765';
@@ -25,3 +28,4 @@ export const seedOperatorAndAdmin = async () => {
     console.error('Error seeding users:', error);
   }
 };
+
