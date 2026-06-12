@@ -30,6 +30,8 @@ import {
   ConfirmationNumber,
   Person,
 } from '@mui/icons-material';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../api/firebase';
 import { useRoutesFirestore } from '../routes/useRoutesFirestore';
 import { useBusesList } from '../../api/buses';
 
@@ -66,6 +68,7 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
     handleSubmit,
     reset,
     watch,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(scheduleSchema),
@@ -90,9 +93,10 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
       if (initialData) {
         const dt = initialData.departureTime ? new Date(initialData.departureTime) : null;
         reset({
-          routeId:       initialData.routeId       || '',
-          busId:         initialData.busId         || '',
-          opId:          initialData.opId          || '',
+          routeId:       initialData.routeId                              || '',
+          busId:         initialData.busId                                || '',
+          // Schedules store the field as 'operatorId'; fall back to legacy 'opId'
+          opId:          initialData.operatorId || initialData.opId       || '',
           departureDate: dt ? dt.toISOString().slice(0, 10) : '',
           departureTime: dt ? dt.toTimeString().slice(0, 5)  : '',
         });
@@ -102,8 +106,40 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
     }
   }, [open, initialData, reset]);
 
+
   // ── Submit ─────────────────────────────────────────────────────────────────
   const handleFormSubmit = async (data) => {
+    // Validate opId against the 'operators' collection using the 'operatorId' field
+    try {
+      const trimmedOpId = data.opId.trim();
+      console.log('[Schedule] Validating operatorId against operators collection:', JSON.stringify(trimmedOpId));
+
+      // Query 'operators' collection by the 'operatorId' FIELD
+      const opQuery = query(
+        collection(db, 'operators'),
+        where('operatorId', '==', trimmedOpId)
+      );
+      const opSnapshot = await getDocs(opQuery);
+      console.log('[Schedule] Matches found in operators collection:', opSnapshot.size);
+
+      if (opSnapshot.empty) {
+        console.log('[Schedule] Not found by operatorId field in operators collection.');
+        setError('opId', { type: 'manual', message: `Operator ID "${trimmedOpId}" not found. Please enter a valid Operator ID.` });
+        return;
+      }
+
+      // Ensure the found doc has role === 'operator'
+      const opData = opSnapshot.docs[0].data();
+      if (opData.role && opData.role !== 'operator') {
+        setError('opId', { type: 'manual', message: 'This ID does not belong to an operator account.' });
+        return;
+      }
+    } catch (err) {
+      console.error('Error validating operator ID against operators collection', err);
+      setError('opId', { type: 'manual', message: err.message || 'Error validating Operator ID' });
+      return;
+    }
+
     const combinedDateTime = new Date(`${data.departureDate}T${data.departureTime}:00`).toISOString();
     const now = new Date().toISOString();
 
@@ -343,11 +379,12 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
                 <TextField
                   {...field}
                   fullWidth
-                  label="Operator ID (opId)"
+                  label="Operator ID"
+                  placeholder="Enter the operatorId from the operators collection"
                   variant="outlined"
                   margin="dense"
                   error={!!errors.opId}
-                  helperText={errors.opId?.message}
+                  helperText={errors.opId?.message || 'Must match an operatorId in the operators collection'}
                   disabled={!!initialData}
                   InputLabelProps={{ shrink: true }}
                 />
