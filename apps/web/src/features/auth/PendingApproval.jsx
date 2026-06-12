@@ -320,7 +320,6 @@ const styles = {
     width: '200px',
     height: 'auto',
     objectFit: 'contain',
-    filter: 'drop-shadow(0 0 20px rgba(245,158,11,0.35))',
   },
   card: {
     background: 'rgba(30, 41, 59, 0.72)',

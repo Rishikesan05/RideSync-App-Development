@@ -441,7 +441,6 @@ const styles = {
     height: 'auto',
     objectFit: 'contain',
     marginBottom: '8px',
-    filter: 'drop-shadow(0 0 24px rgba(245,158,11,0.4))',
   },
   brandSub: {
     fontSize: '13px',
