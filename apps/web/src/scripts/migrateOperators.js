@@ -6,20 +6,23 @@ export const migrateOperatorsAndAdmins = async () => {
     console.log('Starting migration of operators and admins...');
     const usersRef = collection(db, 'users');
     
-    // 1. Migrate Operators
+    // 1. Migrate Operators into the canonical 'operators' collection.
+    //    Each document stores an explicit 'operatorId' field (= document ID)
+    //    so the schedule form can validate via: where('operatorId', '==', input)
     const operatorQuery = query(usersRef, where('role', '==', 'operator'));
     const opSnapshot = await getDocs(operatorQuery);
     
     for (const userDoc of opSnapshot.docs) {
       const userData = userDoc.data();
-      const opId = userDoc.id;
-      await setDoc(doc(db, 'operator', opId), {
+      const operatorId = userDoc.id;
+      await setDoc(doc(db, 'operators', operatorId), {
+        operatorId,                                         // explicit field for Firestore queries
         fullName: userData.fullName || '',
         email: userData.email || '',
         role: 'operator',
         createdAt: userData.createdAt || new Date().toISOString(),
       });
-      console.log(`Migrated operator: ${opId}`);
+      console.log(`Migrated operator: ${operatorId}`);
     }
 
     // 2. Migrate Admins
