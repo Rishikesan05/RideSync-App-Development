@@ -256,7 +256,7 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
                 Text('Report an Issue', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: selectedIssue,
+                  initialValue: selectedIssue,
                   dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                   decoration: InputDecoration(
                     filled: true,

@@ -4,8 +4,7 @@ import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/seat_layout_engine.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:ui';
-import 'dart:math' as math;
+
 
 class OperatorManageScheduleScreen extends StatefulWidget {
   final Map<String, dynamic> routeData;
