@@ -33,7 +33,10 @@ export const useUsersFirestore = () => {
       decrementLoading();
     };
 
-    // ── Passengers: 'users' collection where role is 'passenger' or not set ──
+    // ── Passengers: 'users' collection where role is 'passenger', 'user', or not set ──
+    // We use two separate queries because Firestore does not support OR on
+    // different fields in a single query without a composite index.
+    // Query 1: explicit passenger / user roles
     const passengersQuery = query(
       collection(db, 'users'),
       where('role', 'in', ['passenger', 'user'])
