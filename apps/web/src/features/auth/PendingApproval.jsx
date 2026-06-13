@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../providers/AuthProvider';
 
@@ -121,16 +120,14 @@ export const PendingApproval = () => {
             {/* Actions */}
             <div style={styles.actions}>
               <button
-                id="pending-signout-btn"
+                id="pending-back-btn"
                 onClick={handleSignOut}
-                style={styles.signOutBtn}
+                style={styles.backBtn}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <polyline points="16 17 21 12 16 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                Sign Out
+                Back
               </button>
             </div>
           </div>
@@ -147,10 +144,10 @@ export const PendingApproval = () => {
         @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity: 0.4; } }
 
-        #pending-signout-btn:hover {
-          background: rgba(239,68,68,0.15) !important;
-          border-color: rgba(239,68,68,0.4) !important;
-          color: #fca5a5 !important;
+        #pending-back-btn:hover {
+          background: rgba(245, 158, 11, 0.1) !important;
+          border-color: rgba(245, 158, 11, 0.3) !important;
+          color: #f59e0b !important;
         }
 
         /* Desktop (Landscape) Ticket Styles */
@@ -320,7 +317,7 @@ const styles = {
     width: '200px',
     height: 'auto',
     objectFit: 'contain',
-    filter: 'drop-shadow(0 0 20px rgba(245,158,11,0.35))',
+    mixBlendMode: 'screen',
   },
   card: {
     background: 'rgba(30, 41, 59, 0.72)',
@@ -443,7 +440,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'center',
   },
-  signOutBtn: {
+  backBtn: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',

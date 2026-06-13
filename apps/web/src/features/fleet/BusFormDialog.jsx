@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -35,7 +35,7 @@ import { DirectionsBus, AcUnit, AirlineSeatReclineNormal } from '@mui/icons-mate
  *   existingPlates string[] — plate numbers already registered (for dupe check)
  */
 
-const buildSchema = (existingPlates = [], currentPlate = '') =>
+const buildSchema = (existingPlates = []) =>
   z.object({
     plateNumber: z
       .string()
@@ -66,7 +66,7 @@ export const BusFormDialog = ({ open, onClose, onSubmit, initialData, existingPl
   const theme = useTheme();
   const isEdit = Boolean(initialData);
 
-  const schema = buildSchema(existingPlates, initialData?.plateNumber ?? '');
+  const schema = buildSchema(existingPlates);
 
   const {
     register,
