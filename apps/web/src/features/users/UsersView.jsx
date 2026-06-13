@@ -1,230 +1,141 @@
 import React, { useState } from 'react';
-import { 
-  Typography, 
-  Card, 
-  Box, 
-  Chip,
-  IconButton,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  Avatar,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+import {
+  Typography,
+  Box,
   useTheme,
   CircularProgress,
   Alert,
-  Button
+  Tab,
+  Tabs,
 } from '@mui/material';
-import { 
-  MoreVert, 
-  Security, 
+import {
   AdminPanelSettings,
+  DirectionsBus,
   Person,
-  CheckCircle,
-  Cancel
 } from '@mui/icons-material';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../../api/firebase';
-import { usersApi } from './users.api';
+import { useUsersFirestore } from './useUsersFirestore';
 
+// ── Category config ───────────────────────────────────────────────────────────
+const CATEGORIES = [
+  { key: 'passengers', label: 'Passengers', icon: <Person /> },
+  { key: 'operators',  label: 'Operators',  icon: <DirectionsBus /> },
+  { key: 'admins',     label: 'Admins',     icon: <AdminPanelSettings /> },
+];
+
+// ── Tab Panel ─────────────────────────────────────────────────────────────────
+const TabPanel = ({ children, value, index }) => (
+  <Box role="tabpanel" hidden={value !== index} sx={{ mt: 3 }}>
+    {value === index && children}
+  </Box>
+);
+
+// ── Main Component ────────────────────────────────────────────────────────────
 export const UsersView = () => {
   const theme = useTheme();
-  const queryClient = useQueryClient();
-  const [seeding, setSeeding] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [menuUserId, setMenuUserId] = useState(null);
-  const [menuUserRole, setMenuUserRole] = useState(null);
+  const [activeTab, setActiveTab] = useState(0);
+  const { passengers, operators, admins, loading, error } = useUsersFirestore();
 
-  const handleSeedOperator = async () => {
-    setSeeding(true);
-    try {
-      await setDoc(doc(db, "users", "OP_TEST_KAMAL_001"), {
-        name: "Kamal Perera",
-        role: "operator",
-        email: "kamal@ridesync.lk",
-        phone: "+94771234567",
-        isApproved: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-      alert("Sample operator 'OP_TEST_KAMAL_001' created successfully!");
-      queryClient.invalidateQueries(['users']);
-    } catch (err) {
-      console.error("Seed error:", err);
-      alert("Failed to seed: " + err.message);
-    } finally {
-      setSeeding(false);
-    }
-  };
+  const counts = [passengers.length, operators.length, admins.length];
+  const lists  = [passengers, operators, admins];
 
-  const { data: users, isLoading, error } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => usersApi.getUsers()
-  });
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
+        <CircularProgress sx={{ color: '#E68D33' }} />
+      </Box>
+    );
+  }
 
-  const approveMutation = useMutation({
-    mutationFn: (uid) => usersApi.approveOperator(uid),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['users']);
-      handleCloseMenu();
-    }
-  });
-
-  const rejectMutation = useMutation({
-    mutationFn: (uid) => usersApi.rejectOperator(uid),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['users']);
-      handleCloseMenu();
-    }
-  });
-
-  const handleOpenMenu = (event, user) => {
-    setAnchorEl(event.currentTarget);
-    setMenuUserId(user.id);
-    setMenuUserRole(user.role);
-  };
-
-  const handleCloseMenu = () => {
-    setAnchorEl(null);
-    setMenuUserId(null);
-    setMenuUserRole(null);
-  };
-
-  const getRoleIcon = (role) => {
-    switch(role) {
-      case 'admin': return <AdminPanelSettings fontSize="small" />;
-      case 'operator': return <Security fontSize="small" />;
-      case 'operator_pending': return <Security fontSize="small" />;
-      default: return <Person fontSize="small" />;
-    }
-  };
-
-  const getRoleColor = (role) => {
-    switch(role) {
-      case 'admin': return 'error';
-      case 'operator': return 'success';
-      case 'operator_pending': return 'warning';
-      default: return 'default';
-    }
-  };
-
-  const formatRole = (role) => {
-    if (role === 'operator_pending') return 'PENDING OPERATOR';
-    return role.toUpperCase();
-  };
-
-  if (isLoading) return <CircularProgress />;
-  if (error) return <Alert severity="error">{error.message}</Alert>;
+  if (error) {
+    return <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>;
+  }
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>Users Management</Typography>
-        <Button 
-          variant="contained" 
-          color="secondary" 
-          onClick={handleSeedOperator}
-          disabled={seeding}
-        >
-          {seeding ? 'Seeding...' : 'Seed Sample Operator'}
-        </Button>
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: 800, color: theme.palette.text.primary }}>
+          Users Management
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          Manage passengers, operators, and admins across all categories
+        </Typography>
       </Box>
 
-      <Card sx={{ boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-        <TableContainer>
-          <Table sx={{ minWidth: 650 }}>
-            <TableHead sx={{ backgroundColor: 'rgba(0,0,0,0.02)' }}>
-              <TableRow>
-                <TableCell>User</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Assigned Bus</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {users?.map((user) => (
-                <TableRow key={user.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                  <TableCell component="th" scope="row">
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}>
-                        {user.name ? user.name.charAt(0).toUpperCase() : '?'}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{user.name || 'Unknown'}</Typography>
-                        <Typography variant="caption" color="text.secondary">{user.email}</Typography>
-                      </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      icon={getRoleIcon(user.role)} 
-                      label={formatRole(user.role)} 
-                      color={getRoleColor(user.role)}
-                      size="small"
-                      variant="outlined"
-                      sx={{ pl: 0.5 }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={user.role === 'operator_pending' ? 'Review Required' : 'Active'} 
-                      color={user.role === 'operator_pending' ? 'warning' : 'success'}
-                      size="small"
-                      variant="filled"
-                      sx={{ height: 20, fontSize: '0.7rem' }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {user.busId ? (
-                      <Typography variant="body2" color="text.secondary">{user.busId}</Typography>
-                    ) : (
-                      <Typography variant="caption" color="text.disabled">-</Typography>
-                    )}
-                  </TableCell>
-                  <TableCell align="right">
-                    <IconButton onClick={(e) => handleOpenMenu(e, user)} size="small">
-                      <MoreVert />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Card>
-
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleCloseMenu}
+      {/* ── Category Tabs ──────────────────────────────────────────────── */}
+      <Box
+        sx={{
+          borderRadius: 3,
+          backgroundColor: theme.palette.background.paper,
+          boxShadow: theme.palette.mode === 'dark'
+            ? '0 4px 24px rgba(0,0,0,0.3)'
+            : '0 4px 24px rgba(0,0,0,0.06)',
+          border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+          overflow: 'hidden',
+        }}
       >
-        {menuUserRole === 'operator_pending' ? [
-          <MenuItem key="approve" onClick={() => approveMutation.mutate(menuUserId)}>
-            <ListItemIcon><CheckCircle fontSize="small" color="success" /></ListItemIcon>
-            Approve Operator
-          </MenuItem>,
-          <MenuItem key="reject" onClick={() => rejectMutation.mutate(menuUserId)}>
-            <ListItemIcon><Cancel fontSize="small" color="error" /></ListItemIcon>
-            Reject Application
-          </MenuItem>
-        ] : [
-          <MenuItem key="set-operator" onClick={handleCloseMenu}>
-            <ListItemIcon><Security fontSize="small" /></ListItemIcon>
-            Set as Operator
-          </MenuItem>,
-          <MenuItem key="set-admin" onClick={handleCloseMenu}>
-            <ListItemIcon><AdminPanelSettings fontSize="small" /></ListItemIcon>
-            Set as Admin
-          </MenuItem>
-        ]}
-      </Menu>
+        <Tabs
+          value={activeTab}
+          onChange={(_, v) => setActiveTab(v)}
+          sx={{
+            borderBottom: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+            '& .MuiTab-root': {
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              textTransform: 'uppercase',
+              letterSpacing: 0.8,
+              color: theme.palette.text.secondary,
+              py: 2,
+              px: 3,
+              gap: 1,
+              '&.Mui-selected': { color: '#E68D33' },
+            },
+            '& .MuiTabs-indicator': { backgroundColor: '#E68D33', height: 3, borderRadius: '3px 3px 0 0' },
+          }}
+        >
+          {CATEGORIES.map((cat, i) => (
+            <Tab
+              key={cat.key}
+              id={`users-tab-${cat.key}`}
+              aria-controls={`users-panel-${cat.key}`}
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {cat.icon}
+                  <span>{cat.label}</span>
+                  <Box
+                    component="span"
+                    sx={{
+                      ml: 0.5,
+                      px: 1,
+                      py: 0.2,
+                      borderRadius: 10,
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      backgroundColor: activeTab === i ? 'rgba(230,141,51,0.15)' : 'rgba(128,128,128,0.12)',
+                      color: activeTab === i ? '#E68D33' : theme.palette.text.secondary,
+                    }}
+                  >
+                    {counts[i]}
+                  </Box>
+                </Box>
+              }
+            />
+          ))}
+        </Tabs>
+
+        {/* Tab panels rendered below */}
+        {CATEGORIES.map((cat, i) => (
+          <TabPanel key={cat.key} value={activeTab} index={i}>
+            <Box sx={{ p: 3 }}>
+              <Typography variant="body2" color="text.secondary">
+                {lists[i].length === 0
+                  ? `No ${cat.label.toLowerCase()} found.`
+                  : `${lists[i].length} ${cat.label.toLowerCase()} listed below.`}
+              </Typography>
+            </Box>
+          </TabPanel>
+        ))}
+      </Box>
     </Box>
   );
 };
