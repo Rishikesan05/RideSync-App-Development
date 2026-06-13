@@ -17,11 +17,7 @@ class OperatorHomeScreen extends StatefulWidget {
 }
 
 class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProviderStateMixin {
-  static const _blue = Color(0xFF3B82F6);
-
   bool _isLoading = true;
-  double _totalRevenue = 0;
-  int _tripsToday = 0;
   List<Map<String, dynamic>> _todaySchedules = [];
   Map<String, dynamic>? _activeTrip;
 
@@ -68,20 +64,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
       final startOfToday = DateTime(now.year, now.month, now.day);
       final endOfToday = startOfToday.add(const Duration(days: 1));
 
-      // 1. Fetch Revenue from all bookings (filtered by operatorId/system_operator)
-      final bookingsQuery = await FirebaseFirestore.instance
-          .collection('bookings')
-          .where('operatorId', isEqualTo: 'system_operator')
-          .get()
-          .timeout(const Duration(seconds: 10));
-
-      double revenue = 0;
-      for (final doc in bookingsQuery.docs) {
-        final data = doc.data();
-        revenue += (data['totalFare'] ?? 0).toDouble();
-      }
-
-      // 2. Fetch today's schedules
+      // 1. Fetch today's schedules
       final schedulesQuery = await FirebaseFirestore.instance
           .collection('schedules')
           .where('operatorId', isEqualTo: 'system_operator')
@@ -111,8 +94,6 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
 
       if (mounted) {
         setState(() {
-          _totalRevenue = revenue;
-          _tripsToday = schedules.length;
           _todaySchedules = schedules;
           _activeTrip = activeTrip;
           _isLoading = false;
@@ -563,7 +544,6 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
   }
 
   void _showStartJourneyModal(Map<String, dynamic> trip, bool isDark) {
-    final coOpNameController = TextEditingController();
     final coOpIdController = TextEditingController();
     bool isSubmitting = false;
 
@@ -1004,66 +984,6 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
           ],
         ),
       ],
-    );
-  }
-
-  void _showScanTicketSheet(bool isDark) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: 300,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          children: [
-            const Icon(Icons.qr_code_scanner, size: 64, color: AppColors.primaryOrange),
-            const SizedBox(height: 16),
-            Text('Scan Passenger Ticket', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
-            const SizedBox(height: 12),
-            const Text('Camera integration goes here.', style: TextStyle(color: Colors.grey)),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 16)),
-                child: const Text('Close', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showManifestDialog(bool isDark) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Passenger Manifest', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
-              const SizedBox(height: 16),
-              const Text('Full list of passengers for this trip will appear here.', style: TextStyle(color: Colors.grey)),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                child: const Text('Close', style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 

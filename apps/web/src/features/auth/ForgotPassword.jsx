@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -69,14 +69,6 @@ export const ForgotPassword = () => {
         </div>
 
         <div className="auth-layout-wrapper">
-          {/* Back Link */}
-          <RouterLink to="/login" style={styles.backLink} id="forgot-back-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M19 12H5M12 5l-7 7 7 7" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Back to login
-          </RouterLink>
-
           {/* Card */}
           <div className="ticket-card" style={styles.card}>
           {status === 'success' ? (
@@ -497,7 +489,7 @@ const styles = {
     height: 'auto',
     objectFit: 'contain',
     marginBottom: '8px',
-    filter: 'drop-shadow(0 0 20px rgba(245,158,11,0.4))',
+    mixBlendMode: 'screen',
   },
   brandSub: {
     fontSize: '12px',

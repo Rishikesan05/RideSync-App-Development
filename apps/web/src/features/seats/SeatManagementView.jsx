@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   Box, 
   Typography, 
@@ -7,19 +7,18 @@ import {
   CardContent, 
   Button, 
   Chip, 
-  Divider,
   CircularProgress,
   Alert
 } from '@mui/material';
 import { EventSeat, DirectionsBus, AccessTime } from '@mui/icons-material';
 import { useSchedulesList } from '../../api/schedules';
-import { useBusesList } from '../../api/buses';
+import { useBusesFirestore } from '../fleet/useBusesFirestore';
 import AdminSeatManager from './AdminSeatManager';
 import { format, isValid } from 'date-fns';
 
 const SeatManagementView = () => {
   const { data: schedulesResponse, isLoading: isLoadingSchedules, error: schedulesError } = useSchedulesList();
-  const { data: busesResponse, isLoading: isLoadingBuses } = useBusesList();
+  const { buses, loading: isLoadingBuses } = useBusesFirestore();
   const [selectedRide, setSelectedRide] = useState(null);
 
   const isLoading = isLoadingSchedules || isLoadingBuses;
@@ -30,9 +29,6 @@ const SeatManagementView = () => {
 
   const schedulesData = schedulesResponse?.data || schedulesResponse?.schedules || schedulesResponse || [];
   const schedules = Array.isArray(schedulesData) ? schedulesData : [];
-  
-  const busesData = busesResponse?.data || busesResponse?.buses || busesResponse || [];
-  const buses = Array.isArray(busesData) ? busesData : [];
   
   const activeSchedules = schedules.filter(s => s && (s.status === 'scheduled' || s.status === 'active' || !s.status)).map(s => {
     // Find bus capacity if missing from schedule record
@@ -56,7 +52,7 @@ const SeatManagementView = () => {
         date = new Date(dateValue);
       }
       return isValid(date) ? format(date, 'hh:mm a') : 'Invalid Time';
-    } catch (e) {
+    } catch {
       return 'N/A';
     }
   };

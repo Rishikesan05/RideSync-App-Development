@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -32,8 +32,8 @@ import {
 } from '@mui/icons-material';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../api/firebase';
+import { useBusesFirestore } from '../fleet/useBusesFirestore';
 import { useRoutesFirestore } from '../routes/useRoutesFirestore';
-import { useBusesList } from '../../api/buses';
 
 // ── Validation Schema ────────────────────────────────────────────────────────
 const scheduleSchema = z.object({
@@ -58,10 +58,7 @@ const SectionLabel = ({ icon, text }) => (
 export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => {
   const theme = useTheme();
   const { routes, loading: isLoadingRoutes } = useRoutesFirestore();
-  const { data: busesResponse, isLoading: isLoadingBuses } = useBusesList();
-
-  const busesData = busesResponse?.data || busesResponse?.buses || busesResponse || [];
-  const buses     = Array.isArray(busesData) ? busesData : [];
+  const { buses, loading: isLoadingBuses } = useBusesFirestore();
 
   const {
     control,

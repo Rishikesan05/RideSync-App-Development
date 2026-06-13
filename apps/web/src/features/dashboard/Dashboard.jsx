@@ -121,15 +121,15 @@ const StatCard = ({ title, value, icon, trend, color, loading }) => {
             </Typography>
           </Box>
           <Box sx={{ 
-            backgroundColor: isDark ? `${color}18` : `${color}10`, 
+            backgroundColor: 'transparent', 
             borderRadius: '50%', 
             p: 1.2, 
             display: 'flex', 
             color: color,
-            border: `1px solid ${color}25`,
-            boxShadow: `0 4px 10px ${color}15`
+            border: 'none',
+            boxShadow: 'none'
           }}>
-            {React.cloneElement(icon, { fontSize: 'medium' })}
+            {React.cloneElement(icon, { fontSize: 'large' })}
           </Box>
         </Box>
 

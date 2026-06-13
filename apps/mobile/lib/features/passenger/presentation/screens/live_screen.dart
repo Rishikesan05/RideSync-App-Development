@@ -39,10 +39,10 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
   LatLng _busPosition = const LatLng(6.9355, 79.8506);
   double _progress = 0;
   String _statusText = 'ON TIME';
-  String _nearestHub = 'PETTAH MAIN TERMINAL';
   String _kmToGo = '18.2';
   String _eta = '';
   final bool _isActive = true;
+  bool get _shouldBypassBookingCheck => true;
 
   @override
   void initState() {
@@ -73,7 +73,6 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
         timer.cancel();
         setState(() {
           _statusText = 'ARRIVED';
-          _nearestHub = 'KADUWELA EXPRESSWAY';
           _kmToGo = '0.0';
         });
         return;
@@ -93,21 +92,10 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
       // Calculate remaining distance
       final remaining = (_routePoints.length - 1 - _currentPointIndex) * 4.2 - (_progress * 4.2);
 
-      // Hub names
-      const hubNames = [
-        'PETTAH MAIN TERMINAL',
-        'NEAR TOWN HALL HUB',
-        'BORELLA JUNCTION',
-        'NUGEGODA BUS STAND',
-        'MAHARAGAMA TERMINAL',
-        'KADUWELA EXPRESSWAY',
-      ];
-
       if (mounted) {
         setState(() {
           _busPosition = LatLng(lat, lng);
           _kmToGo = remaining.toStringAsFixed(1);
-          _nearestHub = hubNames[_currentPointIndex];
           _statusText = 'ON TIME';
         });
       }
@@ -153,7 +141,7 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
       );
     }
 
-    if (false && !liveJourney.hasActiveBooking) {
+    if (!_shouldBypassBookingCheck && !liveJourney.hasActiveBooking) {
       return Scaffold(
         body: Center(
           child: Column(
@@ -168,7 +156,7 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
       );
     }
 
-    if (false && !liveJourney.hasJourneyStarted) {
+    if (!_shouldBypassBookingCheck && !liveJourney.hasJourneyStarted) {
       return Scaffold(
         body: Center(
           child: Padding(
