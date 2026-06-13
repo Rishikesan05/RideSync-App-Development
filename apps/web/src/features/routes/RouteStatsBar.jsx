@@ -21,8 +21,6 @@ import {
 } from '@mui/icons-material';
 
 const StatPill = ({ icon, label, value, color, loading, onClick, isActive }) => {
-  const theme = useTheme();
-
   return (
     <Tooltip title={onClick ? `Click to filter by ${label}` : ''} placement="top" arrow>
       <Box
@@ -70,10 +68,11 @@ const StatPill = ({ icon, label, value, color, loading, onClick, isActive }) => 
             color,
             display:         'flex',
             alignItems:      'center',
-            backgroundColor: `${color}20`,
+            backgroundColor: 'transparent',
             borderRadius:    '50%',
             p:               0.8,
             transition:      'background 0.2s',
+            '& .MuiSvgIcon-root': { fontSize: 24 }
           }}
         >
           {icon}

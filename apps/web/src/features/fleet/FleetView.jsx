@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   Typography, 
   Card, 
@@ -61,7 +61,7 @@ const StatCard = ({ icon, label, value, color }) => {
         minWidth: 130,
       }}
     >
-      <Avatar sx={{ bgcolor: `${color}22`, color, width: 44, height: 44 }}>
+      <Avatar sx={{ bgcolor: 'transparent', color, width: 44, height: 44, '& .MuiSvgIcon-root': { fontSize: 28 } }}>
         {icon}
       </Avatar>
       <Box>
@@ -240,8 +240,8 @@ export const FleetView = () => {
             borderRadius: 4,
           }}
         >
-          <Avatar sx={{ bgcolor: 'rgba(230,141,51,0.12)', color: '#E68D33', width: 72, height: 72, mx: 'auto', mb: 2 }}>
-            <DirectionsBus sx={{ fontSize: 40 }} />
+          <Avatar sx={{ bgcolor: 'transparent', color: '#E68D33', width: 72, height: 72, mx: 'auto', mb: 2 }}>
+            <DirectionsBus sx={{ fontSize: 56 }} />
           </Avatar>
           <Typography color="text.primary" variant="h6" sx={{ fontWeight: 600 }}>No buses registered yet</Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
@@ -297,16 +297,14 @@ export const FleetView = () => {
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
                   <Avatar 
                     sx={{ 
-                      bgcolor: bus.class === 'AC'
-                        ? `${theme.palette.info.main}22`
-                        : `${theme.palette.primary.main}22`,
+                      bgcolor: 'transparent',
                       color: bus.class === 'AC' ? theme.palette.info.main : theme.palette.primary.main,
                       width: 52, 
                       height: 52,
                       mr: 2,
                     }}
                   >
-                    <DirectionsBus />
+                    <DirectionsBus sx={{ fontSize: 32 }} />
                   </Avatar>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: 0.5 }} noWrap>
