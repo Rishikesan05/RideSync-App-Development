@@ -1,19 +1,56 @@
-import axiosInstance from '../../api/axios';
+import { doc, updateDoc, deleteDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../../api/firebase';
+
+/**
+ * usersApi — Firestore-native CRUD for all user categories.
+ *
+ * Each category maps to a Firestore collection:
+ *   passenger / admin  →  'users'
+ *   operator           →  'operators'
+ */
+
+const collectionForCategory = (category) =>
+  category === 'operator' ? 'operators' : 'users';
 
 export const usersApi = {
-  getUsers: async (role) => {
-    const params = role ? { role } : {};
-    const response = await axiosInstance.get('/users', { params });
-    return response.data.data;
+  /**
+   * Update a user document's editable fields.
+   * @param {string} id         - Firestore document ID
+   * @param {string} category   - 'passenger' | 'operator' | 'admin'
+   * @param {object} fields     - Fields to update (name, email, phone, etc.)
+   */
+  updateUser: async (id, category, fields) => {
+    const colName = collectionForCategory(category);
+    const ref = doc(db, colName, id);
+    await updateDoc(ref, { ...fields, updatedAt: serverTimestamp() });
   },
-  
-  approveOperator: async (uid) => {
-    const response = await axiosInstance.put(`/users/${uid}/approve`);
-    return response.data;
+
+  /**
+   * Delete a user document from its collection.
+   * @param {string} id         - Firestore document ID
+   * @param {string} category   - 'passenger' | 'operator' | 'admin'
+   */
+  deleteUser: async (id, category) => {
+    const colName = collectionForCategory(category);
+    const ref = doc(db, colName, id);
+    await deleteDoc(ref);
   },
-  
-  rejectOperator: async (uid) => {
-    const response = await axiosInstance.put(`/users/${uid}/reject`);
-    return response.data;
-  }
+
+  /**
+   * Approve an operator (set isApproved = true in 'operators' collection).
+   * @param {string} id - Firestore document ID in 'operators'
+   */
+  approveOperator: async (id) => {
+    const ref = doc(db, 'operators', id);
+    await updateDoc(ref, { isApproved: true, updatedAt: serverTimestamp() });
+  },
+
+  /**
+   * Reject / suspend an operator (set isApproved = false).
+   * @param {string} id - Firestore document ID in 'operators'
+   */
+  rejectOperator: async (id) => {
+    const ref = doc(db, 'operators', id);
+    await updateDoc(ref, { isApproved: false, updatedAt: serverTimestamp() });
+  },
 };
