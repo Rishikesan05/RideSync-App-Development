@@ -58,11 +58,13 @@ export const AdminLayout = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile, isAdmin, isOperator } = useAuth();
   const { toggleColorMode } = useColorMode();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [scrolled, setScrolled] = useState(false);
+
+  const roleLabel = isAdmin ? 'Admin' : isOperator ? 'Operator' : '';
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -225,8 +227,16 @@ export const AdminLayout = () => {
                 <Notifications />
               </IconButton>
             </Tooltip>
-            <Tooltip title={currentUser?.email || 'Admin Profile'}>
-              <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
+            <Tooltip title={`${currentUser?.email || 'Profile'} (${roleLabel})`}>
+              <IconButton onClick={handleMenuOpen} sx={{ p: 0, display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                {roleLabel && (
+                  <Typography
+                    variant="caption"
+                    sx={{ fontWeight: 700, color: '#E68D33', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 0.8, display: { xs: 'none', md: 'block' } }}
+                  >
+                    {roleLabel}
+                  </Typography>
+                )}
                 <Avatar sx={{ bgcolor: '#E68D33', color: '#fff', width: 36, height: 36 }}>
                   {currentUser?.email?.charAt(0).toUpperCase() || 'A'}
                 </Avatar>
