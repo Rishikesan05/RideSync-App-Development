@@ -61,7 +61,7 @@ const StatCard = ({ icon, label, value, color }) => {
         minWidth: 130,
       }}
     >
-      <Avatar sx={{ bgcolor: `${color}22`, color, width: 44, height: 44 }}>
+      <Avatar sx={{ bgcolor: 'transparent', color, width: 44, height: 44, '& .MuiSvgIcon-root': { fontSize: 28 } }}>
         {icon}
       </Avatar>
       <Box>
