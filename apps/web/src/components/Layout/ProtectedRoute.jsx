@@ -4,7 +4,7 @@ import { useAuth } from '../../providers/AuthProvider';
 import { Box, CircularProgress } from '@mui/material';
 
 export const ProtectedRoute = () => {
-  const { currentUser, isAdmin, loading } = useAuth();
+  const { currentUser, isAdmin, isOperator, loading } = useAuth();
   const location = useLocation();
 
   // Still resolving auth state or fetching Firestore profile
@@ -21,8 +21,8 @@ export const ProtectedRoute = () => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Signed in but NOT an admin → send to pending-approval page
-  if (!isAdmin) {
+  // Signed in but neither admin nor operator → send to pending-approval page
+  if (!isAdmin && !isOperator) {
     return <Navigate to="/pending" replace />;
   }
 
