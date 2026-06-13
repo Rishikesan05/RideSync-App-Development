@@ -2,26 +2,26 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users: own profile only, admin reads all
+    // Users: own profile, or admin reads/writes all (needed by Users Management page)
     match /users/{uid} {
       allow read, update: if request.auth != null && request.auth.uid == uid;
       allow create: if request.auth != null;
-      allow read: if request.auth != null && request.auth.token.role == 'admin';
+      allow read, write, delete: if hasRole('admin');
     }
 
     // Passengers profiles
     match /passengers/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
-      allow read: if request.auth != null && request.auth.token.role == 'admin';
+      allow read, write, delete: if hasRole('admin');
     }
 
     // Operators profiles — allow public read so the schedule form can validate
-    // the 'operatorId' field without requiring the admin to be authenticated as
-    // the operator themselves.
+    // the 'operatorId' field without requiring the admin to be authenticated.
+    // Admins can also update/delete for Users Management.
     match /operators/{uid} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == uid;
-      allow write: if hasRole('admin');
+      allow write, delete: if hasRole('admin');
     }
 
     // LEGACY: 'operator' (singular) collection — kept for backward compatibility only.
