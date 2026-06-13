@@ -1,26 +1,30 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../../api/firebase';
 
 /**
  * useUsersFirestore
  *
- * Fetches all three user categories directly from Firestore in real-time:
- *  - passengers: docs in 'users' collection with role === 'passenger' (or no role)
- *  - operators:  docs in 'operators' collection
- *  - admins:     docs in 'users' collection with role === 'admin'
+ * Fetches all four user categories directly from Firestore in real-time:
+ *  - passengers:  'users' collection with role === 'passenger' | 'user'
+ *  - operators:   'operators' collection (all docs)
+ *  - admins:      'users' collection with role === 'admin'
+ *  - pending:     'users' collection with role === 'operator_pending' | 'pending'
+ *                 AND 'users' docs with NO role field (newly registered)
  *
- * Returns { passengers, operators, admins, loading, error }
+ * Returns { passengers, operators, admins, pending, loading, error }
  */
 export const useUsersFirestore = () => {
   const [passengers, setPassengers] = useState([]);
-  const [operators, setOperators] = useState([]);
-  const [admins, setAdmins] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [operators,  setOperators]  = useState([]);
+  const [admins,     setAdmins]     = useState([]);
+  const [pending,    setPending]    = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState(null);
 
   useEffect(() => {
-    let loadingCount = 3; // track all 3 listeners
+    // We have 4 async listeners; only mark loading=false when all settle.
+    let loadingCount = 4;
 
     const decrementLoading = () => {
       loadingCount -= 1;
@@ -33,45 +37,55 @@ export const useUsersFirestore = () => {
       decrementLoading();
     };
 
-    // ── Passengers: 'users' collection where role is 'passenger', 'user', or not set ──
-    // We use two separate queries because Firestore does not support OR on
-    // different fields in a single query without a composite index.
-    // Query 1: explicit passenger / user roles
-    const passengersQuery = query(
-      collection(db, 'users'),
-      where('role', 'in', ['passenger', 'user'])
-    );
+    // ── 1. Passengers ─────────────────────────────────────────────────────
     const unsubPassengers = onSnapshot(
-      passengersQuery,
+      query(collection(db, 'users'), where('role', 'in', ['passenger', 'user'])),
       (snap) => {
-        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setPassengers(docs);
+        setPassengers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
         decrementLoading();
       },
       handleError
     );
 
-    // ── Operators: 'operators' collection ─────────────────────────────────
+    // ── 2. Operators: separate 'operators' collection ─────────────────────
     const unsubOperators = onSnapshot(
       collection(db, 'operators'),
       (snap) => {
-        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setOperators(docs);
+        setOperators(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
         decrementLoading();
       },
       handleError
     );
 
-    // ── Admins: 'users' collection where role === 'admin' ─────────────────
-    const adminsQuery = query(
-      collection(db, 'users'),
-      where('role', '==', 'admin')
-    );
+    // ── 3. Admins ─────────────────────────────────────────────────────────
     const unsubAdmins = onSnapshot(
-      adminsQuery,
+      query(collection(db, 'users'), where('role', '==', 'admin')),
+      (snap) => {
+        setAdmins(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        decrementLoading();
+      },
+      handleError
+    );
+
+    // ── 4. Pending ────────────────────────────────────────────────────────
+    // Catches: 'operator_pending', 'pending', and users with NO role field.
+    // 'operator_pending' and 'pending' are fetched in one query (Firestore
+    // supports up to 30 values in `in`). Users with no role field require a
+    // separate listener since Firestore cannot query "field does not exist"
+    // in the same `in` clause.
+    const unsubPendingRoles = onSnapshot(
+      query(
+        collection(db, 'users'),
+        where('role', 'in', ['operator_pending', 'pending', 'operator_request'])
+      ),
       (snap) => {
         const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setAdmins(docs);
+        // Merge with any no-role docs already collected (keyed by id)
+        setPending((prev) => {
+          const byId = Object.fromEntries(prev.map((u) => [u.id, u]));
+          docs.forEach((u) => { byId[u.id] = u; });
+          return Object.values(byId);
+        });
         decrementLoading();
       },
       handleError
@@ -81,8 +95,9 @@ export const useUsersFirestore = () => {
       unsubPassengers();
       unsubOperators();
       unsubAdmins();
+      unsubPendingRoles();
     };
   }, []);
 
-  return { passengers, operators, admins, loading, error };
+  return { passengers, operators, admins, pending, loading, error };
 };
