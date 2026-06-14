@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Typography,
   Box,
@@ -19,10 +19,6 @@ import {
   TextField,
   Divider,
   Snackbar,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from '@mui/material';
 import {
   AdminPanelSettings,
@@ -182,8 +178,8 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
         size="small"
         sx={{
           fontWeight: 700, fontSize: '0.68rem',
-          backgroundColor: cat.bgColor, color: cat.color,
-          border: `1px solid ${cat.color}33`, flexShrink: 0,
+          backgroundColor: 'transparent', color: cat.color,
+          border: `1px solid ${cat.color}60`, flexShrink: 0,
         }}
       />
 
@@ -281,10 +277,6 @@ const ChangeRoleDialog = ({ open, user, onClose, onDone, theme }) => {
   const [err, setErr]                   = useState('');
 
   const name = user ? (user.name || user.displayName || 'this user') : '';
-
-  React.useEffect(() => {
-    if (open) { setSelectedRole('admin'); setErr(''); }
-  }, [open]);
 
   const handleApprove = async () => {
     setSaving(true);
@@ -432,20 +424,13 @@ const ChangeRoleDialog = ({ open, user, onClose, onDone, theme }) => {
 
 // ── Edit Dialog ───────────────────────────────────────────────────────────────
 const EditDialog = ({ open, user, categoryKey, onClose, onSaved, theme }) => {
-  const [form, setForm]     = useState({ name: '', email: '', phone: '' });
+  const [form, setForm]     = useState({
+    name:  user?.name || user?.displayName || '',
+    email: user?.email || '',
+    phone: user?.phone || user?.phoneNumber || '',
+  });
   const [saving, setSaving] = useState(false);
   const [err, setErr]       = useState('');
-
-  React.useEffect(() => {
-    if (user) {
-      setForm({
-        name:  user.name || user.displayName || '',
-        email: user.email || '',
-        phone: user.phone || user.phoneNumber || '',
-      });
-      setErr('');
-    }
-  }, [user]);
 
   const handleSave = async () => {
     if (!form.name.trim()) { setErr('Name is required.'); return; }
@@ -813,6 +798,7 @@ export const UsersView = () => {
 
       {/* ── Dialogs ──────────────────────────────────────────────────── */}
       <ChangeRoleDialog
+        key={roleTarget ? `role-${roleTarget.user.id}` : 'role-closed'}
         open={Boolean(roleTarget)}
         user={roleTarget?.user || null}
         onClose={() => setRoleTarget(null)}
@@ -821,6 +807,7 @@ export const UsersView = () => {
       />
 
       <EditDialog
+        key={editTarget ? `edit-${editTarget.user.id}` : 'edit-closed'}
         open={Boolean(editTarget)}
         user={editTarget?.user || null}
         categoryKey={editTarget?.categoryKey || 'passengers'}
@@ -830,6 +817,7 @@ export const UsersView = () => {
       />
 
       <DeleteDialog
+        key={deleteTarget ? `delete-${deleteTarget.user.id}` : 'delete-closed'}
         open={Boolean(deleteTarget)}
         user={deleteTarget?.user || null}
         categoryKey={deleteTarget?.categoryKey || 'passengers'}
