@@ -204,7 +204,7 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
                     <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Selected Seat: {selectedSeat.seatNumber}</Typography>
                     <Typography variant="caption" color="text.secondary">Current Status: {selectedSeat.status}</Typography>
                     {isBooked && (
-                      <Box sx={{ mt: 1, p: 1, bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 1 }}>
+                      <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'rgba(230, 141, 51, 0.08)', borderRadius: 2, border: '1px solid rgba(230, 141, 51, 0.2)' }}>
                         <Typography variant="caption" display="block">
                           <strong>Booked By:</strong> {selectedSeat.passengerId || 'Unknown'}
                         </Typography>
