@@ -30,7 +30,6 @@ import {
   Person,
   Edit,
   Delete,
-  VerifiedUser,
   HourglassEmpty,
   Close,
   Save,
@@ -115,7 +114,6 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
   const name       = user.name || user.displayName || 'Unknown User';
   const email      = user.email || '—';
   const phone      = user.phone || user.phoneNumber || '—';
-  const isApproved = user.isApproved !== false;
   const isPending  = categoryKey === 'pending';
 
   return (
@@ -168,23 +166,7 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
             />
           )}
 
-          {/* Operator approval badge */}
-          {categoryKey === 'operators' && (
-            <Chip
-              icon={isApproved
-                ? <VerifiedUser sx={{ fontSize: '0.7rem !important' }} />
-                : <HourglassEmpty sx={{ fontSize: '0.7rem !important' }} />}
-              label={isApproved ? 'Approved' : 'Pending'}
-              size="small"
-              sx={{
-                height: 18, fontSize: '0.62rem', fontWeight: 700,
-                backgroundColor: isApproved ? 'rgba(52,197,119,0.12)' : 'rgba(245,158,11,0.12)',
-                color: isApproved ? '#34c577' : '#f59e0b',
-                border: `1px solid ${isApproved ? 'rgba(52,197,119,0.3)' : 'rgba(245,158,11,0.3)'}`,
-                '& .MuiChip-icon': { color: 'inherit' },
-              }}
-            />
-          )}
+
         </Box>
 
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mt: 0.2 }}>
