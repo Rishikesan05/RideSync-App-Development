@@ -631,11 +631,11 @@ export const UsersView = () => {
           onClick={() => { setActiveTab(3); setSearch(''); }}
           sx={{
             mb: 3, p: 2, borderRadius: 2, cursor: 'pointer',
-            backgroundColor: 'rgba(245,158,11,0.08)',
+            backgroundColor: 'transparent',
             border: '1px solid rgba(245,158,11,0.35)',
             display: 'flex', alignItems: 'center', gap: 1.5,
             transition: 'all 0.2s',
-            '&:hover': { backgroundColor: 'rgba(245,158,11,0.14)' },
+            '&:hover': { backgroundColor: 'rgba(245,158,11,0.04)' },
           }}
         >
           <PendingActions sx={{ color: '#f59e0b' }} />
