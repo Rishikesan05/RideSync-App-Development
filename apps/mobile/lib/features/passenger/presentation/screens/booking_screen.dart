@@ -190,6 +190,14 @@ class _BookingScreenState extends State<BookingScreen> {
           const SizedBox(height: 14),
           Row(
             children: [
+              _buildDateChip('Today', DateTime.now(), booking, isDark),
+              const SizedBox(width: 8),
+              _buildDateChip('Tomorrow', DateTime.now().add(const Duration(days: 1)), booking, isDark),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
               Expanded(
                 child: GestureDetector(
                   onTap: () => _selectDate(context, booking),
@@ -233,7 +241,37 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
+  Widget _buildDateChip(String label, DateTime date, BookingProvider booking, bool isDark) {
+    final isSelected = booking.selectedDate.year == date.year &&
+                       booking.selectedDate.month == date.month &&
+                       booking.selectedDate.day == date.day;
 
+    return GestureDetector(
+      onTap: () => booking.setDate(date),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryOrange : (isDark ? Colors.white10 : Colors.grey.shade100),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.primaryOrange : (isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.05)),
+          ),
+          boxShadow: isSelected ? [
+            BoxShadow(color: AppColors.primaryOrange.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))
+          ] : [],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            color: isSelected ? Colors.white : (isDark ? Colors.white70 : AppColors.textDark),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildSchedulesList(BookingProvider booking, bool isDark) {
     if (booking.isLoading) {
