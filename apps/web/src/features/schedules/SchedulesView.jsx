@@ -25,10 +25,7 @@ import {
   CheckCircle,
   Delete
 } from '@mui/icons-material';
-import { 
-  useCreateSchedule, 
-  useCancelSchedule 
-} from '../../api/schedules';
+// Removed unused REST hooks
 import { useSchedulesFirestore } from './useSchedulesFirestore';
 import { ScheduleFormDialog } from './ScheduleFormDialog';
 import { format, isValid } from 'date-fns';
