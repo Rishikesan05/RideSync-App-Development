@@ -36,9 +36,7 @@ export const SchedulesView = () => {
   const theme = useTheme();
   // Real-time Firestore listener — replaces React Query polling
   const { schedules, loading: isLoading, error } = useSchedulesFirestore();
-  // We now use direct Firestore calls instead of the REST hooks below:
-  // const createSchedule = useCreateSchedule();
-  // const cancelSchedule = useCancelSchedule();
+
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
