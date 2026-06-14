@@ -151,7 +151,7 @@ class BookingProvider extends ChangeNotifier {
           final seatRef = scheduleRef.collection('seats').doc(seatNum);
           final seatSnap = await transaction.get(seatRef);
           
-          if (!seatSnap.exists || seatSnap.data()?['status'] != 'available') {
+          if (seatSnap.exists && seatSnap.data()?['status'] != 'available') {
             throw Exception('Seat $seatNum is no longer available');
           }
         }
@@ -163,12 +163,13 @@ class BookingProvider extends ChangeNotifier {
         // 2. Perform updates
         for (final seatNum in selectedSeatNumbers) {
           final seatRef = scheduleRef.collection('seats').doc(seatNum);
-          transaction.update(seatRef, {
+          transaction.set(seatRef, {
+            'seatNumber': seatNum,
             'status': 'sold',
             'passengerId': passengerId,
             'ticketCode': ticketCode,
             'updatedAt': FieldValue.serverTimestamp(),
-          });
+          }, SetOptions(merge: true));
         }
 
         // 3. Create booking record

@@ -78,11 +78,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isAdmin = userProfile && userProfile.role === 'admin';
+  const isOperator = userProfile && (userProfile.role === 'operator' || userProfile.role === 'operator_pending');
 
   const value = {
     currentUser,
     userProfile,
     isAdmin,
+    isOperator,
     loading,
     refreshUserProfile,
     signOutUser,

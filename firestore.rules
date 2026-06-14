@@ -2,46 +2,54 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users: own profile only, admin reads all
+    // Users: any authenticated user can read (dashboard is already guarded by ProtectedRoute).
+    // Admin can write and delete. Own profile can update itself.
     match /users/{uid} {
-      allow read, update: if request.auth != null && request.auth.uid == uid;
+      allow read:   if request.auth != null;
       allow create: if request.auth != null;
-      allow read: if request.auth != null && request.auth.token.role == 'admin';
+      allow update: if request.auth != null && request.auth.uid == uid;
+      allow write, delete: if isAdminUser();
     }
 
     // Passengers profiles
     match /passengers/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-      allow read: if request.auth != null && request.auth.token.role == 'admin';
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+      allow write, delete: if isAdminUser();
     }
 
-    // Operators profiles — allow public read so the schedule form can validate
-    // the 'operatorId' field without requiring the admin to be authenticated as
-    // the operator themselves.
+    // Operators profiles — public read so schedule form can validate operatorId.
+    // Admins can update/delete for Users Management.
     match /operators/{uid} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == uid;
-      allow write: if hasRole('admin');
+      allow write, delete: if isAdminUser();
     }
 
-    // LEGACY: 'operator' (singular) collection — kept for backward compatibility only.
-    // New code should use 'operators' (plural) with the 'operatorId' field.
-    // Do NOT write to this collection in new features.
+    // LEGACY: 'operator' (singular) — kept for backward compatibility only.
     match /operator/{uid} {
       allow read: if true;
-      allow write: if hasRole('admin');
+      allow write: if isAdminUser();
     }
 
-    // NEW: admin collection
+    // Admin collection
     match /admin/{uid} {
       allow read: if request.auth != null;
-      allow write: if hasRole('admin');
+      allow write: if isAdminUser();
     }
 
-    // Helper: check if user has a specific role in Firestore
+    // ── Helpers ─────────────────────────────────────────────────────────────
+    // isAdminUser: checks the /users/{uid} doc for role === 'admin'.
+    // Used only for write/delete guards (NOT in collection-query read rules).
+    function isAdminUser() {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin';
+    }
+
+    // Legacy hasRole helper kept for backwards-compat with other rules below.
     function hasRole(role) {
-      return request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+      return request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == role;
     }
 
     // Routes: public read, admin write
