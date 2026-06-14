@@ -702,8 +702,9 @@ export const UsersView = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <Box sx={{
                 color: cat.color,
-                bgcolor: activeTab === i ? cat.color + '22' : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'),
-                borderRadius: 2, p: 0.8, display: 'flex',
+                bgcolor: 'transparent',
+                display: 'flex',
+                '& .MuiSvgIcon-root': { fontSize: 28 },
               }}>
                 {cat.icon}
               </Box>
