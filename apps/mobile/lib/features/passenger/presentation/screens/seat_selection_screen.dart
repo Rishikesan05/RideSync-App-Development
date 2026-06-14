@@ -48,7 +48,7 @@ class SeatSelectionScreen extends StatelessWidget {
               _buildLegend(),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                   child: _buildBusGrid(blueprint, liveSeats, booking, isDark),
                 ),
               ),
@@ -97,64 +97,104 @@ class SeatSelectionScreen extends StatelessWidget {
   Widget _buildBusGrid(List<BusSeatBlueprint> blueprint, List<Map<String, dynamic>> liveSeats, BookingProvider provider, bool isDark) {
     int cols = layoutType == '54' ? 6 : 5;
     
-    return Column(
-      children: [
-        // Driver Section
-        _buildDriverSection(cols, isDark),
-        const SizedBox(height: 20),
-        // Seats
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cols,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 0.9,
-          ),
-          itemCount: blueprint.length,
-          itemBuilder: (context, index) {
-            final bp = blueprint[index];
-            if (bp.isAisle) return const SizedBox.shrink();
-            if (bp.isSpacer) return const SizedBox.shrink();
-
-            // Find live data
-            final liveData = liveSeats.firstWhere(
-              (s) => s['seatNumber'].toString() == bp.seatNumber,
-              orElse: () => {},
-            );
-
-            bool isBooked = ['occupied', 'sold', 'blocked', 'reserved'].contains(liveData['status']);
-            bool isSelected = provider.selectedSeatNumbers.contains(bp.seatNumber);
-
-            return _SeatWidget(
-              number: bp.seatNumber,
-              isBooked: isBooked,
-              isSelected: isSelected,
-              onTap: () => provider.toggleSeat(bp.seatNumber),
-              isDark: isDark,
-            );
-          },
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 30, 20, 20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(60),
+          topRight: Radius.circular(60),
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
         ),
-      ],
+        border: Border.all(
+          color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.1),
+          width: 3,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Driver Section
+          _buildDriverSection(cols, isDark),
+          const SizedBox(height: 24),
+          // Seats
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: cols,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 0.9,
+            ),
+            itemCount: blueprint.length,
+            itemBuilder: (context, index) {
+              final bp = blueprint[index];
+              if (bp.isAisle) return const SizedBox.shrink();
+              if (bp.isSpacer) return const SizedBox.shrink();
+
+              // Find live data
+              final liveData = liveSeats.firstWhere(
+                (s) => s['seatNumber'].toString() == bp.seatNumber,
+                orElse: () => {},
+              );
+
+              bool isBooked = ['occupied', 'sold', 'blocked', 'reserved'].contains(liveData['status']);
+              bool isSelected = provider.selectedSeatNumbers.contains(bp.seatNumber);
+
+              return _SeatWidget(
+                number: bp.seatNumber,
+                isBooked: isBooked,
+                isSelected: isSelected,
+                onTap: () => provider.toggleSeat(bp.seatNumber),
+                isDark: isDark,
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildDriverSection(int cols, bool isDark) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
+        // Entry Door Indicator
         Container(
-          width: 40,
-          height: 40,
+          width: 28,
+          height: 50,
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white10 : Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: AppColors.primaryOrange.withValues(alpha: 0.3), width: 2),
+          ),
+          child: const Center(
+            child: Icon(Icons.meeting_room_outlined, size: 18, color: AppColors.primaryOrange),
+          ),
+        ),
+        // Driver Steering Wheel
+        Container(
+          width: 45,
+          height: 45,
           decoration: BoxDecoration(
             color: isDark ? Colors.white10 : Colors.grey.shade100,
             shape: BoxShape.circle,
-            border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade300),
+            border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade300, width: 2),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))
+            ],
           ),
-          child: Icon(Icons.radio_button_checked, color: isDark ? Colors.white30 : Colors.grey.shade400),
+          child: Icon(Icons.sports_motorsports, color: isDark ? Colors.white30 : Colors.grey.shade500, size: 24),
         ),
-        const SizedBox(width: 10),
       ],
     );
   }
