@@ -35,7 +35,7 @@ import {
   Save,
   Warning,
   Search,
-  ManageAccounts,
+  VpnKey,
   CheckCircle,
   PendingActions,
 } from '@mui/icons-material';
@@ -203,7 +203,7 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
               '&:hover': { backgroundColor: 'rgba(245,158,11,0.15)' },
             }}
           >
-            <ManageAccounts fontSize="small" />
+            <VpnKey fontSize="small" />
           </IconButton>
         </Tooltip>
 
@@ -329,7 +329,7 @@ const ChangeRoleDialog = ({ open, user, onClose, onDone, theme }) => {
             bgcolor: 'rgba(245,158,11,0.12)', borderRadius: 2,
             p: 0.8, display: 'flex', color: '#f59e0b',
           }}>
-            <ManageAccounts fontSize="small" />
+            <VpnKey fontSize="small" />
           </Box>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
