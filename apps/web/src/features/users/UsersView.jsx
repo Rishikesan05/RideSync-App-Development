@@ -158,7 +158,7 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
               size="small"
               sx={{
                 height: 18, fontSize: '0.62rem', fontWeight: 700,
-                backgroundColor: 'rgba(245,158,11,0.12)',
+                backgroundColor: 'transparent',
                 color: '#f59e0b',
                 border: '1px solid rgba(245,158,11,0.3)',
                 '& .MuiChip-icon': { color: 'inherit' },
@@ -198,9 +198,9 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
             onClick={() => onChangeRole(user, categoryKey)}
             sx={{
               color: '#f59e0b',
-              backgroundColor: isPending ? 'rgba(245,158,11,0.08)' : 'transparent',
-              border: isPending ? '1px solid rgba(245,158,11,0.3)' : 'none',
-              '&:hover': { backgroundColor: 'rgba(245,158,11,0.15)' },
+              backgroundColor: 'transparent',
+              border: 'none',
+              '&:hover': { backgroundColor: 'rgba(245,158,11,0.08)' },
             }}
           >
             <VpnKey fontSize="small" />
@@ -326,7 +326,7 @@ const ChangeRoleDialog = ({ open, user, onClose, onDone, theme }) => {
       <DialogTitle sx={{ pb: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box sx={{
-            bgcolor: 'rgba(245,158,11,0.12)', borderRadius: 2,
+            bgcolor: 'transparent', borderRadius: 2,
             p: 0.8, display: 'flex', color: '#f59e0b',
           }}>
             <VpnKey fontSize="small" />
@@ -355,7 +355,7 @@ const ChangeRoleDialog = ({ open, user, onClose, onDone, theme }) => {
         {user?.role && (
           <Box sx={{
             mb: 2.5, p: 1.5, borderRadius: 2,
-            backgroundColor: 'rgba(245,158,11,0.07)',
+            backgroundColor: 'transparent',
             border: '1px solid rgba(245,158,11,0.2)',
             display: 'flex', alignItems: 'center', gap: 1,
           }}>
