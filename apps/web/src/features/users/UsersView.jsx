@@ -120,17 +120,11 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
         gap: 2,
         p: 2,
         borderRadius: 2,
-        backgroundColor: isPending
-          ? (theme.palette.mode === 'dark' ? 'rgba(245,158,11,0.05)' : 'rgba(245,158,11,0.03)')
-          : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)'),
-        border: `1px solid ${isPending
-          ? 'rgba(245,158,11,0.2)'
-          : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)')}`,
+        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)',
+        border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'}`,
         transition: 'all 0.18s ease',
         '&:hover': {
-          backgroundColor: isPending
-            ? 'rgba(245,158,11,0.08)'
-            : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.035)'),
+          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.035)',
           transform: 'translateY(-1px)',
           boxShadow: `0 4px 16px ${cat.color}18`,
         },
