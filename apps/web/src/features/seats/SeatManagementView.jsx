@@ -30,14 +30,22 @@ const SeatManagementView = () => {
   const schedulesData = schedulesResponse?.data || schedulesResponse?.schedules || schedulesResponse || [];
   const schedules = Array.isArray(schedulesData) ? schedulesData : [];
   
-  const activeSchedules = schedules.filter(s => s && (s.status === 'scheduled' || s.status === 'active' || !s.status)).map(s => {
-    // Find bus capacity if missing from schedule record
-    const bus = buses.find(b => b.id === s.busId);
-    return {
-      ...s,
-      capacity: s.capacity || bus?.capacity || 54
-    };
-  });
+  const activeSchedules = schedules
+    .filter(s => s && (s.status === 'scheduled' || s.status === 'active' || !s.status))
+    .map(s => {
+      // Find bus capacity if missing from schedule record
+      const bus = buses.find(b => b.id === s.busId);
+      return {
+        ...s,
+        capacity: s.capacity || bus?.capacity || 54,
+        busPlateNumber: s.busPlateNumber || bus?.plateNumber || 'N/A'
+      };
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.updatedAt || a.createdAt || a.departureTime || 0);
+      const dateB = new Date(b.updatedAt || b.createdAt || b.departureTime || 0);
+      return dateB - dateA;
+    });
 
   const formatTime = (dateValue) => {
     if (!dateValue) return 'N/A';
