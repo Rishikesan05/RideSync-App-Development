@@ -404,7 +404,13 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
                       type="date"
                       margin="dense"
                       InputLabelProps={{ shrink: true }}
-                      inputProps={{ min: new Date().toISOString().slice(0, 10) }}
+                      inputProps={{ 
+                        min: (() => {
+                          const tomorrow = new Date();
+                          tomorrow.setDate(tomorrow.getDate() + 1);
+                          return tomorrow.toISOString().slice(0, 10);
+                        })()
+                      }}
                       error={!!errors.departureDate}
                       helperText={errors.departureDate?.message}
                       disabled={!!initialData}
