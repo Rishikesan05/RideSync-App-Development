@@ -47,7 +47,7 @@ const SeatManagementView = () => {
       return dateB - dateA;
     });
 
-  const formatTime = (dateValue) => {
+  const formatDateTime = (dateValue) => {
     if (!dateValue) return 'N/A';
     try {
       // Handle various Firestore Timestamp formats or ISO string
@@ -59,7 +59,7 @@ const SeatManagementView = () => {
       } else {
         date = new Date(dateValue);
       }
-      return isValid(date) ? format(date, 'hh:mm a') : 'Invalid Time';
+      return isValid(date) ? format(date, 'MMM dd, yyyy - hh:mm a') : 'Invalid Time';
     } catch {
       return 'N/A';
     }
@@ -120,12 +120,12 @@ const SeatManagementView = () => {
                   
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                     <DirectionsBus fontSize="small" color="action" />
-                    <Typography variant="body2">{schedule.busId || 'No Bus Assigned'} (Capacity: {schedule.capacity || '54'})</Typography>
+                    <Typography variant="body2">{schedule.busPlateNumber || 'No Bus Assigned'} (Capacity: {schedule.capacity || '54'})</Typography>
                   </Box>
 
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                     <AccessTime fontSize="small" color="action" />
-                    <Typography variant="body2">{formatTime(schedule.departureTime)}</Typography>
+                    <Typography variant="body2">{formatDateTime(schedule.departureTime)}</Typography>
                   </Box>
 
                   {/* Ticket Divider & Cutout Notches */}
