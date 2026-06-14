@@ -72,8 +72,8 @@ export const TodaySchedules = () => {
         const snap = await getDocs(
           query(
             collection(db, 'schedules'),
-            where('departureTime', '>=', Timestamp.fromDate(todayStart)),
-            where('departureTime', '<',  Timestamp.fromDate(todayEnd)),
+            where('departureTime', '>=', todayStart.toISOString()),
+            where('departureTime', '<',  todayEnd.toISOString()),
           ),
         );
 
