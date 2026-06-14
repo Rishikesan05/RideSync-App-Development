@@ -203,6 +203,16 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
                   <Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Selected Seat: {selectedSeat.seatNumber}</Typography>
                     <Typography variant="caption" color="text.secondary">Current Status: {selectedSeat.status}</Typography>
+                    {isBooked && (
+                      <Box sx={{ mt: 1, p: 1, bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 1 }}>
+                        <Typography variant="caption" display="block">
+                          <strong>Booked By:</strong> {selectedSeat.passengerId || 'Unknown'}
+                        </Typography>
+                        <Typography variant="caption" display="block">
+                          <strong>Booked At:</strong> {formatDateTime(selectedSeat.bookedAt)}
+                        </Typography>
+                      </Box>
+                    )}
                   </Box>
                   
                   {/* Ticket Divider & Cutout Notches */}
