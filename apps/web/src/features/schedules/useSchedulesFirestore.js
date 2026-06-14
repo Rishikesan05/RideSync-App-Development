@@ -18,6 +18,10 @@ import {
   onSnapshot,
   query,
   orderBy,
+  where,
+  getDocs,
+  deleteDoc,
+  doc
 } from 'firebase/firestore';
 import { db } from '../../api/firebase';
 
@@ -37,9 +41,32 @@ export const useSchedulesFirestore = () => {
   const [error, setError]         = useState(null);
 
   useEffect(() => {
-    // Order by departureTime ascending for chronological display
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const todayStr = startOfToday.toISOString();
+
+    // Auto-remove past schedules
+    const removePastSchedules = async () => {
+      try {
+        const pastQuery = query(
+          collection(db, COLLECTION),
+          where('departureTime', '<', todayStr)
+        );
+        const snapshot = await getDocs(pastQuery);
+        snapshot.forEach((d) => {
+          deleteDoc(doc(db, COLLECTION, d.id)).catch(console.error);
+        });
+      } catch (err) {
+        console.error('Failed to remove past schedules:', err);
+      }
+    };
+    
+    removePastSchedules();
+
+    // Order by departureTime ascending and show only today and upcoming
     const q = query(
       collection(db, COLLECTION),
+      where('departureTime', '>=', todayStr),
       orderBy('departureTime', 'asc')
     );
 
