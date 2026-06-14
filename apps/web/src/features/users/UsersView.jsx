@@ -664,13 +664,18 @@ export const UsersView = () => {
             onClick={() => { setActiveTab(i); setSearch(''); }}
             sx={{
               p: 2, borderRadius: 3, cursor: 'pointer',
-              backgroundColor: activeTab === i ? cat.bgColor : theme.palette.background.paper,
-              border: `1px solid ${activeTab === i ? cat.color + '55' : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)')}`,
+              backgroundColor: theme.palette.background.paper,
+              border: `1.5px solid ${activeTab === i ? cat.color : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)')}`,
               transition: 'all 0.2s ease',
-              boxShadow: activeTab === i
-                ? `0 6px 20px ${cat.color}28`
-                : (theme.palette.mode === 'dark' ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.04)'),
-              '&:hover': { transform: 'translateY(-2px)', boxShadow: `0 8px 24px ${cat.color}28` },
+              boxShadow: theme.palette.mode === 'dark'
+                ? '0 4px 12px rgba(0, 0, 0, 0.3)'
+                : '0 4px 12px rgba(0, 0, 0, 0.04)',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: theme.palette.mode === 'dark'
+                  ? '0 8px 24px rgba(0, 0, 0, 0.4)'
+                  : '0 8px 24px rgba(0, 0, 0, 0.08)',
+              },
               // Pulsing ring on Pending card if there are pending users
               ...(cat.key === 'pending' && pending.length > 0 && activeTab !== i && {
                 animation: 'pendingPulse 2s infinite',
