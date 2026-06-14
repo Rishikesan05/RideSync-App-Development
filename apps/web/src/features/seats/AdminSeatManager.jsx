@@ -9,8 +9,7 @@ import {
   Typography,
   Chip,
   Stack,
-  Divider,
-  Paper
+  Divider
 } from '@mui/material';
 import BusSeatMap from './BusSeatMap';
 import { bookSeat, updateSeatMeta, initializeRideSeats, relocateSeat } from './SeatService';
