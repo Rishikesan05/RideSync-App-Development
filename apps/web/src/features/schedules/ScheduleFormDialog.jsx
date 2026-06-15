@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -62,6 +62,105 @@ const SectionLabel = ({ icon, text }) => (
     </Typography>
   </Box>
 );
+
+// ── Time Scroll Picker Constants & Component ──────────────────────────────────
+const HOURS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+const AMPM = ['AM', 'PM'];
+
+const TimeScrollColumn = ({ items, value, onChange, theme, disabled }) => {
+  const containerRef = useRef(null);
+  const timeoutRef = useRef(null);
+
+  useEffect(() => {
+    const idx = items.indexOf(value);
+    if (idx !== -1 && containerRef.current) {
+      containerRef.current.scrollTo({
+        top: idx * 40,
+        behavior: 'smooth',
+      });
+    }
+  }, [value, items]);
+
+  const handleScroll = (e) => {
+    if (disabled) return;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    const target = e.target;
+    timeoutRef.current = setTimeout(() => {
+      const scrollTop = target.scrollTop;
+      const index = Math.round(scrollTop / 40);
+      if (index >= 0 && index < items.length) {
+        const val = items[index];
+        if (val !== value) {
+          onChange(val);
+        }
+      }
+    }, 150);
+  };
+
+  const handleClick = (item) => {
+    if (disabled) return;
+    onChange(item);
+  };
+
+  return (
+    <Box
+      ref={containerRef}
+      onScroll={handleScroll}
+      sx={{
+        height: 120,
+        overflowY: disabled ? 'hidden' : 'auto',
+        scrollbarWidth: 'none',
+        '&::-webkit-scrollbar': { display: 'none' },
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        scrollSnapType: disabled ? 'none' : 'y mandatory',
+        width: 65,
+        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+        borderRadius: 2.5,
+        border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+        opacity: disabled ? 0.6 : 1,
+        pointerEvents: disabled ? 'none' : 'auto',
+      }}
+    >
+      <Box sx={{ height: 40, flexShrink: 0 }} />
+      {items.map((item) => {
+        const isSelected = item === value;
+        return (
+          <Box
+            key={item}
+            onClick={() => handleClick(item)}
+            sx={{
+              height: 40,
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: disabled ? 'default' : 'pointer',
+              scrollSnapAlign: 'center',
+              fontWeight: isSelected ? 800 : 500,
+              color: isSelected ? '#E68D33' : 'text.secondary',
+              fontSize: isSelected ? '1.05rem' : '0.85rem',
+              transition: 'all 0.15s ease',
+              width: '100%',
+              userSelect: 'none',
+              ...(!disabled && {
+                '&:hover': {
+                  backgroundColor: 'rgba(230, 141, 51, 0.08)',
+                  color: '#E68D33',
+                }
+              })
+            }}
+          >
+            {item}
+          </Box>
+        );
+      })}
+      <Box sx={{ height: 40, flexShrink: 0 }} />
+    </Box>
+  );
+};
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => {
@@ -433,18 +532,72 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
                 <Controller
                   name="departureTime"
                   control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      type="time"
-                      margin="dense"
-                      InputLabelProps={{ shrink: true }}
-                      error={!!errors.departureTime}
-                      helperText={errors.departureTime?.message}
-                      disabled={!!initialData}
-                    />
-                  )}
+                  render={({ field }) => {
+                    const timeVal = field.value || "12:00";
+                    const [h24, minStr] = timeVal.split(':');
+                    const h24Int = parseInt(h24, 10) || 12;
+                    const isPM = h24Int >= 12;
+                    const h12 = h24Int % 12 === 0 ? 12 : h24Int % 12;
+                    const hourStr = String(h12).padStart(2, '0');
+                    const ampmStr = isPM ? 'PM' : 'AM';
+
+                    const handleTimeChange = (type, val) => {
+                      let newHour = hourStr;
+                      let newMin = minStr || "00";
+                      let newAmpm = ampmStr;
+
+                      if (type === 'hour') newHour = val;
+                      if (type === 'minute') newMin = val;
+                      if (type === 'ampm') newAmpm = val;
+
+                      const h12Int = parseInt(newHour, 10);
+                      let h24Int = h12Int;
+                      if (newAmpm === 'PM' && h12Int !== 12) h24Int = h12Int + 12;
+                      if (newAmpm === 'AM' && h12Int === 12) h24Int = 0;
+
+                      const formattedH24 = String(h24Int).padStart(2, '0');
+                      const formattedTime = `${formattedH24}:${newMin}`;
+                      field.onChange(formattedTime);
+                    };
+
+                    return (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, mb: -0.5 }}>
+                          Departure Time
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                          <TimeScrollColumn
+                            items={HOURS}
+                            value={hourStr}
+                            onChange={(val) => handleTimeChange('hour', val)}
+                            theme={theme}
+                            disabled={!!initialData}
+                          />
+                          <Typography variant="h6" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>:</Typography>
+                          <TimeScrollColumn
+                            items={MINUTES}
+                            value={minStr || "00"}
+                            onChange={(val) => handleTimeChange('minute', val)}
+                            theme={theme}
+                            disabled={!!initialData}
+                          />
+                          <Box sx={{ width: 4 }} />
+                          <TimeScrollColumn
+                            items={AMPM}
+                            value={ampmStr}
+                            onChange={(val) => handleTimeChange('ampm', val)}
+                            theme={theme}
+                            disabled={!!initialData}
+                          />
+                        </Box>
+                        {errors.departureTime && (
+                          <Typography variant="caption" color="error">
+                            {errors.departureTime.message}
+                          </Typography>
+                        )}
+                      </Box>
+                    );
+                  }}
                 />
               </Grid>
             </Grid>
