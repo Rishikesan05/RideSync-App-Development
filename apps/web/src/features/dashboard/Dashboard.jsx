@@ -387,7 +387,7 @@ export const Dashboard = () => {
 
       <Grid container spacing={3} sx={{ mt: 3 }}>
         <Grid item xs={12} xl={6}>
-          <Card sx={{ height: 450, display: 'flex', flexDirection: 'column' }}>
+          <Card sx={{ height: 600, display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Revenue Trend</Typography>
               <Box sx={{ flexGrow: 1, minHeight: 0, width: '100%' }}>
@@ -414,7 +414,7 @@ export const Dashboard = () => {
           </Card>
         </Grid>
         <Grid item xs={12} xl={6}>
-          <Card sx={{ height: 450, display: 'flex', flexDirection: 'column' }}>
+          <Card sx={{ height: 600, display: 'flex', flexDirection: 'column' }}>
             <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Bookings by Class</Typography>
               <Box sx={{ flexGrow: 1, minHeight: 0, width: '100%' }}>
