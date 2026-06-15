@@ -400,7 +400,6 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
                     <TextField
                       {...field}
                       fullWidth
-                      label="Departure Date"
                       type="date"
                       margin="dense"
                       InputLabelProps={{ shrink: true }}
@@ -427,7 +426,6 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
                     <TextField
                       {...field}
                       fullWidth
-                      label="Departure Time"
                       type="time"
                       margin="dense"
                       InputLabelProps={{ shrink: true }}
