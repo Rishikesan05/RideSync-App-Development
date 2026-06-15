@@ -400,44 +400,54 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
             {/* ── DATE & TIME SECTION ──────────────────────────────────── */}
             <SectionLabel icon={<AccessTime fontSize="small" />} text="Date & Time" />
 
-            <Grid container spacing={2} sx={{ mt: 0 }}>
+            <Grid container spacing={2} sx={{ mt: 0, alignItems: 'flex-start' }}>
               <Grid item xs={12} sm={6}>
-                <Controller
-                  name="departureDate"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      type="date"
-                      margin="dense"
-                      InputLabelProps={{ shrink: true }}
-                      inputProps={{ 
-                        min: (() => {
-                          const today = new Date();
-                          const yyyy = today.getFullYear();
-                          const mm = String(today.getMonth() + 1).padStart(2, '0');
-                          const dd = String(today.getDate()).padStart(2, '0');
-                          return `${yyyy}-${mm}-${dd}`;
-                        })()
-                      }}
-                      error={!!errors.departureDate}
-                      helperText={errors.departureDate?.message}
-                      disabled={!!initialData}
-                    />
-                  )}
-                />
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+                    Departure Date
+                  </Typography>
+                  <Controller
+                    name="departureDate"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        type="date"
+                        margin="none"
+                        inputProps={{ 
+                          min: (() => {
+                            const today = new Date();
+                            const yyyy = today.getFullYear();
+                            const mm = String(today.getMonth() + 1).padStart(2, '0');
+                            const dd = String(today.getDate()).padStart(2, '0');
+                            return `${yyyy}-${mm}-${dd}`;
+                          })()
+                        }}
+                        error={!!errors.departureDate}
+                        helperText={errors.departureDate?.message}
+                        disabled={!!initialData}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                            height: 48,
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                </Box>
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <Controller
-                  name="departureTime"
-                  control={control}
-                  render={({ field }) => (
-                    <Box sx={{ mt: 1 }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
-                        Departure Time
-                      </Typography>
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+                    Departure Time
+                  </Typography>
+                  <Controller
+                    name="departureTime"
+                    control={control}
+                    render={({ field }) => (
                       <TimeWheelPicker
                         value={field.value}
                         onChange={field.onChange}
@@ -445,9 +455,9 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
                         error={!!errors.departureTime}
                         helperText={errors.departureTime?.message}
                       />
-                    </Box>
-                  )}
-                />
+                    )}
+                  />
+                </Box>
               </Grid>
             </Grid>
 
@@ -621,7 +631,7 @@ const WheelColumn = ({ items, selectedValue, onChange }) => {
     if (!container) return;
     const index = items.indexOf(selectedValue);
     if (index !== -1) {
-      const targetScroll = index * 30;
+      const targetScroll = index * 32;
       if (Math.abs(container.scrollTop - targetScroll) > 2) {
         container.scrollTo({ top: targetScroll, behavior: 'smooth' });
       }
@@ -637,7 +647,7 @@ const WheelColumn = ({ items, selectedValue, onChange }) => {
     }
 
     scrollTimeoutRef.current = setTimeout(() => {
-      const index = Math.round(container.scrollTop / 30);
+      const index = Math.round(container.scrollTop / 32);
       if (index >= 0 && index < items.length) {
         const val = items[index];
         if (val !== selectedValue) {
@@ -656,12 +666,12 @@ const WheelColumn = ({ items, selectedValue, onChange }) => {
       ref={containerRef}
       onScroll={handleScroll}
       sx={{
-        height: 90,
+        height: 32,
         overflowY: 'auto',
         scrollbarWidth: 'none',
         '&::-webkit-scrollbar': { display: 'none' },
         scrollSnapType: 'y mandatory',
-        width: '40px',
+        width: '35px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -669,7 +679,7 @@ const WheelColumn = ({ items, selectedValue, onChange }) => {
         '&::before, &::after': {
           content: '""',
           display: 'block',
-          height: 30,
+          height: 0,
           flexShrink: 0,
         }
       }}
@@ -679,8 +689,8 @@ const WheelColumn = ({ items, selectedValue, onChange }) => {
           key={item}
           onClick={() => handleItemClick(item)}
           sx={{
-            height: 30,
-            lineHeight: '30px',
+            height: 32,
+            lineHeight: '32px',
             fontSize: '0.82rem',
             fontWeight: item === selectedValue ? 700 : 400,
             color: item === selectedValue ? 'primary.main' : 'text.secondary',
@@ -726,38 +736,25 @@ const TimeWheelPicker = ({ value, onChange, disabled, error, helperText }) => {
     <Box>
       <Box
         sx={{
-          display: 'inline-flex',
+          display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)',
-          border: (theme) => `1px solid ${error ? theme.palette.error.main : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.15)')}`,
+          border: (theme) => `1px solid ${error ? theme.palette.error.main : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)')}`,
           borderRadius: 2,
-          p: '4px 8px',
+          p: '0px 12px',
           position: 'relative',
-          height: 100,
-          overflow: 'hidden',
+          height: 48,
+          width: '100%',
+          boxSizing: 'border-box',
           opacity: disabled ? 0.6 : 1,
           pointerEvents: disabled ? 'none' : 'auto',
-          // Central highlight bar
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            left: 4,
-            right: 4,
-            top: 'calc(50% - 15px)',
-            height: '30px',
-            borderTop: (theme) => `1px solid ${theme.palette.primary.main}25`,
-            borderBottom: (theme) => `1px solid ${theme.palette.primary.main}25`,
-            backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(245, 158, 11, 0.05)' : 'rgba(245, 158, 11, 0.03)',
-            pointerEvents: 'none',
-            borderRadius: 1,
-          }
         }}
       >
         <WheelColumn items={hoursList} selectedValue={hour} onChange={handleHourChange} />
-        <Typography variant="body2" sx={{ mx: 0.2, fontWeight: 700, color: 'text.secondary', zIndex: 3 }}>:</Typography>
+        <Typography variant="body2" sx={{ mx: 0.8, fontWeight: 700, color: 'text.secondary', zIndex: 3 }}>:</Typography>
         <WheelColumn items={minutesList} selectedValue={minute} onChange={handleMinuteChange} />
-        <Box sx={{ width: 6 }} />
+        <Box sx={{ width: 8 }} />
         <WheelColumn items={periodsList} selectedValue={period} onChange={handlePeriodChange} />
       </Box>
       {helperText && (
