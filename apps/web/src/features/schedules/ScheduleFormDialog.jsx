@@ -443,16 +443,24 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
               <Box
                 sx={{
                   mt: 2.5,
-                  p: 2,
-                  borderRadius: 2,
-                  backgroundColor: 'rgba(99,102,241,0.08)',
-                  border: '1px solid rgba(99,102,241,0.2)',
+                  p: 2.5,
+                  borderRadius: '12px',
+                  border: `1.5px solid ${theme.palette.primary.main}40`,
+                  borderTop: `4px solid ${theme.palette.primary.main}`,
+                  background: theme.palette.mode === 'dark'
+                    ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.45) 100%)'
+                    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(248, 250, 252, 0.6) 100%)',
+                  boxShadow: theme.palette.mode === 'dark'
+                    ? '0 4px 12px rgba(0, 0, 0, 0.15)'
+                    : '0 4px 12px rgba(0, 0, 0, 0.02)',
+                  position: 'relative',
+                  overflow: 'visible',
                 }}
               >
                 <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.light', textTransform: 'uppercase', letterSpacing: 0.8 }}>
                   Schedule Preview
                 </Typography>
-                <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                   <Typography variant="body2">
                     <strong>Route:</strong>{' '}
                     {selectedRoute.routeNumber ? `#${selectedRoute.routeNumber} · ` : ''}
@@ -468,11 +476,69 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
                       day: 'numeric', hour: '2-digit', minute: '2-digit',
                     })}
                   </Typography>
-                  {watch('opId') && (
-                    <Typography variant="body2">
-                      <strong>Operator ID:</strong> {watch('opId')}
-                    </Typography>
-                  )}
+
+                  {/* Ticket Divider & Cutout Notches */}
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    mx: -2.5, 
+                    my: 1.5,
+                    height: '16px',
+                    position: 'relative'
+                  }}>
+                    {/* Left Notch */}
+                    <Box 
+                      className="ticket-notch"
+                      sx={{
+                        position: 'absolute',
+                        left: '-8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        backgroundColor: theme.palette.background.paper,
+                        border: `1.5px solid ${theme.palette.primary.main}40`,
+                        borderLeftColor: 'transparent',
+                        borderTopColor: 'transparent',
+                        borderBottomColor: 'transparent',
+                        zIndex: 2,
+                      }} 
+                    />
+                    
+                    {/* Perforation Line */}
+                    <Box sx={{ 
+                      flex: 1, 
+                      borderTop: `1.2px dashed ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'}`, 
+                      height: '1px', 
+                      mx: 1.5
+                    }} />
+                    
+                    {/* Right Notch */}
+                    <Box 
+                      className="ticket-notch"
+                      sx={{
+                        position: 'absolute',
+                        right: '-8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        backgroundColor: theme.palette.background.paper,
+                        border: `1.5px solid ${theme.palette.primary.main}40`,
+                        borderRightColor: 'transparent',
+                        borderTopColor: 'transparent',
+                        borderBottomColor: 'transparent',
+                        zIndex: 2,
+                      }} 
+                    />
+                  </Box>
+
+                  <Typography variant="body2">
+                    <strong>Operator ID:</strong> {watch('opId') || 'Unassigned'}
+                  </Typography>
                 </Box>
               </Box>
             )}
