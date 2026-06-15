@@ -290,8 +290,6 @@ const ChangeRoleDialog = ({ open, user, onClose, onDone, theme }) => {
 
   const roleOptions = [
     { value: 'admin',     label: 'Admin',     icon: '🛡️', desc: 'Full dashboard access' },
-    { value: 'operator',  label: 'Operator',  icon: '🚌', desc: 'Bus operator access' },
-    { value: 'passenger', label: 'Passenger', icon: '👤', desc: 'Mobile app passenger' },
   ];
 
   return (
