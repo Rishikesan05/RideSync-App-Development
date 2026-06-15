@@ -197,16 +197,18 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Edit user">
-          <IconButton
-            id={`edit-btn-${user.id}`}
-            size="small"
-            onClick={() => onEdit(user, categoryKey)}
-            sx={{ color: '#4f86f7', '&:hover': { backgroundColor: 'rgba(79,134,247,0.1)' } }}
-          >
-            <Edit fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        {categoryKey !== 'passengers' && categoryKey !== 'operators' && (
+          <Tooltip title="Edit user">
+            <IconButton
+              id={`edit-btn-${user.id}`}
+              size="small"
+              onClick={() => onEdit(user, categoryKey)}
+              sx={{ color: '#4f86f7', '&:hover': { backgroundColor: 'rgba(79,134,247,0.1)' } }}
+            >
+              <Edit fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
 
         <Tooltip title="Delete user">
           <IconButton
