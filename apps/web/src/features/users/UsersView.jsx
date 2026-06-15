@@ -181,21 +181,23 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
       <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
 
         {/* "Change Role" — shown on pending cards AND as an extra action on all cards */}
-        <Tooltip title={isPending ? 'Verify & assign role' : 'Change role'}>
-          <IconButton
-            id={`role-btn-${user.id}`}
-            size="small"
-            onClick={() => onChangeRole(user, categoryKey)}
-            sx={{
-              color: '#f59e0b',
-              backgroundColor: 'transparent',
-              border: 'none',
-              '&:hover': { backgroundColor: 'rgba(245,158,11,0.08)' },
-            }}
-          >
-            <VpnKey fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        {categoryKey !== 'passengers' && categoryKey !== 'operators' && (
+          <Tooltip title={isPending ? 'Verify & assign role' : 'Change role'}>
+            <IconButton
+              id={`role-btn-${user.id}`}
+              size="small"
+              onClick={() => onChangeRole(user, categoryKey)}
+              sx={{
+                color: '#f59e0b',
+                backgroundColor: 'transparent',
+                border: 'none',
+                '&:hover': { backgroundColor: 'rgba(245,158,11,0.08)' },
+              }}
+            >
+              <VpnKey fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
 
         {categoryKey !== 'passengers' && categoryKey !== 'operators' && (
           <Tooltip title="Edit user">
