@@ -307,22 +307,7 @@ export const Dashboard = () => {
           { name: 'Non-AC', count: nonAcBookings }
         ]);
 
-        // If no real recent revenue data, just show some trends for visualization demo
-        const hasData = last7Days.some(d => d.revenue > 0);
-        if (hasData) {
-          setRevenueData(last7Days);
-        } else {
-          // Fallback demo data if real bookings have no timestamps or are empty
-          setRevenueData([
-            { name: 'Mon', revenue: 4000 },
-            { name: 'Tue', revenue: 3000 },
-            { name: 'Wed', revenue: 2000 },
-            { name: 'Thu', revenue: 2780 },
-            { name: 'Fri', revenue: 1890 },
-            { name: 'Sat', revenue: 2390 },
-            { name: 'Sun', revenue: 3490 },
-          ]);
-        }
+        setRevenueData(last7Days);
         
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -357,9 +342,7 @@ export const Dashboard = () => {
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>Overview</Typography>
           <Typography variant="body1" color="text.secondary">Welcome back to the RideSync Admin Dashboard.</Typography>
         </Box>
-        <IconButton sx={{ color: '#E68D33', backgroundColor: 'rgba(230, 141, 51, 0.1)' }}>
-          <Assessment />
-        </IconButton>
+
       </Box>
 
       {/* Row 1: Stat Cards (Modern Designs with Brand Color & Spring Animations) */}
