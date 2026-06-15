@@ -307,22 +307,7 @@ export const Dashboard = () => {
           { name: 'Non-AC', count: nonAcBookings }
         ]);
 
-        // If no real recent revenue data, just show some trends for visualization demo
-        const hasData = last7Days.some(d => d.revenue > 0);
-        if (hasData) {
-          setRevenueData(last7Days);
-        } else {
-          // Fallback demo data if real bookings have no timestamps or are empty
-          setRevenueData([
-            { name: 'Mon', revenue: 4000 },
-            { name: 'Tue', revenue: 3000 },
-            { name: 'Wed', revenue: 2000 },
-            { name: 'Thu', revenue: 2780 },
-            { name: 'Fri', revenue: 1890 },
-            { name: 'Sat', revenue: 2390 },
-            { name: 'Sun', revenue: 3490 },
-          ]);
-        }
+        setRevenueData(last7Days);
         
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -357,9 +342,7 @@ export const Dashboard = () => {
           <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>Overview</Typography>
           <Typography variant="body1" color="text.secondary">Welcome back to the RideSync Admin Dashboard.</Typography>
         </Box>
-        <IconButton sx={{ color: '#E68D33', backgroundColor: 'rgba(230, 141, 51, 0.1)' }}>
-          <Assessment />
-        </IconButton>
+
       </Box>
 
       {/* Row 1: Stat Cards (Modern Designs with Brand Color & Spring Animations) */}
@@ -403,25 +386,25 @@ export const Dashboard = () => {
       </Grid>
 
       <Grid container spacing={3} sx={{ mt: 3 }}>
-        <Grid item xs={12} md={6}>
-          <Card sx={{ height: 400, display: 'flex', flexDirection: 'column' }}>
-            <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+        <Grid item xs={12}>
+          <Card sx={{ height: 450, display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Revenue Trend</Typography>
-              <Box sx={{ flexGrow: 1, minHeight: 0 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <Box sx={{ flexGrow: 1, minHeight: 0, width: '100%' }}>
+                <ResponsiveContainer width="99%" height="100%">
+                  <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
                     <defs>
                       <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor={'#E68D33'} stopOpacity={0.4}/>
                         <stop offset="95%" stopColor={'#E68D33'} stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                    <XAxis dataKey="name" stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} />
-                    <YAxis stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" vertical={false} />
+                    <XAxis dataKey="name" stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} dy={10} />
+                    <YAxis stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} dx={-10} />
                     <Tooltip 
-                       contentStyle={{ backgroundColor: theme.palette.background.paper, border: 'none', borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}
-                      itemStyle={{ color: '#E68D33' }}
+                       contentStyle={{ backgroundColor: theme.palette.background.paper, border: 'none', borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}
+                      itemStyle={{ color: '#E68D33', fontWeight: 600 }}
                     />
                     <Area type="monotone" dataKey="revenue" stroke={'#E68D33'} strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                   </AreaChart>
@@ -430,20 +413,22 @@ export const Dashboard = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={6}>
-          <Card sx={{ height: 400, display: 'flex', flexDirection: 'column' }}>
-            <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+        <Grid item xs={12}>
+          <Card sx={{ height: 450, display: 'flex', flexDirection: 'column' }}>
+            <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 3 }}>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>Bookings by Class</Typography>
-              <Box sx={{ flexGrow: 1, minHeight: 0 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={bookingsData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                    <XAxis dataKey="name" stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} />
+              <Box sx={{ flexGrow: 1, minHeight: 0, width: '100%' }}>
+                <ResponsiveContainer width="99%" height="100%">
+                  <BarChart data={bookingsData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" vertical={false} />
+                    <XAxis dataKey="name" stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} dy={10} />
+                    <YAxis stroke={theme.palette.text.secondary} tick={{fill: theme.palette.text.secondary}} axisLine={false} tickLine={false} dx={-10} />
                     <Tooltip 
-                      cursor={{fill: 'rgba(255,255,255,0.05)'}}
-                      contentStyle={{ backgroundColor: theme.palette.background.paper, border: 'none', borderRadius: 8 }}
+                      cursor={{fill: 'rgba(128,128,128,0.1)'}}
+                      contentStyle={{ backgroundColor: theme.palette.background.paper, border: 'none', borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}
+                      itemStyle={{ color: '#E68D33', fontWeight: 600 }}
                     />
-                    <Bar dataKey="count" fill={'#E68D33'} radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="count" fill={'#E68D33'} radius={[6, 6, 0, 0]} maxBarSize={80} />
                   </BarChart>
                 </ResponsiveContainer>
               </Box>
