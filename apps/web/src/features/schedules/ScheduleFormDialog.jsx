@@ -40,7 +40,16 @@ const scheduleSchema = z.object({
   routeId:       z.string().min(1, 'Please select a route'),
   busId:         z.string().min(1, 'Please select a bus'),
   opId:          z.string().min(1, 'Operator ID is required'),
-  departureDate: z.string().min(1, 'Departure date is required'),
+  departureDate: z.string()
+    .min(1, 'Departure date is required')
+    .refine((val) => {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+      return val >= todayStr;
+    }, { message: 'Date cannot be in the past' }),
   departureTime: z.string().min(1, 'Departure time is required'),
 });
 
@@ -405,9 +414,11 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
                       InputLabelProps={{ shrink: true }}
                       inputProps={{ 
                         min: (() => {
-                          const tomorrow = new Date();
-                          tomorrow.setDate(tomorrow.getDate() + 1);
-                          return tomorrow.toISOString().slice(0, 10);
+                          const today = new Date();
+                          const yyyy = today.getFullYear();
+                          const mm = String(today.getMonth() + 1).padStart(2, '0');
+                          const dd = String(today.getDate()).padStart(2, '0');
+                          return `${yyyy}-${mm}-${dd}`;
                         })()
                       }}
                       error={!!errors.departureDate}
