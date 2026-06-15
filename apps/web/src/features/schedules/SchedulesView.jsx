@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   Typography, 
   Card, 
@@ -13,8 +13,7 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  useTheme,
-  Divider
+  useTheme
 } from '@mui/material';
 import { 
   Add, 
@@ -46,7 +45,7 @@ export const SchedulesView = () => {
     try {
       const date = new Date(timeStr);
       return isValid(date) ? format(date, 'MMM dd, yyyy - hh:mm a') : 'Invalid Date';
-    } catch (e) {
+    } catch {
       return 'N/A';
     }
   };
@@ -167,7 +166,6 @@ export const SchedulesView = () => {
           if (!schedule || !schedule.id) return null;
           
           const status = schedule.status || 'scheduled';
-          const busId = schedule.busId || 'N/A';
           const statusColor = getStatusColor(status);
           const colorMain = theme.palette[statusColor]?.main || theme.palette.primary.main;
           
@@ -175,11 +173,30 @@ export const SchedulesView = () => {
             <Grid item xs={12} md={6} lg={4} key={schedule.id}>
               <Card sx={{ 
                 height: '100%', 
-                position: 'relative', 
+                borderRadius: '16px',
+                border: `1.5px solid ${colorMain}40`,
                 borderTop: `4px solid ${colorMain}`,
+                background: theme.palette.mode === 'dark'
+                  ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.8) 100%)'
+                  : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%)',
+                backdropFilter: 'blur(20px)',
+                boxShadow: theme.palette.mode === 'dark'
+                  ? '0 4px 20px -2px rgba(0, 0, 0, 0.3)'
+                  : '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                position: 'relative',
+                overflow: 'visible',
                 opacity: status === 'cancelled' ? 0.6 : 1,
-                transition: 'transform 0.2s',
-                '&:hover': { transform: 'translateY(-4px)' }
+                '&:hover': {
+                  transform: 'translateY(-6px)',
+                  boxShadow: theme.palette.mode === 'dark'
+                    ? `0 16px 28px -10px ${colorMain}40, 0 8px 30px rgba(0,0,0,0.4)`
+                    : `0 16px 24px -10px ${colorMain}2e, 0 6px 20px rgba(0,0,0,0.06)`,
+                  borderColor: colorMain,
+                  '& .ticket-notch': {
+                    borderColor: colorMain,
+                  }
+                }
               }}>
                 <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
                   <IconButton onClick={(e) => handleOpenMenu(e, schedule.id)}>
@@ -214,7 +231,66 @@ export const SchedulesView = () => {
                     </Typography>
                   </Box>
 
-                  <Divider sx={{ my: 1.5, borderColor: 'rgba(255,255,255,0.05)' }} />
+                  {/* Ticket Divider & Cutout Notches */}
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    mx: -3, 
+                    my: 2.5,
+                    height: '20px',
+                    position: 'relative'
+                  }}>
+                    {/* Left Notch */}
+                    <Box 
+                      className="ticket-notch"
+                      sx={{
+                        position: 'absolute',
+                        left: '-10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: theme.palette.background.default,
+                        border: `1.5px solid ${colorMain}40`,
+                        borderLeftColor: 'transparent',
+                        borderTopColor: 'transparent',
+                        borderBottomColor: 'transparent',
+                        zIndex: 2,
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }} 
+                    />
+                    
+                    {/* Perforation Line */}
+                    <Box sx={{ 
+                      flex: 1, 
+                      borderTop: `1.2px dashed ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'}`, 
+                      height: '1px', 
+                      mx: 1.5
+                    }} />
+                    
+                    {/* Right Notch */}
+                    <Box 
+                      className="ticket-notch"
+                      sx={{
+                        position: 'absolute',
+                        right: '-10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: theme.palette.background.default,
+                        border: `1.5px solid ${colorMain}40`,
+                        borderRightColor: 'transparent',
+                        borderTopColor: 'transparent',
+                        borderBottomColor: 'transparent',
+                        zIndex: 2,
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }} 
+                    />
+                  </Box>
 
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography variant="body2" color="text.secondary">
