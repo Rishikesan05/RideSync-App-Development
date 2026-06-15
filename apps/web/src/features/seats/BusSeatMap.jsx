@@ -38,19 +38,19 @@ const BusSeatMap = ({ rideId, layoutType, selectedSeats, onSeatSelect }) => {
   });
 
   return (
-    <Box sx={{ maxWidth: 400, mx: 'auto', p: 2 }}>
+    <Box sx={{ maxWidth: layoutType === '54' ? 280 : 240, mx: 'auto', p: 1 }}>
       {/* Bus Front Section with Steering Wheel on Top Right */}
 
       <Box sx={{ 
         display: 'grid', 
         gridTemplateColumns: gridTemplate, 
-        mb: 2,
-        px: 3
+        mb: 1.5,
+        px: 1.5
       }}>
         <Box sx={{ gridColumnStart: layoutType === '54' ? 6 : 5, display: 'flex', justifyContent: 'center' }}>
           <Box sx={{ 
-            width: 40, 
-            height: 40, 
+            width: 32, 
+            height: 32, 
             borderRadius: '50%', 
             backgroundColor: '#CBD5E1', 
             display: 'flex', 
@@ -58,14 +58,14 @@ const BusSeatMap = ({ rideId, layoutType, selectedSeats, onSeatSelect }) => {
             justifyContent: 'center',
             border: '2px solid #94A3B8'
           }}>
-             <RadioButtonChecked sx={{ fontSize: 24, color: '#1E293B' }} />
+             <RadioButtonChecked sx={{ fontSize: 18, color: '#1E293B' }} />
           </Box>
         </Box>
       </Box>
 
       {/* Main Seat Grid */}
       <Paper elevation={0} sx={{ 
-        p: 3, 
+        p: 2, 
         borderRadius: 2, 
         border: '2px solid #E2E8F0',
         backgroundColor: '#FFFFFF',
@@ -73,8 +73,8 @@ const BusSeatMap = ({ rideId, layoutType, selectedSeats, onSeatSelect }) => {
       }}>
         <Box sx={{ 
           display: 'grid', 
-          gridTemplateColumns: gridTemplate,
-          gap: 1.5,
+          gridTemplateColumns: gridTemplate, 
+          gap: 1.0,
           justifyItems: 'center'
         }}>
           {displaySeats.map((seat, index) => (
@@ -89,7 +89,7 @@ const BusSeatMap = ({ rideId, layoutType, selectedSeats, onSeatSelect }) => {
       </Paper>
 
       {/* Legend */}
-      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-around' }}>
+      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-around' }}>
          <LegendItem color="#FFFFFF" label="Avail." border="#E2E8F0" />
          <LegendItem color="#22C55E" label="Selected" border="#16a34a" />
          <LegendItem color="#94A3B8" label="Booked" border="#64748b" />
