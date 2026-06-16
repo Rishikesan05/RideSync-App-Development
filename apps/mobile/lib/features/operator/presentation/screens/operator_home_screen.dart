@@ -8,6 +8,7 @@ import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/core/widgets/ridesync_ui.dart';
 import 'package:ridesync/core/widgets/notification_tab.dart';
+import 'package:ridesync/features/operator/presentation/providers/gps_broadcast_provider.dart';
 
 class OperatorHomeScreen extends StatefulWidget {
   const OperatorHomeScreen({super.key});
@@ -54,7 +55,8 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
   Future<void> _fetchOperatorData() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final userId = auth.user?.id;
-    if (userId == null) {
+    final operatorId = auth.user?.operatorId ?? userId;
+    if (operatorId == null) {
       if (mounted) setState(() => _isLoading = false);
       return;
     }
@@ -64,37 +66,56 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
       final startOfToday = DateTime(now.year, now.month, now.day);
       final endOfToday = startOfToday.add(const Duration(days: 1));
 
-      // 1. Fetch today's schedules
+      // Fetch all schedules for this operator to avoid string vs timestamp and index issues
       final schedulesQuery = await FirebaseFirestore.instance
           .collection('schedules')
-          .where('operatorId', isEqualTo: 'system_operator')
-          .where('departureTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfToday))
-          .where('departureTime', isLessThan: Timestamp.fromDate(endOfToday))
-          .orderBy('departureTime', descending: false)
+          .where('operatorId', isEqualTo: operatorId)
           .get()
           .timeout(const Duration(seconds: 10));
 
-      List<Map<String, dynamic>> schedules = [];
-      for (final doc in schedulesQuery.docs) {
+      final docs = schedulesQuery.docs;
+      
+      List<Map<String, dynamic>> todaySchedules = [];
+      for (var doc in docs) {
         final data = doc.data();
-        schedules.add({
-          'id': doc.id,
-          ...data,
-        });
+        DateTime? depTime;
+        final rawTime = data['departureTime'];
+        if (rawTime is Timestamp) {
+          depTime = rawTime.toDate();
+        } else if (rawTime is String) {
+          depTime = DateTime.tryParse(rawTime);
+        }
+
+        // Filter for today
+        if (depTime != null && 
+            depTime.isAfter(startOfToday.subtract(const Duration(seconds: 1))) && 
+            depTime.isBefore(endOfToday)) {
+          final tripData = Map<String, dynamic>.from(data);
+          tripData['id'] = doc.id;
+          tripData['parsedTime'] = depTime; // For sorting
+          todaySchedules.add(tripData);
+        }
       }
+
+      // Sort in Dart
+      todaySchedules.sort((a, b) {
+        final DateTime timeA = a['parsedTime'];
+        final DateTime timeB = b['parsedTime'];
+        return timeA.compareTo(timeB);
+      });
 
       // Find active trip (first scheduled/active trip today)
       Map<String, dynamic>? activeTrip;
-      if (schedules.isNotEmpty) {
-        activeTrip = schedules.firstWhere(
+      if (todaySchedules.isNotEmpty) {
+        activeTrip = todaySchedules.firstWhere(
           (s) => s['status'] == 'active' || s['status'] == 'scheduled',
-          orElse: () => schedules.first,
+          orElse: () => todaySchedules.first,
         );
       }
 
       if (mounted) {
         setState(() {
-          _todaySchedules = schedules;
+          _todaySchedules = todaySchedules;
           _activeTrip = activeTrip;
           _isLoading = false;
         });
@@ -448,7 +469,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                       ),
                     ),
                     const SizedBox(width: 24),
-                    _tripMetric(isTransit ? Icons.speed : Icons.timer_outlined, isTransit ? '42 km/h' : formattedTime, isTransit ? 'Current Speed' : 'Departure'),
+                     _tripMetric(isTransit ? Icons.speed : Icons.timer_outlined, isTransit ? '${context.watch<GpsBroadcastProvider>().currentSpeed.toStringAsFixed(0)} km/h' : formattedTime, isTransit ? 'Current Speed' : 'Departure'),
                   ],
                 ),
                 if (isTransit) ...[
@@ -757,11 +778,26 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
 
       await FirebaseFirestore.instance.collection('schedules').doc(scheduleId).update(updateData);
 
-      // 3. Refresh Screen
+      // 3. Start live GPS broadcasting via GpsBroadcastProvider
+      // busId is stored on the schedule document; fall back to scheduleId for demo.
+      if (!mounted) return;
+      final busId = _activeTrip?['busId'] as String? ?? scheduleId;
+      final gpsProvider = Provider.of<GpsBroadcastProvider>(context, listen: false);
+      final started = await gpsProvider.startBroadcasting(busId);
+      if (!started && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(gpsProvider.errorMessage ?? 'GPS broadcast failed'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+
+      // 4. Refresh Screen
       await _fetchOperatorData();
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Journey started successfully!')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Journey started! GPS is broadcasting.')));
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted && _scrollController.hasClients) {
             _scrollController.animateTo(
@@ -780,12 +816,16 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
   }
   Future<void> _endJourney(String scheduleId) async {
     try {
+      // Stop GPS broadcasting first
+      final gpsProvider = Provider.of<GpsBroadcastProvider>(context, listen: false);
+      await gpsProvider.stopBroadcasting();
+
       await FirebaseFirestore.instance.collection('schedules').doc(scheduleId).update({
         'status': 'completed',
         'actualEndTime': FieldValue.serverTimestamp(),
       });
       await _fetchOperatorData();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trip Completed!')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trip Completed! GPS broadcasting stopped.')));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
