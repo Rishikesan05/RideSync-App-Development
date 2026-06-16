@@ -24,6 +24,8 @@ import 'package:ridesync/features/passenger/presentation/providers/home_provider
 import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/live_journey_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/chatbot_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/bus_tracking_provider.dart';
+import 'package:ridesync/features/operator/presentation/providers/gps_broadcast_provider.dart';
 import 'package:ridesync/features/passenger/presentation/screens/chatbot_screen.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -42,6 +44,8 @@ void main() async {
         ChangeNotifierProvider(create: (context) => HomeProvider()),
         ChangeNotifierProvider(create: (context) => BookingProvider()),
         ChangeNotifierProvider(create: (context) => ChatbotProvider()),
+        ChangeNotifierProvider(create: (context) => GpsBroadcastProvider()),
+        ChangeNotifierProvider(create: (context) => BusTrackingProvider()),
         ChangeNotifierProxyProvider<AuthProvider, LiveJourneyProvider>(
           create: (context) => LiveJourneyProvider(),
           update: (context, auth, previous) {
