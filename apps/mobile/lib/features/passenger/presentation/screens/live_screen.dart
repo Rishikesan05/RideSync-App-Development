@@ -1,16 +1,24 @@
-import 'package:flutter/material.dart';
-import 'dart:async';
-import 'dart:math' as math;
 import 'dart:ui';
+import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/live_journey_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/bus_tracking_provider.dart';
 
-/// Live bus tracking screen with simulated bus movement.
-/// When an operator shares their live location, this screen will
-/// pull real GPS coordinates from Firestore instead of simulation.
+/// Live bus tracking screen.
+///
+/// Subscribes to Firebase Realtime Database via [BusTrackingProvider] and
+/// animates the bus marker smoothly between coordinate updates.
+///
+/// Data flow:
+///   1. [LiveJourneyProvider] finds the passenger's active booking + scheduleId.
+///   2. This screen fetches the schedule doc to get busId + route details.
+///   3. [BusTrackingProvider.startTracking(busId, scheduleId)] opens RTDB streams.
+///   4. Every new [BusLocation] triggers marker animation.
 class LiveScreen extends StatefulWidget {
   final VoidCallback? onBack;
   const LiveScreen({super.key, this.onBack});
@@ -19,424 +27,279 @@ class LiveScreen extends StatefulWidget {
   State<LiveScreen> createState() => _LiveScreenState();
 }
 
-class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateMixin {
+class _LiveScreenState extends State<LiveScreen>
+    with SingleTickerProviderStateMixin {
+  // ── Map controller ──────────────────────────────────────────────────────────
   GoogleMapController? _mapController;
+
+  // ── Pulse animation for the "ACTIVE" badge ──────────────────────────────────
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
-  Timer? _timer;
 
-  // Simulated route waypoints: Pettah → Town Hall → Borella → Nugegoda → Maharagama → Kaduwela
-  final List<LatLng> _routePoints = const [
-    LatLng(6.9355, 79.8506),  // Pettah
-    LatLng(6.9157, 79.8634),  // Town Hall
-    LatLng(6.9108, 79.8746),  // Borella
-    LatLng(6.8724, 79.8913),  // Nugegoda
-    LatLng(6.8468, 79.9218),  // Maharagama
-    LatLng(6.9270, 79.9611),  // Kaduwela
-  ];
+  // ── Marker interpolation ────────────────────────────────────────────────────
+  /// The position currently rendered on the map (smoothly interpolated).
+  LatLng? _displayPosition;
 
-  int _currentPointIndex = 0;
-  LatLng _busPosition = const LatLng(6.9355, 79.8506);
-  double _progress = 0;
-  String _statusText = 'ON TIME';
-  String _kmToGo = '18.2';
-  String _eta = '';
-  final bool _isActive = true;
-  bool get _shouldBypassBookingCheck => true;
+  /// Used to smoothly animate the marker between real GPS ticks.
+  Timer? _interpolationTimer;
+  LatLng? _targetPosition;
+  LatLng? _previousPosition;
+  double _interpolationProgress = 1.0;
+
+  // ── Schedule/route details (fetched once from Firestore) ────────────────────
+  String? _busId;
+  String? _routeName;
+  String? _fromStop;
+  String? _toStop;
+  String? _passengerStop; // passenger's boarding stop
+  bool _isFetchingSchedule = false;
+  String? _fetchError;
+
+  // ── Stale-signal warning timer ──────────────────────────────────────────────
+  Timer? _staleCheckTimer;
 
   @override
   void initState() {
     super.initState();
-    _eta = _formatETA();
-    _startSimulation();
 
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 1),
+      duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 0.2, end: 1.0).animate(
+    _pulseAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    // Fetch schedule once providers are ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initTracking();
+    });
   }
 
-  String _formatETA() {
-    final now = DateTime.now();
-    final eta = now.add(const Duration(minutes: 35));
-    final h = eta.hour > 12 ? eta.hour - 12 : eta.hour;
-    final amPm = eta.hour >= 12 ? 'PM' : 'AM';
-    return '${h.toString().padLeft(2, '0')}:${eta.minute.toString().padLeft(2, '0')} $amPm';
-  }
+  // ── Initialise tracking ─────────────────────────────────────────────────────
 
-  void _startSimulation() {
-    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (!_isActive || _currentPointIndex >= _routePoints.length - 1) {
-        timer.cancel();
+  Future<void> _initTracking() async {
+    final liveJourney = context.read<LiveJourneyProvider>();
+    final tracking = context.read<BusTrackingProvider>();
+
+    // Already initialised (e.g. hot-reload)
+    if (_busId != null) return;
+
+    // We need a confirmed booking to know which bus to track
+    if (!liveJourney.hasActiveBooking) return;
+
+    // Find the nearest active/upcoming confirmed booking for this user
+    final auth = context.read<AuthProvider>();
+    final userId = auth.user?.id;
+    if (userId == null) return;
+
+    setState(() => _isFetchingSchedule = true);
+
+    try {
+      final bookingSnap = await FirebaseFirestore.instance
+          .collection('bookings')
+          .where('passengerId', isEqualTo: userId)
+          .where('status', isEqualTo: 'confirmed')
+          .orderBy('departureTime')
+          .limit(1)
+          .get();
+
+      if (bookingSnap.docs.isEmpty) {
         setState(() {
-          _statusText = 'ARRIVED';
-          _kmToGo = '0.0';
+          _isFetchingSchedule = false;
+          _fetchError = 'No confirmed booking found.';
         });
         return;
       }
 
-      _progress += 0.25;
-      if (_progress >= 1.0) {
-        _progress = 0;
-        _currentPointIndex++;
+      final bookingData = bookingSnap.docs.first.data();
+      final scheduleId = bookingData['scheduleId'] as String?;
+      _passengerStop = bookingData['pickup'] as String?;
+
+      if (scheduleId == null) {
+        setState(() {
+          _isFetchingSchedule = false;
+          _fetchError = 'Booking has no schedule linked.';
+        });
+        return;
       }
 
-      final from = _routePoints[_currentPointIndex];
-      final to = _routePoints[math.min(_currentPointIndex + 1, _routePoints.length - 1)];
-      final lat = from.latitude + (to.latitude - from.latitude) * _progress;
-      final lng = from.longitude + (to.longitude - from.longitude) * _progress;
+      // Fetch the schedule to get busId and route info
+      final scheduleDoc = await FirebaseFirestore.instance
+          .collection('schedules')
+          .doc(scheduleId)
+          .get();
 
-      // Calculate remaining distance
-      final remaining = (_routePoints.length - 1 - _currentPointIndex) * 4.2 - (_progress * 4.2);
+      if (!scheduleDoc.exists) {
+        setState(() {
+          _isFetchingSchedule = false;
+          _fetchError = 'Schedule not found.';
+        });
+        return;
+      }
 
+      final sd = scheduleDoc.data()!;
+      final busId = sd['busId'] as String?;
+
+      setState(() {
+        _busId = busId;
+        _routeName = sd['routeName'] as String?;
+        _fromStop = sd['fromStop'] as String?;
+        _toStop = sd['toStop'] as String?;
+        _isFetchingSchedule = false;
+      });
+
+      // Start RTDB subscriptions
+      if (busId != null) {
+        tracking.startTracking(busId, scheduleId);
+        _startStaleCheckTimer();
+      }
+    } catch (e) {
+      debugPrint('[LiveScreen] Init error: $e');
       if (mounted) {
         setState(() {
-          _busPosition = LatLng(lat, lng);
-          _kmToGo = remaining.toStringAsFixed(1);
-          _statusText = 'ON TIME';
+          _isFetchingSchedule = false;
+          _fetchError = 'Failed to load tracking data: $e';
         });
       }
+    }
+  }
 
-      _mapController?.animateCamera(CameraUpdate.newLatLng(_busPosition));
+  // ── Stale check timer ────────────────────────────────────────────────────────
+
+  void _startStaleCheckTimer() {
+    _staleCheckTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted) setState(() {}); // rebuild so isStale check re-evaluates
     });
   }
+
+  // ── Marker animation ─────────────────────────────────────────────────────────
+
+  /// Called every time [BusTrackingProvider] emits a new location.
+  void _animateMarkerTo(LatLng target) {
+    _interpolationTimer?.cancel();
+    _previousPosition = _displayPosition ?? target;
+    _targetPosition = target;
+    _interpolationProgress = 0.0;
+
+    const int steps = 20;
+    const Duration stepDuration = Duration(milliseconds: 150);
+
+    _interpolationTimer =
+        Timer.periodic(stepDuration, (timer) {
+      _interpolationProgress += 1.0 / steps;
+      if (_interpolationProgress >= 1.0) {
+        _interpolationProgress = 1.0;
+        timer.cancel();
+      }
+
+      if (_previousPosition == null || _targetPosition == null) return;
+      final lat = _lerpDouble(
+          _previousPosition!.latitude, _targetPosition!.latitude, _interpolationProgress);
+      final lng = _lerpDouble(
+          _previousPosition!.longitude, _targetPosition!.longitude, _interpolationProgress);
+
+      if (mounted) {
+        setState(() => _displayPosition = LatLng(lat, lng));
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLng(_displayPosition!),
+        );
+      }
+    });
+  }
+
+  double _lerpDouble(double a, double b, double t) => a + (b - a) * t;
 
   @override
   void dispose() {
     _pulseController.dispose();
-    _timer?.cancel();
+    _interpolationTimer?.cancel();
+    _staleCheckTimer?.cancel();
     _mapController?.dispose();
+    // Stop RTDB subscriptions when leaving the screen
+    context.read<BusTrackingProvider>().stopTracking();
     super.dispose();
   }
+
+  // ── Build ─────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final auth = context.watch<AuthProvider>();
     final liveJourney = context.watch<LiveJourneyProvider>();
+    final tracking = context.watch<BusTrackingProvider>();
 
+    // — Auth gate —
     if (!auth.isAuthenticated) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.lock_outline, size: 64, color: AppColors.textLight),
-              const SizedBox(height: 16),
-              const Text('Please log in to view live tracking', style: TextStyle(fontWeight: FontWeight.w600)),
-            ],
-          ),
-        ),
+      return _buildGate(
+        icon: Icons.lock_outline,
+        message: 'Please log in to view live tracking.',
       );
     }
 
-    if (liveJourney.isLoading) {
+    // — Loading states —
+    if (liveJourney.isLoading || _isFetchingSchedule) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: AppColors.primaryOrange),
-        ),
+        body: Center(child: CircularProgressIndicator(color: AppColors.primaryOrange)),
       );
     }
 
-    if (!_shouldBypassBookingCheck && !liveJourney.hasActiveBooking) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.directions_bus_outlined, size: 64, color: AppColors.textLight),
-              const SizedBox(height: 16),
-              const Text('You have no active bookings for today.', style: TextStyle(fontWeight: FontWeight.w600)),
-            ],
-          ),
-        ),
+    if (_fetchError != null) {
+      return _buildGate(icon: Icons.error_outline, message: _fetchError!);
+    }
+
+    // — No active booking —
+    if (!liveJourney.hasActiveBooking) {
+      return _buildGate(
+        icon: Icons.directions_bus_outlined,
+        message: 'You have no active bookings for today.',
       );
     }
 
-    if (!_shouldBypassBookingCheck && !liveJourney.hasJourneyStarted) {
-      return Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.schedule, size: 64, color: AppColors.primaryOrange),
-                const SizedBox(height: 24),
-                const Text(
-                  'Journey Not Started Yet',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'When your booked journey starts, the live map will be shared here.',
-                  style: TextStyle(color: AppColors.textLight, height: 1.5),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
+    // — Journey not started —
+    if (!liveJourney.hasJourneyStarted) {
+      return _buildGate(
+        icon: Icons.schedule,
+        message: 'When your booked journey starts, the live map will appear here.',
+        iconColor: AppColors.primaryOrange,
       );
     }
+
+    // — Bus ID not resolved yet —
+    if (_busId == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: AppColors.primaryOrange)),
+      );
+    }
+
+    // — Animate marker when a new location arrives —
+    if (tracking.busLocation != null) {
+      final newPos = tracking.busLocation!.latLng;
+      if (_displayPosition == null) {
+        _displayPosition = newPos;
+      } else if (_displayPosition != newPos && _targetPosition != newPos) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _animateMarkerTo(newPos);
+        });
+      }
+    }
+
+    final busLoc = tracking.busLocation;
+    final tripStatus = tracking.tripStatus;
+    final isStale = tracking.isStale;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       body: Column(
         children: [
-          // Top Header Area
-          Container(
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 16,
-              left: 20,
-              right: 20,
-              bottom: 16,
-            ),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                )
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.directions_bus, size: 20, color: AppColors.primaryOrange),
-                        const SizedBox(width: 8),
-                        const Text('Route 154', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 0.5)),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        const Icon(Icons.trip_origin, size: 14, color: AppColors.textLight),
-                        const SizedBox(width: 6),
-                        const Text('Pettah', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8),
-                          child: Icon(Icons.arrow_right_alt, size: 18, color: AppColors.textLight),
-                        ),
-                        const Icon(Icons.location_on, size: 14, color: AppColors.primaryOrange),
-                        const SizedBox(width: 4),
-                        const Text('Kaduwela', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.blueAccent.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.person_pin_circle, size: 14, color: Colors.blueAccent),
-                          const SizedBox(width: 6),
-                          const Text('Your Stop: Nugegoda', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.blueAccent)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      FadeTransition(
-                        opacity: _pulseAnimation,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(color: Colors.green, blurRadius: 4, spreadRadius: 1)
-                            ]
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text('ACTIVE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green, letterSpacing: 0.5)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Map and Bottom Card
+          _buildHeader(isDark, busLoc, tripStatus, isStale),
           Expanded(
             child: Stack(
               children: [
-                // Google Map
-                GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target: _busPosition,
-                    zoom: 13.5,
-                  ),
-                  onMapCreated: (controller) => _mapController = controller,
-                  markers: {
-                    Marker(
-                      markerId: const MarkerId('bus'),
-                      position: _busPosition,
-                      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-                      infoWindow: const InfoWindow(title: 'RS-EX-01', snippet: 'In Transit'),
-                    ),
-                    // Start marker
-                    Marker(
-                      markerId: const MarkerId('start'),
-                      position: _routePoints.first,
-                      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-                      infoWindow: const InfoWindow(title: 'Pettah', snippet: 'Start'),
-                    ),
-                    // End marker
-                    Marker(
-                      markerId: const MarkerId('end'),
-                      position: _routePoints.last,
-                      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-                      infoWindow: const InfoWindow(title: 'Kaduwela', snippet: 'Destination'),
-                    ),
-                  },
-                  polylines: {
-                    Polyline(
-                      polylineId: const PolylineId('route'),
-                      color: AppColors.primaryOrange,
-                      width: 4,
-                      points: _routePoints,
-                      patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-                    ),
-                  },
-                  mapToolbarEnabled: false,
-                  zoomControlsEnabled: false,
-                  myLocationButtonEnabled: false,
-                ),
-
-          // Bottom info card (Compact)
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
-                child: Container(
-                  padding: EdgeInsets.only(
-                    left: 16, right: 16, top: 12,
-                    bottom: MediaQuery.of(context).padding.bottom + 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFFD84315).withValues(alpha: 0.9) : AppColors.primaryOrange.withValues(alpha: 0.9),
-                    border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1.5)),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Distance & Destination
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    _kmToGo,
-                                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Padding(
-                                    padding: EdgeInsets.only(bottom: 2),
-                                    child: Text('KM TO GO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white70)),
-                                  ),
-                                ],
-                              ),
-                              const Text('BOUND FOR: KADUWELA', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Colors.white70, letterSpacing: 0.5)),
-                            ],
-                          ),
-                          const Spacer(),
-                          const Icon(Icons.route, color: Colors.white, size: 20),
-                        ],
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Progress bar
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: (_currentPointIndex + _progress) / (_routePoints.length - 1),
-                          minHeight: 4,
-                          backgroundColor: Colors.white.withValues(alpha: 0.3),
-                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // ETA & Status
-                      Row(
-                        children: [
-                          _buildInfoTile(
-                            'EST. ARRIVAL', 
-                            _eta, 
-                            Colors.white, 
-                            Colors.black54, 
-                            Colors.black87,
-                          ),
-                          const SizedBox(width: 8),
-                          _buildInfoTile(
-                            'OPTIMIZER', 
-                            _statusText, 
-                            Colors.white, 
-                            Colors.black54, 
-                            Colors.green[700]!,
-                          ),
-                        ],
-                      ),
-                      
-                      const SizedBox(height: 6),
-                      
-                      // Your Stop ETA
-                      Row(
-                        children: [
-                          _buildInfoTile(
-                            'ETA AT YOUR STOP (NUGEGODA)', 
-                            '10:15 AM', 
-                            Colors.white, 
-                            Colors.blueAccent[700]!, 
-                            Colors.blueAccent[700]!,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+                _buildMap(isDark, busLoc),
+                if (isStale) _buildStaleWarning(),
+                _buildBottomCard(isDark, busLoc, tripStatus),
               ],
             ),
           ),
@@ -445,40 +308,281 @@ class _LiveScreenState extends State<LiveScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildInfoTile(
-    String label, 
-    String value, 
-    Color bgColor, 
-    Color labelColor, 
-    Color valueColor,
-  ) {
+  // ── Sub-widgets ───────────────────────────────────────────────────────────────
+
+  Widget _buildGate({required IconData icon, required String message, Color? iconColor}) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 64, color: iconColor ?? AppColors.textLight),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(bool isDark, BusLocation? busLoc, TripStatus? tripStatus, bool isStale) {
+    final routeLabel = _routeName ?? 'Live Tracking';
+    final fromLabel = _fromStop ?? '—';
+    final toLabel = _toStop ?? '—';
+
+    return Container(
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 16,
+        left: 20, right: 20, bottom: 16,
+      ),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.directions_bus, size: 20, color: AppColors.primaryOrange),
+                  const SizedBox(width: 8),
+                  Text(routeLabel, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(Icons.trip_origin, size: 14, color: AppColors.textLight),
+                  const SizedBox(width: 6),
+                  Text(fromLabel, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Icon(Icons.arrow_right_alt, size: 18, color: AppColors.textLight),
+                  ),
+                  const Icon(Icons.location_on, size: 14, color: AppColors.primaryOrange),
+                  const SizedBox(width: 4),
+                  Text(toLabel, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                ],
+              ),
+              if (_passengerStop != null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blueAccent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.person_pin_circle, size: 14, color: Colors.blueAccent),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Your Stop: $_passengerStop',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.blueAccent),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+          // Status badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: isStale
+                  ? Colors.orange.withValues(alpha: 0.15)
+                  : Colors.green.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                FadeTransition(
+                  opacity: _pulseAnimation,
+                  child: Container(
+                    width: 8, height: 8,
+                    decoration: BoxDecoration(
+                      color: isStale ? Colors.orange : Colors.green,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: isStale ? Colors.orange : Colors.green,
+                          blurRadius: 4, spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  isStale ? 'DELAYED' : 'LIVE',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isStale ? Colors.orange : Colors.green,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMap(bool isDark, BusLocation? busLoc) {
+    final center = _displayPosition ?? const LatLng(7.8731, 80.7718);
+    return GoogleMap(
+      initialCameraPosition: CameraPosition(target: center, zoom: 14),
+      onMapCreated: (controller) => _mapController = controller,
+      markers: _displayPosition != null
+          ? {
+              Marker(
+                markerId: const MarkerId('bus'),
+                position: _displayPosition!,
+                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+                infoWindow: InfoWindow(
+                  title: _routeName ?? 'Bus',
+                  snippet: busLoc != null
+                      ? '${busLoc.speed.toStringAsFixed(0)} km/h'
+                      : 'In Transit',
+                ),
+                rotation: busLoc?.heading ?? 0,
+                flat: true,
+              ),
+            }
+          : {},
+      mapToolbarEnabled: false,
+      zoomControlsEnabled: false,
+      myLocationButtonEnabled: true,
+      myLocationEnabled: true,
+    );
+  }
+
+  Widget _buildStaleWarning() {
+    return Positioned(
+      top: 12,
+      left: 16,
+      right: 16,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade700,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(color: Colors.orange.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.signal_wifi_statusbar_connected_no_internet_4, color: Colors.white, size: 18),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Location signal lost — last known position shown',
+                style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomCard(bool isDark, BusLocation? busLoc, TripStatus? tripStatus) {
+    final eta = tripStatus?.etaFormatted ?? '--:--';
+    final currentStop = tripStatus?.currentStop ?? '—';
+    final speed = busLoc != null ? '${busLoc.speed.toStringAsFixed(0)} km/h' : '—';
+    final delayMin = tripStatus?.delayMinutes ?? 0;
+    final statusText = delayMin > 0 ? '${delayMin}m DELAY' : 'ON TIME';
+    final statusColor = delayMin > 0 ? Colors.orange : Colors.greenAccent;
+
+    return Positioned(
+      bottom: 0, left: 0, right: 0,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            padding: EdgeInsets.only(
+              left: 16, right: 16, top: 16,
+              bottom: MediaQuery.of(context).padding.bottom + 8,
+            ),
+            decoration: BoxDecoration(
+              color: (isDark ? const Color(0xFFD84315) : AppColors.primaryOrange)
+                  .withValues(alpha: 0.92),
+              border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1.5)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Current stop row
+                Row(
+                  children: [
+                    const Icon(Icons.location_on, color: Colors.white70, size: 14),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Now at: $currentStop',
+                      style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Info tiles row
+                Row(
+                  children: [
+                    _infoTile('EST. ARRIVAL', eta, Colors.white, Colors.black54, Colors.black87),
+                    const SizedBox(width: 8),
+                    _infoTile('STATUS', statusText, Colors.white, Colors.black54, statusColor),
+                    const SizedBox(width: 8),
+                    _infoTile('SPEED', speed, Colors.white, Colors.black54, Colors.black87),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _infoTile(String label, String value, Color bg, Color labelColor, Color valueColor) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
         decoration: BoxDecoration(
-          color: bgColor,
+          color: bg,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 4)),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: labelColor, letterSpacing: 0.5)),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                color: valueColor,
-              ),
-            ),
+            Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: labelColor, letterSpacing: 0.5)),
+            const SizedBox(height: 4),
+            Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: valueColor)),
           ],
         ),
       ),
