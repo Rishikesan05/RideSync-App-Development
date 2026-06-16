@@ -39,9 +39,11 @@ const routeSchema = z.object({
   endPoint: z.string().min(1, 'End point is required'),
   totalDistanceKm: z.number().min(0),
   totalDurationMin: z.number().optional(),
+  totalFare: z.number().min(0).optional(),
   stops: z.array(z.object({
     name: z.string().min(1, 'Stop name is required'),
-    distFromStartKm: z.number().min(0, 'Distance must be 0 or greater')
+    distFromStartKm: z.number().min(0, 'Distance must be 0 or greater'),
+    fareFromStart: z.number().min(0).optional()
   })),
 });
 
@@ -126,6 +128,7 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
       endPoint: '',
       totalDistanceKm: 0,
       totalDurationMin: 0,
+      totalFare: 0,
       stops: []
     }
   });
@@ -220,7 +223,8 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
           endPoint: initialData.endPoint || '',
           totalDistanceKm: initialData.totalDistanceKm || 0,
           totalDurationMin: initialData.totalDurationMin || 0,
-          stops: (initialData.stops || []).map(s => ({ ...s }))
+          totalFare: initialData.totalFare || 0,
+          stops: (initialData.stops || []).map(s => ({ ...s, fareFromStart: s.fareFromStart || 0 }))
         });
       } else {
         reset({
@@ -230,6 +234,7 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
           endPoint: '',
           totalDistanceKm: 0,
           totalDurationMin: 0,
+          totalFare: 0,
           stops: []
         });
       }
@@ -425,6 +430,16 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
                   error={!!errors.name}
                   InputLabelProps={{ shrink: true }}
                 />
+                <TextField
+                  size="small"
+                  sx={{ width: '120px' }}
+                  label="Total Fare"
+                  placeholder="e.g., 1600"
+                  type="number"
+                  {...register('totalFare', { valueAsNumber: true })}
+                  error={!!errors.totalFare}
+                  InputLabelProps={{ shrink: true }}
+                />
               </Box>
 
               <Box>
@@ -476,7 +491,7 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
                     variant="text"
                     startIcon={<Add />} 
                     size="small" 
-                    onClick={() => append({ name: '', distFromStartKm: 0 })}
+                    onClick={() => append({ name: '', distFromStartKm: 0, fareFromStart: 0 })}
                   >
                     Add Stop
                   </Button>
@@ -534,6 +549,17 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
                             sx: { fontSize: '0.8rem' },
                             startAdornment: <Straighten sx={{ fontSize: 14, mr: 0.5, opacity: 0.5 }} />
                           }}
+                        />
+                      </Box>
+
+                      <Box sx={{ flex: 1.2 }}>
+                        <TextField
+                          {...register(`stops.${index}.fareFromStart`, { valueAsNumber: true })}
+                          fullWidth
+                          size="small"
+                          label="Fare (LKR)"
+                          type="number"
+                          InputLabelProps={{ shrink: true }}
                         />
                       </Box>
 
