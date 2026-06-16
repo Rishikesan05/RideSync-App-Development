@@ -66,6 +66,7 @@ class AuthProvider with ChangeNotifier {
             email: firebaseUser.email ?? profileData['email'] ?? data['email'] ?? '',
             role: roleStr == 'operator' ? 'Operator' : 'Passenger',
             operatorType: profileData['operatorType'] ?? data['operatorType'],
+            operatorId: profileData['operatorId'] ?? data['operatorId'],
             joinYear: 2024,
             totalRides: data['totalRides'] ?? 0,
             rating: (data['rating'] ?? 5.0).toDouble(),
