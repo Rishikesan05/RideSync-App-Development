@@ -23,18 +23,24 @@ export const useUsersFirestore = () => {
   const [error,      setError]      = useState(null);
 
   useEffect(() => {
-    // We have 4 async listeners; only mark loading=false when all settle.
     let loadingCount = 4;
-
     const decrementLoading = () => {
       loadingCount -= 1;
       if (loadingCount <= 0) setLoading(false);
     };
-
     const handleError = (err) => {
       console.error('[useUsersFirestore] Error:', err);
       setError(err.message || 'Failed to fetch users');
       decrementLoading();
+    };
+
+    let pendingFromUsers = [];
+    let pendingFromOps = [];
+    const updatePending = () => {
+      const byId = {};
+      pendingFromUsers.forEach(u => { byId[u.id] = u; });
+      pendingFromOps.forEach(u => { byId[u.id] = u; });
+      setPending(Object.values(byId));
     };
 
     // ── 1. Passengers ─────────────────────────────────────────────────────
@@ -51,7 +57,19 @@ export const useUsersFirestore = () => {
     const unsubOperators = onSnapshot(
       collection(db, 'operators'),
       (snap) => {
-        setOperators(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        const allOps = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const approvedOps = [];
+        const pOps = [];
+        allOps.forEach(o => {
+          if (o.status === 'pending_review' || o.status === 'pending' || o.isApproved === false) {
+            pOps.push({ ...o, role: o.role || 'operator_pending' });
+          } else {
+            approvedOps.push(o);
+          }
+        });
+        setOperators(approvedOps);
+        pendingFromOps = pOps;
+        updatePending();
         decrementLoading();
       },
       handleError
@@ -67,26 +85,33 @@ export const useUsersFirestore = () => {
       handleError
     );
 
-    // ── 4. Pending ────────────────────────────────────────────────────────
-    // Catches: 'operator_pending', 'pending', and users with NO role field.
-    // 'operator_pending' and 'pending' are fetched in one query (Firestore
-    // supports up to 30 values in `in`). Users with no role field require a
-    // separate listener since Firestore cannot query "field does not exist"
-    // in the same `in` clause.
+    // ── 4. Pending from 'users' collection ────────────────────────────────
     const unsubPendingRoles = onSnapshot(
       query(
         collection(db, 'users'),
         where('role', 'in', ['operator_pending', 'pending', 'operator_request'])
       ),
       (snap) => {
-        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        // Merge with any no-role docs already collected (keyed by id)
-        setPending((prev) => {
-          const byId = Object.fromEntries(prev.map((u) => [u.id, u]));
-          docs.forEach((u) => { byId[u.id] = u; });
-          return Object.values(byId);
-        });
+        pendingFromUsers = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        updatePending();
         decrementLoading();
+      },
+      handleError
+    );
+
+    // Also listen for users with status == 'pending_review'
+    const unsubPendingStatus = onSnapshot(
+      query(collection(db, 'users'), where('status', '==', 'pending_review')),
+      (snap) => {
+        // Merge them into pendingFromUsers
+        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const existingIds = new Set(pendingFromUsers.map(u => u.id));
+        docs.forEach(d => {
+          if (!existingIds.has(d.id)) {
+            pendingFromUsers.push(d);
+          }
+        });
+        updatePending();
       },
       handleError
     );
@@ -96,6 +121,7 @@ export const useUsersFirestore = () => {
       unsubOperators();
       unsubAdmins();
       unsubPendingRoles();
+      unsubPendingStatus();
     };
   }, []);
 
