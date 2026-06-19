@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -68,6 +68,28 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
   const theme = useTheme();
   const { routes, loading: isLoadingRoutes } = useRoutesFirestore();
   const { buses, loading: isLoadingBuses } = useBusesFirestore();
+  const [operators, setOperators] = useState([]);
+  const [isLoadingOperators, setIsLoadingOperators] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      const fetchOperators = async () => {
+        setIsLoadingOperators(true);
+        try {
+          const opsSnapshot = await getDocs(collection(db, 'operators'));
+          const opsList = opsSnapshot.docs
+            .map((doc) => ({ id: doc.id, ...doc.data() }))
+            .filter((op) => op.status !== 'pending' && op.status !== 'pending_review' && op.isApproved !== false);
+          setOperators(opsList);
+        } catch (e) {
+          console.error('Error fetching operators', e);
+        } finally {
+          setIsLoadingOperators(false);
+        }
+      };
+      fetchOperators();
+    }
+  }, [open]);
 
   const {
     control,
@@ -378,24 +400,64 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
 
             {/* ── OPERATOR SECTION ──────────────────────────────────────── */}
             <SectionLabel icon={<Person fontSize="small" />} text="Operator" />
-            <Controller
-              name="opId"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label="Operator ID"
-                  placeholder="Enter the operatorId from the operators collection"
-                  variant="outlined"
-                  margin="dense"
-                  error={!!errors.opId}
-                  helperText={errors.opId?.message || 'Must match an operatorId in the operators collection'}
-                  disabled={!!initialData}
-                  InputLabelProps={{ shrink: true }}
-                />
-              )}
-            />
+            <FormControl fullWidth margin="dense" error={!!errors.opId}>
+              <InputLabel id="operator-select-label" shrink>Select Operator</InputLabel>
+              <Controller
+                name="opId"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    labelId="operator-select-label"
+                    label="Select Operator"
+                    notched
+                    disabled={!!initialData}
+                    displayEmpty
+                    renderValue={(val) => {
+                      if (!val) return <Typography color="text.disabled">Choose an operator…</Typography>;
+                      const op = operators.find((o) => o.operatorId === val || o.id === val);
+                      if (!op) return val;
+                      return (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{op.name || op.displayName || 'Unknown Operator'}</Typography>
+                          <Typography variant="caption" color="text.secondary">({op.operatorId || op.id})</Typography>
+                        </Box>
+                      );
+                    }}
+                  >
+                    {isLoadingOperators ? (
+                      <MenuItem disabled value="">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <CircularProgress size={16} />
+                          <Typography variant="body2">Loading operators…</Typography>
+                        </Box>
+                      </MenuItem>
+                    ) : operators.length === 0 ? (
+                      <MenuItem disabled value="">No operators available</MenuItem>
+                    ) : (
+                      operators.map((op) => {
+                        const opId = op.operatorId || op.id;
+                        const opName = op.name || op.displayName || 'Unknown Operator';
+                        return (
+                          <MenuItem key={opId} value={opId}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 0.3 }}>
+                              <Person fontSize="small" sx={{ color: 'primary.light' }} />
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>{opName}</Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  ID: {opId} {op.phone ? `· ${op.phone}` : ''}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </MenuItem>
+                        );
+                      })
+                    )}
+                  </Select>
+                )}
+              />
+              {errors.opId && <FormHelperText>{errors.opId.message}</FormHelperText>}
+            </FormControl>
 
             {/* ── DATE & TIME SECTION ──────────────────────────────────── */}
             <SectionLabel icon={<AccessTime fontSize="small" />} text="Date & Time" />

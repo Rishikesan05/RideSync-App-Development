@@ -139,6 +139,11 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           <Typography variant="body1" sx={{ fontWeight: 700 }} noWrap>{name}</Typography>
+          {user.operatorId && (
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>
+              (ID: <strong style={{ color: theme.palette.text.primary }}>{user.operatorId}</strong>)
+            </Typography>
+          )}
 
           {/* Pending role label */}
           {isPending && (
@@ -155,14 +160,11 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
               }}
             />
           )}
-
-
         </Box>
 
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mt: 0.2 }}>
           <Typography variant="caption" color="text.secondary">{email}</Typography>
           {phone !== '—' && <Typography variant="caption" color="text.disabled">· {phone}</Typography>}
-          {user.operatorId && <Typography variant="caption" color="text.disabled">· ID: {user.operatorId}</Typography>}
         </Box>
       </Box>
 
@@ -181,21 +183,23 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
       <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
 
         {/* "Change Role" — shown on pending cards AND as an extra action on all cards */}
-        <Tooltip title={isPending ? 'Verify & assign role' : 'Change role'}>
-          <IconButton
-            id={`role-btn-${user.id}`}
-            size="small"
-            onClick={() => onChangeRole(user, categoryKey)}
-            sx={{
-              color: '#f59e0b',
-              backgroundColor: 'transparent',
-              border: 'none',
-              '&:hover': { backgroundColor: 'rgba(245,158,11,0.08)' },
-            }}
-          >
-            <VpnKey fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        {categoryKey !== 'passengers' && categoryKey !== 'operators' && (
+          <Tooltip title={isPending ? 'Verify & assign role' : 'Change role'}>
+            <IconButton
+              id={`role-btn-${user.id}`}
+              size="small"
+              onClick={() => onChangeRole(user, categoryKey)}
+              sx={{
+                color: '#f59e0b',
+                backgroundColor: 'transparent',
+                border: 'none',
+                '&:hover': { backgroundColor: 'rgba(245,158,11,0.08)' },
+              }}
+            >
+              <VpnKey fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
 
         {categoryKey !== 'passengers' && categoryKey !== 'operators' && (
           <Tooltip title="Edit user">
@@ -290,8 +294,6 @@ const ChangeRoleDialog = ({ open, user, onClose, onDone, theme }) => {
 
   const roleOptions = [
     { value: 'admin',     label: 'Admin',     icon: '🛡️', desc: 'Full dashboard access' },
-    { value: 'operator',  label: 'Operator',  icon: '🚌', desc: 'Bus operator access' },
-    { value: 'passenger', label: 'Passenger', icon: '👤', desc: 'Mobile app passenger' },
   ];
 
   return (
