@@ -139,6 +139,11 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           <Typography variant="body1" sx={{ fontWeight: 700 }} noWrap>{name}</Typography>
+          {user.operatorId && (
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>
+              (ID: <strong style={{ color: theme.palette.text.primary }}>{user.operatorId}</strong>)
+            </Typography>
+          )}
 
           {/* Pending role label */}
           {isPending && (
@@ -155,14 +160,11 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
               }}
             />
           )}
-
-
         </Box>
 
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mt: 0.2 }}>
           <Typography variant="caption" color="text.secondary">{email}</Typography>
           {phone !== '—' && <Typography variant="caption" color="text.disabled">· {phone}</Typography>}
-          {user.operatorId && <Typography variant="caption" color="text.disabled">· ID: {user.operatorId}</Typography>}
         </Box>
       </Box>
 
