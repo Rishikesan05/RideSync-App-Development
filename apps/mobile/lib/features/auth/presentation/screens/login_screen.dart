@@ -249,8 +249,13 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
                   TextButton(
-                    onPressed: () =>
-                        Navigator.pushNamed(context, '/role-selection'),
+                    onPressed: () {
+                      if (isOperator) {
+                        Navigator.pushNamed(context, '/driver-registration');
+                      } else {
+                        Navigator.pushNamed(context, '/passenger-signup');
+                      }
+                    },
                     child: const Text(
                       'Sign Up',
                       style: TextStyle(

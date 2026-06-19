@@ -41,8 +41,23 @@ export const usersApi = {
     await updateDoc(ref, {
       role:        newRole,
       isApproved:  true,
+      status:      'approved',
       updatedAt:   serverTimestamp(),
     });
+
+    // Also approve in operators collection if applicable
+    if (newRole === 'operator') {
+      try {
+        const opRef = doc(db, 'operators', id);
+        await updateDoc(opRef, {
+          isApproved: true,
+          status: 'approved',
+          updatedAt: serverTimestamp(),
+        });
+      } catch (e) {
+        console.warn('Could not update operator doc (might not exist yet):', e);
+      }
+    }
   },
 
   /**
