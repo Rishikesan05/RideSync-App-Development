@@ -36,6 +36,7 @@ import {
   useCreateBus, 
   useUpdateBus, 
   useDeactivateBus,
+  useActivateBus,
   useDeleteBus
 } from '../../api/buses';
 import { useBusesFirestore } from './useBusesFirestore';
@@ -82,6 +83,7 @@ export const FleetView = () => {
   const createBus    = useCreateBus();
   const updateBus    = useUpdateBus();
   const deactivateBus = useDeactivateBus();
+  const activateBus  = useActivateBus();
   const deleteBus    = useDeleteBus();
 
   const [dialogOpen, setDialogOpen]   = useState(false);
@@ -133,6 +135,18 @@ export const FleetView = () => {
     } catch (e) {
       console.error('Failed to deactivate bus', e);
       showToast('Failed to deactivate bus.', 'error');
+    }
+  };
+
+  const handleActivate = async () => {
+    const busId = menuBusId;
+    handleCloseMenu();
+    try {
+      await activateBus.mutateAsync(busId);
+      showToast('Bus activated successfully.');
+    } catch (e) {
+      console.error('Failed to activate bus', e);
+      showToast('Failed to activate bus.', 'error');
     }
   };
 
@@ -457,10 +471,17 @@ export const FleetView = () => {
           <ListItemIcon><Edit fontSize="small" /></ListItemIcon>
           Edit Bus
         </MenuItem>
-        <MenuItem onClick={handleDeactivate}>
-          <ListItemIcon><Block fontSize="small" sx={{ color: theme.palette.warning.main }} /></ListItemIcon>
-          <Typography sx={{ color: theme.palette.warning.main }}>Deactivate</Typography>
-        </MenuItem>
+        {buses.find((b) => b.id === menuBusId)?.isActive ? (
+          <MenuItem onClick={handleDeactivate}>
+            <ListItemIcon><Block fontSize="small" sx={{ color: theme.palette.warning.main }} /></ListItemIcon>
+            <Typography sx={{ color: theme.palette.warning.main }}>Deactivate</Typography>
+          </MenuItem>
+        ) : (
+          <MenuItem onClick={handleActivate}>
+            <ListItemIcon><CheckCircle fontSize="small" sx={{ color: theme.palette.success.main }} /></ListItemIcon>
+            <Typography sx={{ color: theme.palette.success.main }}>Activate</Typography>
+          </MenuItem>
+        )}
         <Divider sx={{ my: 0.5 }} />
         <MenuItem onClick={handleDelete}>
           <ListItemIcon><Delete fontSize="small" sx={{ color: theme.palette.error.main }} /></ListItemIcon>
