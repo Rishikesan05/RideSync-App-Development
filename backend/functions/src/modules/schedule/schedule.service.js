@@ -7,6 +7,7 @@ const scheduleRepo = require('./schedule.repo');
 const busRepo = require('../bus/bus.repo');
 const routeRepo = require('../route/route.repo');
 const { SCHEDULE_STATUSES } = require('../../shared/constants');
+const operatorService = require('../operator/operator.service');
 
 /**
  * Generate a seat map for a bus based on its capacity.
@@ -107,6 +108,16 @@ async function updateSchedule(scheduleId, data) {
     err.statusCode = 404;
     throw err;
   }
+
+  // When the operator ends a trip, compute and store revenue on the schedule
+  if (data.status === 'completed') {
+    operatorService
+      .finalizeScheduleRevenue(scheduleId)
+      .catch((err) =>
+        console.warn('[scheduleService] Revenue finalization failed:', err.message)
+      );
+  }
+
   return updated;
 }
 
