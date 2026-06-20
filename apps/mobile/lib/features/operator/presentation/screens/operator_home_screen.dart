@@ -820,15 +820,48 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
       final gpsProvider = Provider.of<GpsBroadcastProvider>(context, listen: false);
       await gpsProvider.stopBroadcasting();
 
+      // 1. Mark schedule completed and record actual end time
       await FirebaseFirestore.instance.collection('schedules').doc(scheduleId).update({
         'status': 'completed',
         'actualEndTime': FieldValue.serverTimestamp(),
       });
+
+      // 2. Compute revenue: sum fares from all confirmed bookings for this schedule
+      _finalizeRevenue(scheduleId);
+
       await _fetchOperatorData();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trip Completed! GPS broadcasting stopped.')));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
+  }
+
+  /// Non-blocking revenue computation: sums confirmed booking fares and writes
+  /// revenue + bookedSeatsCount to the schedule document.
+  void _finalizeRevenue(String scheduleId) {
+    FirebaseFirestore.instance
+        .collection('bookings')
+        .where('scheduleId', isEqualTo: scheduleId)
+        .where('status', isEqualTo: 'confirmed')
+        .get()
+        .then((snap) {
+      double revenue = 0;
+      int bookedSeatsCount = 0;
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final fare = data['fare'];
+        if (fare is num) revenue += fare.toDouble();
+        bookedSeatsCount++;
+      }
+
+      return FirebaseFirestore.instance.collection('schedules').doc(scheduleId).update({
+        'revenue': revenue,
+        'bookedSeatsCount': bookedSeatsCount,
+        'revenueComputedAt': FieldValue.serverTimestamp(),
+      });
+    }).catchError((e) {
+      debugPrint('[_finalizeRevenue] Error: $e');
+    });
   }
 
   void _showDelayReportModal(Map<String, dynamic> trip, bool isDark) {
@@ -1041,46 +1074,115 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
 
   Future<void> _advanceStop(String tripId) async {
     try {
-      // In a real app, this would advance to the next stop in the route's stop list.
-      // We'll just hardcode an update for demonstration.
-      await FirebaseFirestore.instance.collection('schedules').doc(tripId).update({
-        'currentStop': 'Colombo Fort',
-      });
-      await _fetchOperatorData();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Arrived at Next Stop!')));
+      // 1. Fetch the schedule to get routeId and currentStop
+      final scheduleDoc = await FirebaseFirestore.instance.collection('schedules').doc(tripId).get();
+      if (!scheduleDoc.exists) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Schedule not found.')));
+        return;
+      }
+
+      final scheduleData = scheduleDoc.data()!;
+      final String routeId = scheduleData['routeId'] ?? '';
+      final String currentStop = scheduleData['currentStop'] ?? '';
+
+      if (routeId.isEmpty) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No route linked to this schedule.')));
+        return;
+      }
+
+      // 2. Fetch the route to get the ordered stops list
+      final routeDoc = await FirebaseFirestore.instance.collection('routes').doc(routeId).get();
+      if (!routeDoc.exists) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Route not found.')));
+        return;
+      }
+
+      final stops = List<Map<String, dynamic>>.from(
+        (routeDoc.data()!['stops'] as List<dynamic>? ?? []).map((s) => Map<String, dynamic>.from(s as Map)),
+      );
+
+      if (stops.isEmpty) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No stops defined for this route.')));
+        return;
+      }
+
+      // 3. Find current stop index and advance to next
+      final int currentIdx = stops.indexWhere((s) => s['name'] == currentStop);
+      if (currentIdx < 0) {
+        // If not found, default to first stop
+        await FirebaseFirestore.instance.collection('schedules').doc(tripId).update({
+          'currentStop': stops[0]['name'],
+        });
+      } else if (currentIdx >= stops.length - 1) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Already at final stop!')));
+        return;
+      } else {
+        final String nextStop = stops[currentIdx + 1]['name'] as String;
+        await FirebaseFirestore.instance.collection('schedules').doc(tripId).update({
+          'currentStop': nextStop,
+        });
+        await _fetchOperatorData();
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Arrived at: $nextStop')));
+      }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update stop: $e')));
     }
   }
 
   Widget _buildMiniManifest() {
-    return Container(
+    final tripId = _activeTrip?['id'] as String?;
+    if (tripId == null) return const SizedBox.shrink();
+
+    return SizedBox(
       height: 48,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: 4,
-        separatorBuilder: (context, index) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final isBoarding = index < 3;
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 12,
-                  backgroundColor: isBoarding ? Colors.green.shade200 : Colors.red.shade200,
-                  child: Icon(Icons.person, size: 16, color: isBoarding ? Colors.green.shade800 : Colors.red.shade800),
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('bookings')
+            .where('scheduleId', isEqualTo: tripId)
+            .where('status', isEqualTo: 'confirmed')
+            .limit(10)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                'No confirmed passengers yet',
+                style: TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+            );
+          }
+
+          final docs = snapshot.data!.docs;
+          return ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: docs.length,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            separatorBuilder: (context, index) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final data = docs[index].data() as Map<String, dynamic>;
+              final seatNo = data['seatNo'] as String? ?? '?';
+              final isBoarded = data['boarded'] == true;
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                 ),
-                const SizedBox(width: 8),
-                Text('Passenger ${index + 1}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 12,
+                      backgroundColor: isBoarded ? Colors.green.shade200 : Colors.orange.shade200,
+                      child: Icon(Icons.person, size: 16, color: isBoarded ? Colors.green.shade800 : Colors.orange.shade800),
+                    ),
+                    const SizedBox(width: 8),
+                    Text('Seat $seatNo', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              );
+            },
           );
         },
       ),
