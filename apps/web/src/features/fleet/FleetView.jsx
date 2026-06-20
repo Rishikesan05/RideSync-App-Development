@@ -36,27 +36,36 @@ import {
   useCreateBus, 
   useUpdateBus, 
   useDeactivateBus,
+  useActivateBus,
   useDeleteBus
 } from '../../api/buses';
 import { useBusesFirestore } from './useBusesFirestore';
 import { BusFormDialog } from './BusFormDialog';
 
 // ── Stats summary card ──────────────────────────────────────────────────────
-const StatCard = ({ icon, label, value, color }) => {
+const StatCard = ({ icon, label, value, color, onClick, active }) => {
   const theme = useTheme();
   return (
     <Paper
       elevation={0}
+      onClick={onClick}
       sx={{
         p: 2.5,
         display: 'flex',
         alignItems: 'center',
         gap: 2,
         borderRadius: 3,
-        border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
-        background: theme.palette.mode === 'dark'
-          ? 'rgba(255,255,255,0.03)'
-          : 'rgba(0,0,0,0.02)',
+        cursor: 'pointer',
+        border: `1px solid ${active ? color : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')}`,
+        background: active 
+          ? (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)')
+          : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'),
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: `0 4px 20px ${color}15`,
+          border: `1px solid ${color}`,
+        },
         flex: 1,
         minWidth: 130,
       }}
@@ -82,6 +91,7 @@ export const FleetView = () => {
   const createBus    = useCreateBus();
   const updateBus    = useUpdateBus();
   const deactivateBus = useDeactivateBus();
+  const activateBus  = useActivateBus();
   const deleteBus    = useDeleteBus();
 
   const [dialogOpen, setDialogOpen]   = useState(false);
@@ -89,12 +99,20 @@ export const FleetView = () => {
   const [anchorEl, setAnchorEl]       = useState(null);
   const [menuBusId, setMenuBusId]     = useState(null);
   const [toast, setToast]             = useState({ open: false, message: '', severity: 'success' });
+  const [filter, setFilter]           = useState('all'); // 'all' | 'active' | 'inactive' | 'ac'
 
   // ── computed stats ──────────────────────────────────────────────────────
   const totalBuses    = buses.length;
   const activeBuses   = buses.filter((b) => b.isActive).length;
   const inactiveBuses = totalBuses - activeBuses;
   const acBuses       = buses.filter((b) => b.class === 'AC').length;
+
+  const filteredBuses = buses.filter((bus) => {
+    if (filter === 'active') return bus.isActive;
+    if (filter === 'inactive') return !bus.isActive;
+    if (filter === 'ac') return bus.class === 'AC';
+    return true;
+  });
 
   const showToast = (message, severity = 'success') => {
     setToast({ open: true, message, severity });
@@ -133,6 +151,18 @@ export const FleetView = () => {
     } catch (e) {
       console.error('Failed to deactivate bus', e);
       showToast('Failed to deactivate bus.', 'error');
+    }
+  };
+
+  const handleActivate = async () => {
+    const busId = menuBusId;
+    handleCloseMenu();
+    try {
+      await activateBus.mutateAsync(busId);
+      showToast('Bus activated successfully.');
+    } catch (e) {
+      console.error('Failed to activate bus', e);
+      showToast('Failed to activate bus.', 'error');
     }
   };
 
@@ -193,24 +223,32 @@ export const FleetView = () => {
             label="Total Buses"
             value={totalBuses}
             color={theme.palette.primary.main}
+            onClick={() => setFilter('all')}
+            active={filter === 'all'}
           />
           <StatCard
             icon={<CheckCircle />}
             label="Active"
             value={activeBuses}
             color={theme.palette.success.main}
+            onClick={() => setFilter('active')}
+            active={filter === 'active'}
           />
           <StatCard
             icon={<Cancel />}
             label="Inactive"
             value={inactiveBuses}
             color={theme.palette.error.main}
+            onClick={() => setFilter('inactive')}
+            active={filter === 'inactive'}
           />
           <StatCard
             icon={<AcUnit />}
             label="A/C Buses"
             value={acBuses}
             color={theme.palette.info.main}
+            onClick={() => setFilter('ac')}
+            active={filter === 'ac'}
           />
         </Box>
       )}
@@ -253,9 +291,28 @@ export const FleetView = () => {
         </Card>
       )}
 
+      {/* ── Filtered empty state ────────────────────────────────────────── */}
+      {!loading && !error && buses.length > 0 && filteredBuses.length === 0 && (
+        <Box sx={{ py: 8, textAlign: 'center', width: '100%' }}>
+          <Typography color="text.secondary" variant="h6" sx={{ fontWeight: 500 }}>
+            No {filter === 'ac' ? 'A/C' : filter} buses found
+          </Typography>
+          <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
+            Try selecting a different filter option or clear the current filter.
+          </Typography>
+          <Button 
+            variant="outlined" 
+            onClick={() => setFilter('all')} 
+            sx={{ mt: 2.5, borderRadius: 2 }}
+          >
+            Show All Buses
+          </Button>
+        </Box>
+      )}
+
       {/* ── Bus Grid ────────────────────────────────────────────────────── */}
       <Grid container spacing={3}>
-        {buses.map((bus) => (
+        {filteredBuses.map((bus) => (
           <Grid item xs={12} sm={6} lg={4} key={bus.id}>
             <Card
               sx={{
@@ -457,10 +514,17 @@ export const FleetView = () => {
           <ListItemIcon><Edit fontSize="small" /></ListItemIcon>
           Edit Bus
         </MenuItem>
-        <MenuItem onClick={handleDeactivate}>
-          <ListItemIcon><Block fontSize="small" sx={{ color: theme.palette.warning.main }} /></ListItemIcon>
-          <Typography sx={{ color: theme.palette.warning.main }}>Deactivate</Typography>
-        </MenuItem>
+        {buses.find((b) => b.id === menuBusId)?.isActive ? (
+          <MenuItem onClick={handleDeactivate}>
+            <ListItemIcon><Block fontSize="small" sx={{ color: theme.palette.warning.main }} /></ListItemIcon>
+            <Typography sx={{ color: theme.palette.warning.main }}>Deactivate</Typography>
+          </MenuItem>
+        ) : (
+          <MenuItem onClick={handleActivate}>
+            <ListItemIcon><CheckCircle fontSize="small" sx={{ color: theme.palette.success.main }} /></ListItemIcon>
+            <Typography sx={{ color: theme.palette.success.main }}>Activate</Typography>
+          </MenuItem>
+        )}
         <Divider sx={{ my: 0.5 }} />
         <MenuItem onClick={handleDelete}>
           <ListItemIcon><Delete fontSize="small" sx={{ color: theme.palette.error.main }} /></ListItemIcon>
