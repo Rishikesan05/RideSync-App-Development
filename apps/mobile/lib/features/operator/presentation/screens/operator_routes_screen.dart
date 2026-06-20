@@ -51,17 +51,32 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
           depTime = DateTime.tryParse(rawTime);
         }
 
+        // Fetch route data to get real stop count
+        int stopCount = 0;
+        final routeId = data['routeId'] as String? ?? '';
+        if (routeId.isNotEmpty) {
+          try {
+            final routeDoc = await FirebaseFirestore.instance.collection('routes').doc(routeId).get();
+            if (routeDoc.exists) {
+              final stops = routeDoc.data()?['stops'] as List<dynamic>? ?? [];
+              stopCount = stops.length;
+            }
+          } catch (_) {
+            // Non-fatal — keep stopCount as 0
+          }
+        }
+
         schedules.add({
           'id': doc.id,
-          'routeId': data['routeId'] ?? 'Unknown',
+          'routeId': routeId,
           'name': data['routeName'] ?? 'Unknown Route',
           'type': data['status']?.toUpperCase() ?? 'SCHEDULED',
           'time': depTime != null 
               ? DateFormat('MMM dd, hh:mm a').format(depTime) 
               : 'Unknown Time',
           'rawTime': depTime, // For sorting
-          'bus': data['busPlateNumber'] ?? 'Unknown Bus',
-          'stops': 15,
+          'bus': data['plateNumber'] ?? data['busPlateNumber'] ?? 'Unknown Bus',
+          'stops': stopCount,
           'isAssigned': true,
         });
       }
@@ -152,7 +167,7 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade200),
         boxShadow: [
-          if (!isDark) BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: TextField(
@@ -177,7 +192,7 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade200),
         boxShadow: [
-          if (!isDark) BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 8)),
+          if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 8)),
         ],
       ),
       child: Column(
@@ -194,9 +209,9 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: badgeColor.withOpacity(0.1),
+                        color: badgeColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: badgeColor.withOpacity(0.3)),
+                        border: Border.all(color: badgeColor.withValues(alpha: 0.3)),
                       ),
                       child: Text(route['type'], style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold)),
                     ),
@@ -221,7 +236,7 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.02) : Colors.grey.shade50,
+              color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey.shade50,
               borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
               border: Border(top: BorderSide(color: isDark ? Colors.white12 : Colors.grey.shade200)),
             ),
@@ -270,6 +285,8 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
   }
 
   void _showStopsSheet(BuildContext context, Map<String, dynamic> route, bool isDark) {
+    final routeId = route['routeId'] as String? ?? '';
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -283,7 +300,7 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
         child: Column(
           children: [
             const SizedBox(height: 12),
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2))),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: Row(
@@ -294,73 +311,96 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
                 ],
               ),
             ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                itemCount: route['stops'],
-                itemBuilder: (context, index) {
-                  final isLast = index == route['stops'] - 1;
-                  return IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SizedBox(
-                          width: 30,
-                          child: Column(
+            if (routeId.isEmpty)
+              const Expanded(child: Center(child: Text('No route linked.', style: TextStyle(color: Colors.grey))))
+            else
+              Expanded(
+                child: FutureBuilder<DocumentSnapshot>(
+                  future: FirebaseFirestore.instance.collection('routes').doc(routeId).get(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: AppColors.primaryOrange));
+                    }
+                    if (!snapshot.hasData || !snapshot.data!.exists) {
+                      return const Center(child: Text('Route not found.', style: TextStyle(color: Colors.grey)));
+                    }
+
+                    final routeData = snapshot.data!.data() as Map<String, dynamic>;
+                    final stops = List<Map<String, dynamic>>.from(
+                      (routeData['stops'] as List<dynamic>? ?? []).map((s) => Map<String, dynamic>.from(s as Map)),
+                    );
+
+                    if (stops.isEmpty) {
+                      return const Center(child: Text('No stops defined for this route.', style: TextStyle(color: Colors.grey)));
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      itemCount: stops.length,
+                      itemBuilder: (context, index) {
+                        final stop = stops[index];
+                        final isLast = index == stops.length - 1;
+                        final stopName = stop['name'] as String? ?? 'Stop ${index + 1}';
+                        final distKm = stop['distFromStartKm'];
+                        final distLabel = distKm != null ? '${distKm.toStringAsFixed(1)} km from start' : 'Km N/A';
+
+                        return IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Container(
-                                width: 16,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  color: index == 0 ? Colors.green : (isLast ? Colors.red : Colors.white),
-                                  border: Border.all(color: index == 0 ? Colors.green : (isLast ? Colors.red : AppColors.primaryOrange), width: 4),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              if (!isLast)
-                                Expanded(child: Container(width: 2, color: isDark ? Colors.white12 : Colors.grey.shade300)),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(bottom: 24.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              SizedBox(
+                                width: 30,
+                                child: Column(
                                   children: [
-                                    Text('Stop ${index + 1}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : AppColors.textDark)),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      width: 16,
+                                      height: 16,
                                       decoration: BoxDecoration(
-                                        color: AppColors.primaryOrange.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.people, size: 12, color: AppColors.primaryOrange),
-                                          const SizedBox(width: 4),
-                                          Text('${(index * 7 + 3) % 15 + 1} Booked', style: const TextStyle(color: AppColors.primaryOrange, fontSize: 11, fontWeight: FontWeight.bold)),
-                                        ],
+                                        color: index == 0 ? Colors.green : (isLast ? Colors.red : Colors.white),
+                                        border: Border.all(
+                                          color: index == 0 ? Colors.green : (isLast ? Colors.red : AppColors.primaryOrange),
+                                          width: 4,
+                                        ),
+                                        shape: BoxShape.circle,
                                       ),
                                     ),
+                                    if (!isLast)
+                                      Expanded(child: Container(width: 2, color: isDark ? Colors.white12 : Colors.grey.shade300)),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
-                                Text('Estimated arrival: +${index * 5} mins', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 12)),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 24.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        stopName,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: isDark ? Colors.white : AppColors.textDark,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        distLabel,
+                                        style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
           ],
         ),
       ),
