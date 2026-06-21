@@ -14,6 +14,8 @@ class BookingConfirmationScreen extends StatelessWidget {
   final int seatCount;
   final String plateNumber;
   final String ticketCode;
+  final double reservationPaid;
+  final double balanceDue;
 
   const BookingConfirmationScreen({
     super.key,
@@ -27,6 +29,8 @@ class BookingConfirmationScreen extends StatelessWidget {
     required this.seatCount,
     required this.plateNumber,
     required this.ticketCode,
+    required this.reservationPaid,
+    required this.balanceDue,
   });
 
   @override
@@ -293,12 +297,42 @@ class BookingConfirmationScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Final Amount to Pay', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
+                        const Text('Total Trip Fare', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
                         Text(
                           'Rs. ${totalFare.toStringAsFixed(0)}',
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Reservation Deposit Paid', style: TextStyle(fontSize: 12, color: AppColors.success, fontWeight: FontWeight.w600)),
+                        Text(
+                          'Rs. ${reservationPaid.toStringAsFixed(0)}',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.success),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryOrange.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.primaryOrange.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Balance Due on Bus', style: TextStyle(fontSize: 14, color: AppColors.primaryOrange, fontWeight: FontWeight.w800)),
+                          Text(
+                            'Rs. ${balanceDue.toStringAsFixed(0)}',
+                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.primaryOrange),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
