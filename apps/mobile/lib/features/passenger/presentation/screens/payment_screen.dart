@@ -1,232 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ridesync/core/constants.dart';
-import 'package:ridesync/core/widgets/custom_button.dart';
-import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
-import 'package:ridesync/features/passenger/presentation/screens/booking_confirmation_screen.dart';
+import 'package:ridesync/features/passenger/presentation/screens/card_payment_screen.dart';
+import 'package:ridesync/features/passenger/presentation/screens/express_payment_screen.dart';
 
-class PaymentScreen extends StatefulWidget {
+class PaymentScreen extends StatelessWidget {
   const PaymentScreen({super.key});
-
-  @override
-  State<PaymentScreen> createState() => _PaymentScreenState();
-}
-
-class _PaymentScreenState extends State<PaymentScreen> {
-  final _cardNumberController = TextEditingController();
-  final _expiryController = TextEditingController();
-  final _cvvController = TextEditingController();
-  final _nameController = TextEditingController();
-
-  bool _isProcessing = false;
-  String _selectedMethod = 'card';
-
-  @override
-  void dispose() {
-    _cardNumberController.dispose();
-    _expiryController.dispose();
-    _cvvController.dispose();
-    _nameController.dispose();
-    super.dispose();
-  }
-
-  void _processExpressPayment(BuildContext context, BookingProvider booking, AuthProvider auth, String method) async {
-    setState(() {
-      _isProcessing = true;
-    });
-
-    await Future.delayed(const Duration(seconds: 2));
-
-    final success = await booking.bookSeats(auth.user?.id ?? 'guest_uid');
-    
-    if (!context.mounted) return;
-
-    setState(() {
-      _isProcessing = false;
-    });
-
-    if (success) {
-      _showSuccessDialog(context, booking, method: method);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(booking.errorMessage ?? 'Booking failed'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
-  }
-
-  void _processPayment(BuildContext context, BookingProvider booking, AuthProvider auth) async {
-    if (_nameController.text.isEmpty || _cardNumberController.text.isEmpty || _expiryController.text.isEmpty || _cvvController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill all card details'),
-          backgroundColor: AppColors.primaryOrange,
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isProcessing = true;
-    });
-
-    // Simulate payment processing
-    await Future.delayed(const Duration(seconds: 2));
-
-    // After simulated success, book seats on backend
-    final success = await booking.bookSeats(auth.user?.id ?? 'guest_uid');
-    
-    if (!context.mounted) return;
-
-    setState(() {
-      _isProcessing = false;
-    });
-
-    if (success) {
-      _showSuccessDialog(context, booking);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(booking.errorMessage ?? 'Booking failed'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
-  }
-
-  void _showSuccessDialog(BuildContext context, BookingProvider booking, {String? method}) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Theme.of(context).cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        contentPadding: const EdgeInsets.all(32),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.check_circle, color: AppColors.success, size: 64),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Payment Successful!',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textDark,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              method != null 
-                ? 'Your $method payment of LKR ${booking.totalFare.toStringAsFixed(0)} was successful. Your appointment has been booked.'
-                : 'Your card payment of LKR ${booking.totalFare.toStringAsFixed(0)} was successful. Your appointment has been booked.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textLight, height: 1.5),
-            ),
-            const SizedBox(height: 32),
-            CustomButton(
-              label: 'View Ticket',
-              color: AppColors.primaryOrange,
-              onPressed: () {
-                Navigator.pop(ctx); // close dialog
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => BookingConfirmationScreen(
-                      routeName: booking.selectedSchedule?.routeName ?? 'Express',
-                      seatNumbers: booking.selectedSeatNumbers.join(', '),
-                      origin: booking.origin?.name ?? '',
-                      destination: booking.destination?.name ?? '',
-                      farePerSeat: booking.farePerSeat,
-                      totalFare: booking.totalFare,
-                      distanceKm: booking.distanceKm,
-                      seatCount: booking.selectedSeatNumbers.length,
-                      plateNumber: booking.selectedSchedule?.plateNumber ?? '',
-                      ticketCode: booking.lastGeneratedTicketCode ?? 'TKT-PEND',
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPaymentOption({
-    required String value,
-    required String title,
-    required IconData icon,
-    required Color iconColor,
-    required bool isDark,
-    required Widget expandedContent,
-  }) {
-    final isSelected = _selectedMethod == value;
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: () {
-            setState(() {
-              _selectedMethod = value;
-            });
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.surfaceMutedDark : AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isSelected ? AppColors.primaryOrange : (isDark ? AppColors.strokeDark : AppColors.stroke),
-                width: isSelected ? 2 : 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(icon, color: iconColor, size: 28),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                      color: isDark ? Colors.white : AppColors.textDark,
-                    ),
-                  ),
-                ),
-                Icon(
-                  isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                  color: isSelected ? AppColors.primaryOrange : AppColors.textLight,
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (isSelected) ...[
-          const SizedBox(height: 16),
-          expandedContent,
-        ],
-        const SizedBox(height: 12),
-      ],
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     final booking = Provider.of<BookingProvider>(context);
-    final auth = Provider.of<AuthProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -239,7 +23,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Payment Details',
+          'Payment Methods',
           style: TextStyle(
             color: isDark ? Colors.white : AppColors.textDark,
             fontSize: 18,
@@ -272,178 +56,52 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             const SizedBox(height: 32),
 
-            const Text('Select Payment Method', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Select a Payment Method', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
 
-            _buildPaymentOption(
-              value: 'card',
+            _PaymentMethodCard(
               title: 'Visa or Mastercard',
               icon: Icons.credit_card,
               iconColor: AppColors.primaryNavy,
               isDark: isDark,
-              expandedContent: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Mock Card Visual
-                  Container(
-                    height: 200,
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppColors.primaryNavy, Color(0xFF1E293B)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(AppStyles.borderRadius),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primaryNavy.withValues(alpha: 0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Icon(Icons.contactless, color: Colors.white, size: 32),
-                            Text('VISA', style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 24, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic)),
-                          ],
-                        ),
-                        const Text(
-                          '**** **** **** 1234',
-                          style: TextStyle(color: Colors.white, fontSize: 22, letterSpacing: 3, fontFamily: 'monospace'),
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('CARD HOLDER', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 10, letterSpacing: 1)),
-                                const SizedBox(height: 4),
-                                const Text('JOHN DOE', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text('EXPIRES', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 10, letterSpacing: 1)),
-                                const SizedBox(height: 4),
-                                const Text('12/28', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  const Text('Card Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-
-                  _PaymentTextField(
-                    controller: _nameController,
-                    label: 'Cardholder Name',
-                    hint: 'John Doe',
-                    icon: Icons.person_outline,
-                    isDark: isDark,
-                  ),
-                  const SizedBox(height: 16),
-                  _PaymentTextField(
-                    controller: _cardNumberController,
-                    label: 'Card Number',
-                    hint: '0000 0000 0000 0000',
-                    icon: Icons.credit_card,
-                    keyboardType: TextInputType.number,
-                    isDark: isDark,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _PaymentTextField(
-                          controller: _expiryController,
-                          label: 'Expiry Date',
-                          hint: 'MM/YY',
-                          icon: Icons.calendar_today,
-                          keyboardType: TextInputType.datetime,
-                          isDark: isDark,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _PaymentTextField(
-                          controller: _cvvController,
-                          label: 'CVV',
-                          hint: '123',
-                          icon: Icons.security,
-                          keyboardType: TextInputType.number,
-                          isDark: isDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  CustomButton(
-                    label: 'Pay Now',
-                    color: AppColors.primaryOrange,
-                    isLoading: _isProcessing,
-                    onPressed: () => _processPayment(context, booking, auth),
-                  ),
-                ],
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CardPaymentScreen()),
               ),
             ),
-
-            _buildPaymentOption(
-              value: 'paypal',
+            
+            _PaymentMethodCard(
               title: 'PayPal',
               icon: Icons.account_balance_wallet,
               iconColor: Colors.blue.shade700,
               isDark: isDark,
-              expandedContent: CustomButton(
-                label: 'Pay with PayPal',
-                color: Colors.blue.shade700,
-                isLoading: _isProcessing,
-                onPressed: () => _processExpressPayment(context, booking, auth, 'PayPal'),
-              ),
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('PayPal integration coming soon!')),
+                );
+              },
             ),
 
-            _buildPaymentOption(
-              value: 'gpay',
+            _PaymentMethodCard(
               title: 'Google Pay',
-              icon: Icons.android,
+              icon: Icons.g_mobiledata,
+              iconSize: 42,
               iconColor: Colors.green,
               isDark: isDark,
-              expandedContent: CustomButton(
-                label: 'Pay with Google Pay',
-                color: isDark ? Colors.white : Colors.black,
-                textColor: isDark ? Colors.black : Colors.white,
-                isLoading: _isProcessing,
-                onPressed: () => _processExpressPayment(context, booking, auth, 'Google Pay'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ExpressPaymentScreen(methodName: 'Google Pay')),
               ),
             ),
 
-            _buildPaymentOption(
-              value: 'applepay',
+            _PaymentMethodCard(
               title: 'Apple Pay',
               icon: Icons.apple,
               iconColor: isDark ? Colors.white : Colors.black,
               isDark: isDark,
-              expandedContent: CustomButton(
-                label: 'Pay with Apple Pay',
-                icon: Icons.apple,
-                color: isDark ? Colors.white : Colors.black,
-                textColor: isDark ? Colors.black : Colors.white,
-                isLoading: _isProcessing,
-                onPressed: () => _processExpressPayment(context, booking, auth, 'Apple Pay'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ExpressPaymentScreen(methodName: 'Apple Pay')),
               ),
             ),
           ],
@@ -453,57 +111,63 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 }
 
-class _PaymentTextField extends StatelessWidget {
-  final String label;
-  final String hint;
+class _PaymentMethodCard extends StatelessWidget {
+  final String title;
   final IconData icon;
-  final TextEditingController controller;
-  final TextInputType keyboardType;
+  final double iconSize;
+  final Color iconColor;
   final bool isDark;
+  final VoidCallback onTap;
 
-  const _PaymentTextField({
-    required this.label,
-    required this.hint,
+  const _PaymentMethodCard({
+    required this.title,
     required this.icon,
-    required this.controller,
-    this.keyboardType = TextInputType.text,
+    this.iconSize = 28,
+    required this.iconColor,
     required this.isDark,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white70 : AppColors.textLight,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceMutedDark : AppColors.surface,
+            color: isDark ? AppColors.surfaceDark : AppColors.surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: isDark ? AppColors.strokeDark : AppColors.stroke),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          child: TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            style: TextStyle(color: isDark ? Colors.white : AppColors.textDark),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(color: isDark ? Colors.white38 : AppColors.textLight.withValues(alpha: 0.5)),
-              prefixIcon: Icon(icon, color: AppColors.textLight, size: 20),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            ),
+          child: Row(
+            children: [
+              Icon(icon, color: iconColor, size: iconSize),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : AppColors.textDark,
+                  ),
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: AppColors.textLight),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
