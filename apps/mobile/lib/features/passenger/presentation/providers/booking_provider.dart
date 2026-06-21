@@ -201,11 +201,11 @@ class BookingProvider extends ChangeNotifier {
           'plateNumber': selectedSchedule!.plateNumber ?? '',
           'timestamp': FieldValue.serverTimestamp(),
           'status': 'confirmed',
-          'ticketCode': ticketCode,
         });
       });
 
-      selectedSeatNumbers.clear();
+      // We do not clear selectedSeatNumbers here because the success dialog 
+      // and BookingConfirmationScreen still need to read these values.
       return true;
     } catch (e) {
       errorMessage = e.toString();
