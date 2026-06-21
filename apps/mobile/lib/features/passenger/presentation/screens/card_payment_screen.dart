@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/core/widgets/custom_button.dart';
@@ -19,7 +20,56 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
   final _cvvController = TextEditingController();
   final _nameController = TextEditingController();
 
+  bool? _isNameValid;
+  bool? _isCardValid;
+  bool? _isExpiryValid;
+  bool? _isCvvValid;
+
   bool _isProcessing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController.addListener(_validateFields);
+    _cardNumberController.addListener(_validateFields);
+    _expiryController.addListener(_validateFields);
+    _cvvController.addListener(_validateFields);
+  }
+
+  void _validateFields() {
+    setState(() {
+      if (_nameController.text.isNotEmpty) {
+        _isNameValid = RegExp(r'^[a-zA-Z\s]+$').hasMatch(_nameController.text);
+      } else {
+        _isNameValid = null;
+      }
+
+      if (_cardNumberController.text.isNotEmpty) {
+        final digits = _cardNumberController.text.replaceAll(' ', '');
+        _isCardValid = digits.length == 16;
+      } else {
+        _isCardValid = null;
+      }
+
+      if (_expiryController.text.isNotEmpty) {
+        _isExpiryValid = RegExp(r'^(0[1-9]|1[0-2])\/\d{2}$').hasMatch(_expiryController.text);
+      } else {
+        _isExpiryValid = null;
+      }
+
+      if (_cvvController.text.isNotEmpty) {
+        _isCvvValid = _cvvController.text.length == 3;
+      } else {
+        _isCvvValid = null;
+      }
+    });
+  }
+
+  bool get _isFormValid =>
+      _isNameValid == true &&
+      _isCardValid == true &&
+      _isExpiryValid == true &&
+      _isCvvValid == true;
 
   @override
   void dispose() {
@@ -277,6 +327,10 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
               hint: 'John Doe',
               icon: Icons.person_outline,
               isDark: isDark,
+              isValid: _isNameValid,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
+              ],
             ),
             const SizedBox(height: 16),
             _PaymentTextField(
@@ -286,6 +340,11 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
               icon: Icons.credit_card,
               keyboardType: TextInputType.number,
               isDark: isDark,
+              isValid: _isCardValid,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(16),
+              ],
             ),
             const SizedBox(height: 16),
             Row(
@@ -298,6 +357,10 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                     icon: Icons.calendar_today,
                     keyboardType: TextInputType.datetime,
                     isDark: isDark,
+                    isValid: _isExpiryValid,
+                    inputFormatters: [
+                      LengthLimitingTextInputFormatter(5),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -309,6 +372,11 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                     icon: Icons.security,
                     keyboardType: TextInputType.number,
                     isDark: isDark,
+                    isValid: _isCvvValid,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(3),
+                    ],
                   ),
                 ),
               ],
@@ -317,9 +385,9 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
 
             CustomButton(
               label: 'Pay Now',
-              color: AppColors.primaryOrange,
+              color: _isFormValid ? AppColors.primaryOrange : Colors.grey,
               isLoading: _isProcessing,
-              onPressed: () => _processPayment(context, booking, auth),
+              onPressed: _isFormValid ? () => _processPayment(context, booking, auth) : null,
             ),
           ],
         ),
@@ -335,6 +403,8 @@ class _PaymentTextField extends StatelessWidget {
   final TextEditingController controller;
   final TextInputType keyboardType;
   final bool isDark;
+  final bool? isValid;
+  final List<TextInputFormatter>? inputFormatters;
 
   const _PaymentTextField({
     required this.label,
@@ -343,6 +413,8 @@ class _PaymentTextField extends StatelessWidget {
     required this.controller,
     this.keyboardType = TextInputType.text,
     required this.isDark,
+    this.isValid,
+    this.inputFormatters,
   });
 
   @override
@@ -363,16 +435,35 @@ class _PaymentTextField extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDark ? AppColors.surfaceMutedDark : AppColors.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isDark ? AppColors.strokeDark : AppColors.stroke),
+            border: Border.all(
+              color: isValid == null
+                  ? (isDark ? AppColors.strokeDark : AppColors.stroke)
+                  : (isValid! ? AppColors.success : AppColors.error),
+              width: isValid == null ? 1 : 1.5,
+            ),
           ),
           child: TextField(
             controller: controller,
             keyboardType: keyboardType,
+            inputFormatters: inputFormatters,
             style: TextStyle(color: isDark ? Colors.white : AppColors.textDark),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(color: isDark ? Colors.white38 : AppColors.textLight.withValues(alpha: 0.5)),
-              prefixIcon: Icon(icon, color: AppColors.textLight, size: 20),
+              prefixIcon: Icon(
+                icon, 
+                color: isValid == null 
+                    ? AppColors.textLight 
+                    : (isValid! ? AppColors.success : AppColors.error), 
+                size: 20
+              ),
+              suffixIcon: isValid != null
+                  ? Icon(
+                      isValid! ? Icons.check_circle : Icons.error,
+                      color: isValid! ? AppColors.success : AppColors.error,
+                      size: 20,
+                    )
+                  : null,
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
