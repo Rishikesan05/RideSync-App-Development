@@ -114,15 +114,15 @@ class _BookingScreenState extends State<BookingScreen> {
           ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: widget.onBack)
           : null,
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: _buildSearchHeader(booking, isDark),
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: _buildSearchHeader(booking, isDark),
+            ),
           ),
-          Expanded(
-            child: _buildSchedulesList(booking, isDark),
-          ),
+          _buildSchedulesSliver(booking, isDark),
         ],
       ),
     );
@@ -273,40 +273,53 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  Widget _buildSchedulesList(BookingProvider booking, bool isDark) {
+  Widget _buildSchedulesSliver(BookingProvider booking, bool isDark) {
     if (booking.isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primaryOrange));
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(child: CircularProgressIndicator(color: AppColors.primaryOrange)),
+      );
     }
 
     if (booking.errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(40),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.search_off, size: 64, color: AppColors.textLight),
-              const SizedBox(height: 16),
-              Text(booking.errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textLight)),
-            ],
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.search_off, size: 64, color: AppColors.textLight),
+                const SizedBox(height: 16),
+                Text(booking.errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textLight)),
+              ],
+            ),
           ),
         ),
       );
     }
 
     if (booking.availableSchedules.isEmpty) {
-      return const Center(
-        child: Text('Enter details to find available buses', style: TextStyle(color: AppColors.textLight)),
+      return const SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(
+          child: Text('Enter details to find available buses', style: TextStyle(color: AppColors.textLight)),
+        ),
       );
     }
 
-    return ListView.builder(
+    return SliverPadding(
       padding: const EdgeInsets.all(20),
-      itemCount: booking.availableSchedules.length,
-      itemBuilder: (context, index) {
-        final schedule = booking.availableSchedules[index];
-        return _buildScheduleCard(schedule, booking, isDark);
-      },
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final schedule = booking.availableSchedules[index];
+            return _buildScheduleCard(schedule, booking, isDark);
+          },
+          childCount: booking.availableSchedules.length,
+        ),
+      ),
     );
   }
 
