@@ -211,8 +211,29 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      // Elegant EMV Chip Mockup
+                      Container(
+                        width: 44,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE5C158), // Metallic Gold
+                          borderRadius: BorderRadius.circular(6),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(1, 1))
+                          ],
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: 24,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.black38, width: 1),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                      ),
                       const Icon(Icons.contactless, color: Colors.white, size: 32),
-                      Text('VISA', style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 24, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic)),
                     ],
                   ),
                   const Text(
