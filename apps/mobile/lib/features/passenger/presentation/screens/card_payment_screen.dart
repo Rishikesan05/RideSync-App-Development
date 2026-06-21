@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/core/widgets/custom_button.dart';
@@ -70,6 +71,61 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
       _isCardValid == true &&
       _isExpiryValid == true &&
       _isCvvValid == true;
+
+  void _showExpiryPicker() {
+    DateTime tempDate = DateTime.now();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppColors.surfaceMutedDark : Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (BuildContext builder) {
+        return SizedBox(
+          height: 280,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _expiryController.text = '${tempDate.month.toString().padLeft(2, '0')}/${tempDate.year.toString().substring(2)}';
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Done', style: TextStyle(color: AppColors.primaryOrange, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: CupertinoTheme(
+                  data: CupertinoThemeData(
+                    brightness: Theme.of(context).brightness,
+                  ),
+                  child: CupertinoDatePicker(
+                    mode: CupertinoDatePickerMode.monthYear,
+                    initialDateTime: DateTime.now(),
+                    minimumDate: DateTime(DateTime.now().year, DateTime.now().month),
+                    maximumDate: DateTime(DateTime.now().year + 15),
+                    onDateTimeChanged: (DateTime newDate) {
+                      tempDate = newDate;
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   void dispose() {
@@ -355,12 +411,11 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                     label: 'Expiry Date',
                     hint: 'MM/YY',
                     icon: Icons.calendar_today,
-                    keyboardType: TextInputType.datetime,
+                    keyboardType: TextInputType.none, // Prevent system keyboard
                     isDark: isDark,
                     isValid: _isExpiryValid,
-                    inputFormatters: [
-                      LengthLimitingTextInputFormatter(5),
-                    ],
+                    readOnly: true,
+                    onTap: _showExpiryPicker,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -405,6 +460,8 @@ class _PaymentTextField extends StatelessWidget {
   final bool isDark;
   final bool? isValid;
   final List<TextInputFormatter>? inputFormatters;
+  final bool readOnly;
+  final VoidCallback? onTap;
 
   const _PaymentTextField({
     required this.label,
@@ -415,6 +472,8 @@ class _PaymentTextField extends StatelessWidget {
     required this.isDark,
     this.isValid,
     this.inputFormatters,
+    this.readOnly = false,
+    this.onTap,
   });
 
   @override
@@ -446,6 +505,8 @@ class _PaymentTextField extends StatelessWidget {
             controller: controller,
             keyboardType: keyboardType,
             inputFormatters: inputFormatters,
+            readOnly: readOnly,
+            onTap: onTap,
             style: TextStyle(color: isDark ? Colors.white : AppColors.textDark),
             decoration: InputDecoration(
               hintText: hint,
