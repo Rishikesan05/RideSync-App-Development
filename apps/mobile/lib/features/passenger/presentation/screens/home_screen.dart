@@ -278,7 +278,34 @@ class _SearchPlannerCardState extends State<_SearchPlannerCard> {
   @override
   Widget build(BuildContext context) {
     final finder = context.watch<FinderProvider>();
-    final showSuggestions = finder.suggestions.isNotEmpty && (_originFocus.hasFocus || _destFocus.hasFocus);
+    final showOriginSuggestions = finder.suggestions.isNotEmpty && _originFocus.hasFocus;
+    final showDestSuggestions = finder.suggestions.isNotEmpty && _destFocus.hasFocus;
+
+    Widget buildSuggestions() {
+      return Container(
+        constraints: const BoxConstraints(maxHeight: 180),
+        margin: const EdgeInsets.only(top: 14),
+        decoration: BoxDecoration(
+          color: widget.isDark ? AppColors.surfaceMutedDark : AppColors.surfaceMuted,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: ListView.separated(
+          shrinkWrap: true,
+          itemCount: finder.suggestions.length,
+          separatorBuilder: (context, index) => Divider(height: 1, color: widget.isDark ? Colors.white10 : Colors.black12),
+          itemBuilder: (context, index) {
+            final place = finder.suggestions[index];
+            return ListTile(
+              dense: true,
+              leading: const Icon(Icons.place_outlined, color: AppColors.primaryOrange, size: 20),
+              title: Text(place.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: widget.isDark ? Colors.white : AppColors.textDark)),
+              subtitle: Text(place.address, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: widget.isDark ? Colors.white60 : Colors.black54)),
+              onTap: () => _handleSuggestionTap(place),
+            );
+          },
+        ),
+      );
+    }
 
     return RideSyncSurfaceCard(
       child: Column(
@@ -292,6 +319,7 @@ class _SearchPlannerCardState extends State<_SearchPlannerCard> {
             controller: _originController,
             focusNode: _originFocus,
           ),
+          if (showOriginSuggestions) buildSuggestions(),
           const SizedBox(height: 14),
           _LocationField(
             label: 'TO',
@@ -302,31 +330,7 @@ class _SearchPlannerCardState extends State<_SearchPlannerCard> {
             controller: _destController,
             focusNode: _destFocus,
           ),
-          if (showSuggestions) ...[
-            const SizedBox(height: 14),
-            Container(
-              constraints: const BoxConstraints(maxHeight: 180),
-              decoration: BoxDecoration(
-                color: widget.isDark ? AppColors.surfaceMutedDark : AppColors.surfaceMuted,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: finder.suggestions.length,
-                separatorBuilder: (context, index) => Divider(height: 1, color: widget.isDark ? Colors.white10 : Colors.black12),
-                itemBuilder: (context, index) {
-                  final place = finder.suggestions[index];
-                  return ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.place_outlined, color: AppColors.primaryOrange, size: 20),
-                    title: Text(place.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: widget.isDark ? Colors.white : AppColors.textDark)),
-                    subtitle: Text(place.address, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: widget.isDark ? Colors.white60 : Colors.black54)),
-                    onTap: () => _handleSuggestionTap(place),
-                  );
-                },
-              ),
-            ),
-          ],
+          if (showDestSuggestions) buildSuggestions(),
           const SizedBox(height: 18),
           RideSyncPrimaryButton(
             label: 'OPTIMIZE ROUTE',

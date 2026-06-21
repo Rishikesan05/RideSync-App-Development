@@ -1,0 +1,569 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
+import 'package:ridesync/core/constants.dart';
+import 'package:ridesync/core/widgets/custom_button.dart';
+import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
+import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
+import 'package:ridesync/features/passenger/presentation/screens/booking_confirmation_screen.dart';
+
+class CardPaymentScreen extends StatefulWidget {
+  const CardPaymentScreen({super.key});
+
+  @override
+  State<CardPaymentScreen> createState() => _CardPaymentScreenState();
+}
+
+class _CardPaymentScreenState extends State<CardPaymentScreen> {
+  final _cardNumberController = TextEditingController();
+  final _expiryController = TextEditingController();
+  final _cvvController = TextEditingController();
+  final _nameController = TextEditingController();
+
+  bool? _isNameValid;
+  bool? _isCardValid;
+  bool? _isExpiryValid;
+  bool? _isCvvValid;
+
+  bool _isProcessing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController.addListener(_validateFields);
+    _cardNumberController.addListener(_validateFields);
+    _expiryController.addListener(_validateFields);
+    _cvvController.addListener(_validateFields);
+  }
+
+  void _validateFields() {
+    setState(() {
+      if (_nameController.text.isNotEmpty) {
+        _isNameValid = RegExp(r'^[a-zA-Z\s]+$').hasMatch(_nameController.text);
+      } else {
+        _isNameValid = null;
+      }
+
+      if (_cardNumberController.text.isNotEmpty) {
+        final digits = _cardNumberController.text.replaceAll(' ', '');
+        _isCardValid = digits.length == 16;
+      } else {
+        _isCardValid = null;
+      }
+
+      if (_expiryController.text.isNotEmpty) {
+        _isExpiryValid = RegExp(r'^(0[1-9]|1[0-2])\/\d{2}$').hasMatch(_expiryController.text);
+      } else {
+        _isExpiryValid = null;
+      }
+
+      if (_cvvController.text.isNotEmpty) {
+        _isCvvValid = _cvvController.text.length == 3;
+      } else {
+        _isCvvValid = null;
+      }
+    });
+  }
+
+  bool get _isFormValid =>
+      _isNameValid == true &&
+      _isCardValid == true &&
+      _isExpiryValid == true &&
+      _isCvvValid == true;
+
+  void _showExpiryPicker() {
+    final now = DateTime.now();
+    int selectedMonth = now.month;
+    int selectedYear = now.year;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppColors.surfaceMutedDark : Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (BuildContext builder) {
+        return SizedBox(
+          height: 280,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _expiryController.text = '${selectedMonth.toString().padLeft(2, '0')}/${selectedYear.toString().substring(2)}';
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Done', style: TextStyle(color: AppColors.primaryOrange, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: CupertinoPicker(
+                        scrollController: FixedExtentScrollController(initialItem: selectedMonth - 1),
+                        itemExtent: 40,
+                        onSelectedItemChanged: (index) {
+                          selectedMonth = index + 1;
+                        },
+                        children: List.generate(12, (index) {
+                          return Center(
+                            child: Text(
+                              (index + 1).toString().padLeft(2, '0'),
+                              style: TextStyle(
+                                fontSize: 20,
+                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                    Expanded(
+                      child: CupertinoPicker(
+                        scrollController: FixedExtentScrollController(initialItem: 0),
+                        itemExtent: 40,
+                        onSelectedItemChanged: (index) {
+                          selectedYear = now.year + index;
+                        },
+                        children: List.generate(15, (index) {
+                          return Center(
+                            child: Text(
+                              (now.year + index).toString(),
+                              style: TextStyle(
+                                fontSize: 20,
+                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _cardNumberController.dispose();
+    _expiryController.dispose();
+    _cvvController.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  void _processPayment(BuildContext context, BookingProvider booking, AuthProvider auth) async {
+    if (_nameController.text.isEmpty || _cardNumberController.text.isEmpty || _expiryController.text.isEmpty || _cvvController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill all card details'),
+          backgroundColor: AppColors.primaryOrange,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    // Simulate payment processing
+    await Future.delayed(const Duration(seconds: 2));
+
+    // After simulated success, book seats on backend
+    final success = await booking.bookSeats(auth.user?.id ?? 'guest_uid');
+    
+    if (!context.mounted) return;
+
+    setState(() {
+      _isProcessing = false;
+    });
+
+    if (success) {
+      _showSuccessDialog(context, booking);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(booking.errorMessage ?? 'Booking failed'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  void _showSuccessDialog(BuildContext context, BookingProvider booking) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        contentPadding: const EdgeInsets.all(32),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.check_circle, color: AppColors.success, size: 64),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Payment Successful!',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Your card payment of LKR ${booking.totalReservationFee.toStringAsFixed(0)} was successful. Your appointment has been booked.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textLight, height: 1.5),
+            ),
+            const SizedBox(height: 32),
+            CustomButton(
+              label: 'View Ticket',
+              color: AppColors.primaryOrange,
+              onPressed: () {
+                Navigator.pop(ctx); // close dialog
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BookingConfirmationScreen(
+                      routeName: booking.selectedSchedule?.routeName ?? 'Express',
+                      seatNumbers: booking.selectedSeatNumbers.join(', '),
+                      origin: booking.origin?.name ?? '',
+                      destination: booking.destination?.name ?? '',
+                      farePerSeat: booking.farePerSeat,
+                      totalFare: booking.totalFare,
+                      distanceKm: booking.distanceKm,
+                      seatCount: booking.selectedSeatNumbers.length,
+                      plateNumber: booking.selectedSchedule?.plateNumber ?? 'Unknown',
+                      ticketCode: booking.lastGeneratedTicketCode ?? 'TICKET',
+                      reservationPaid: booking.totalReservationFee,
+                      balanceDue: booking.balanceDue,
+                    ),
+                  ),
+                  (route) => route.isFirst,
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final booking = Provider.of<BookingProvider>(context);
+    final auth = Provider.of<AuthProvider>(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white : AppColors.textDark, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Card Details',
+          style: TextStyle(
+            color: isDark ? Colors.white : AppColors.textDark,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 80.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Amount Summary
+            Center(
+              child: Column(
+                children: [
+                  const Text('Amount to Pay Now (Reservation)', style: TextStyle(color: AppColors.textLight, fontSize: 14)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'LKR ${booking.totalReservationFee.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? Colors.white : AppColors.textDark,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Mock Card Visual
+            Container(
+              height: 200,
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.primaryNavy, Color(0xFF1E293B)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(AppStyles.borderRadius),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primaryNavy.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Elegant EMV Chip Mockup
+                      Container(
+                        width: 44,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE5C158), // Metallic Gold
+                          borderRadius: BorderRadius.circular(6),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(1, 1))
+                          ],
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: 24,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.black38, width: 1),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const Icon(Icons.contactless, color: Colors.white, size: 32),
+                    ],
+                  ),
+                  const Text(
+                    '**** **** **** 1234',
+                    style: TextStyle(color: Colors.white, fontSize: 22, letterSpacing: 3, fontFamily: 'monospace'),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('CARD HOLDER', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 10, letterSpacing: 1)),
+                          const SizedBox(height: 4),
+                          const Text('JOHN DOE', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text('EXPIRES', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 10, letterSpacing: 1)),
+                          const SizedBox(height: 4),
+                          const Text('12/28', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            const Text('Card Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+
+            _PaymentTextField(
+              controller: _nameController,
+              label: 'Cardholder Name',
+              hint: 'John Doe',
+              icon: Icons.person_outline,
+              isDark: isDark,
+              isValid: _isNameValid,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _PaymentTextField(
+              controller: _cardNumberController,
+              label: 'Card Number',
+              hint: '0000 0000 0000 0000',
+              icon: Icons.credit_card,
+              keyboardType: TextInputType.number,
+              isDark: isDark,
+              isValid: _isCardValid,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(16),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _PaymentTextField(
+                    controller: _expiryController,
+                    label: 'Expiry Date',
+                    hint: 'MM/YY',
+                    icon: Icons.calendar_today,
+                    keyboardType: TextInputType.none, // Prevent system keyboard
+                    isDark: isDark,
+                    isValid: _isExpiryValid,
+                    readOnly: true,
+                    onTap: _showExpiryPicker,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _PaymentTextField(
+                    controller: _cvvController,
+                    label: 'CVV',
+                    hint: '123',
+                    icon: Icons.security,
+                    keyboardType: TextInputType.number,
+                    isDark: isDark,
+                    isValid: _isCvvValid,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(3),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 48),
+
+            CustomButton(
+              label: 'Pay Now',
+              color: _isFormValid ? AppColors.primaryOrange : Colors.grey,
+              isLoading: _isProcessing,
+              onPressed: _isFormValid ? () => _processPayment(context, booking, auth) : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentTextField extends StatelessWidget {
+  final String label;
+  final String hint;
+  final IconData icon;
+  final TextEditingController controller;
+  final TextInputType keyboardType;
+  final bool isDark;
+  final bool? isValid;
+  final List<TextInputFormatter>? inputFormatters;
+  final bool readOnly;
+  final VoidCallback? onTap;
+
+  const _PaymentTextField({
+    required this.label,
+    required this.hint,
+    required this.icon,
+    required this.controller,
+    this.keyboardType = TextInputType.text,
+    required this.isDark,
+    this.isValid,
+    this.inputFormatters,
+    this.readOnly = false,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white70 : AppColors.textLight,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.surfaceMutedDark : AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isValid == null
+                  ? (isDark ? AppColors.strokeDark : AppColors.stroke)
+                  : (isValid! ? AppColors.success : AppColors.error),
+              width: isValid == null ? 1 : 1.5,
+            ),
+          ),
+          child: TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            inputFormatters: inputFormatters,
+            readOnly: readOnly,
+            onTap: onTap,
+            style: TextStyle(color: isDark ? Colors.white : AppColors.textDark),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(color: isDark ? Colors.white38 : AppColors.textLight.withValues(alpha: 0.5)),
+              prefixIcon: Icon(
+                icon, 
+                color: isValid == null 
+                    ? AppColors.textLight 
+                    : (isValid! ? AppColors.success : AppColors.error), 
+                size: 20
+              ),
+              suffixIcon: isValid != null
+                  ? Icon(
+                      isValid! ? Icons.check_circle : Icons.error,
+                      color: isValid! ? AppColors.success : AppColors.error,
+                      size: 20,
+                    )
+                  : null,
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

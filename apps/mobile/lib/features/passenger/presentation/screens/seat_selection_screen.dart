@@ -4,7 +4,7 @@ import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/seat_layout_engine.dart';
-import 'package:ridesync/features/passenger/presentation/screens/booking_confirmation_screen.dart';
+import 'package:ridesync/features/passenger/presentation/screens/payment_screen.dart';
 
 class SeatSelectionScreen extends StatelessWidget {
   final String scheduleId;
@@ -231,50 +231,24 @@ class SeatSelectionScreen extends StatelessWidget {
                   ],
                 ),
                 ElevatedButton(
-                  onPressed: booking.isBooking ? null : () async {
-                    final success = await booking.bookSeats(auth.user?.id ?? 'guest_uid');
-                    if (!context.mounted) return;
-                    if (success) {
-                      _showSuccessDialog(context);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(booking.errorMessage ?? 'Booking failed')),
-                      );
-                    }
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PaymentScreen(),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryOrange,
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: booking.isBooking 
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('Confirm Booking', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                  child: const Text('Proceed to Pay', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  void _showSuccessDialog(BuildContext context) {
-    final booking = Provider.of<BookingProvider>(context, listen: false);
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BookingConfirmationScreen(
-          routeName: booking.selectedSchedule?.routeName ?? 'Express',
-          seatNumbers: booking.selectedSeatNumbers.join(', '),
-          origin: booking.origin?.name ?? '',
-          destination: booking.destination?.name ?? '',
-          farePerSeat: booking.farePerSeat,
-          totalFare: booking.totalFare,
-          distanceKm: booking.distanceKm,
-          seatCount: booking.selectedSeatNumbers.length,
-          plateNumber: booking.selectedSchedule?.plateNumber ?? '',
-          ticketCode: booking.lastGeneratedTicketCode ?? 'TKT-PEND',
         ),
       ),
     );
