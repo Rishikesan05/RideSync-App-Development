@@ -99,6 +99,15 @@ class BookingProvider extends ChangeNotifier {
   /// Total fare for all selected seats
   double get totalFare => farePerSeat * selectedSeatNumbers.length;
 
+  /// Reservation fee to be paid upfront (500 LKR per seat, or full fare if fare is less than 500)
+  double get reservationFeePerSeat => farePerSeat < 500.0 ? farePerSeat : 500.0;
+
+  /// Total reservation fee to pay now
+  double get totalReservationFee => reservationFeePerSeat * selectedSeatNumbers.length;
+
+  /// Balance amount to be paid later
+  double get balanceDue => totalFare - totalReservationFee;
+
   /// Formatted fare string for display
   String get formattedFarePerSeat => 'LKR ${farePerSeat.toStringAsFixed(0)}';
 
@@ -185,6 +194,8 @@ class BookingProvider extends ChangeNotifier {
           'distanceKm': distanceKm.toStringAsFixed(1),
           'farePerSeat': farePerSeat.roundToDouble(),
           'totalFare': totalFare.roundToDouble(),
+          'reservationPaid': totalReservationFee.roundToDouble(),
+          'balanceDue': balanceDue.roundToDouble(),
           'departureTime': selectedSchedule!.departureTime,
           'routeName': selectedSchedule!.routeName ?? '',
           'plateNumber': selectedSchedule!.plateNumber ?? '',

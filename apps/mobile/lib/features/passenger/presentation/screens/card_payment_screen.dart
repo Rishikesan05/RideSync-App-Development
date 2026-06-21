@@ -99,7 +99,7 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Your card payment of LKR ${booking.totalFare.toStringAsFixed(0)} was successful. Your appointment has been booked.',
+              'Your card payment of LKR ${booking.totalReservationFee.toStringAsFixed(0)} was successful. Your appointment has been booked.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: AppColors.textLight, height: 1.5),
             ),
@@ -169,10 +169,10 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
             Center(
               child: Column(
                 children: [
-                  const Text('Total Amount', style: TextStyle(color: AppColors.textLight, fontSize: 14)),
+                  const Text('Amount to Pay Now (Reservation)', style: TextStyle(color: AppColors.textLight, fontSize: 14)),
                   const SizedBox(height: 8),
                   Text(
-                    'LKR ${booking.totalFare.toStringAsFixed(0)}',
+                    'LKR ${booking.totalReservationFee.toStringAsFixed(0)}',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w900,

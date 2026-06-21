@@ -38,18 +38,40 @@ class PaymentScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Amount Summary
-            Center(
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.surfaceMutedDark : AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isDark ? AppColors.strokeDark : AppColors.stroke),
+              ),
               child: Column(
                 children: [
-                  const Text('Total Amount', style: TextStyle(color: AppColors.textLight, fontSize: 14)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Total Trip Fare', style: TextStyle(color: AppColors.textLight)),
+                      Text('LKR ${booking.totalFare.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                    ],
+                  ),
                   const SizedBox(height: 8),
-                  Text(
-                    'LKR ${booking.totalFare.toStringAsFixed(0)}',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white : AppColors.textDark,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Balance (Pay on Bus)', style: TextStyle(color: AppColors.textLight)),
+                      Text('LKR ${booking.balanceDue.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryOrange)),
+                    ],
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Divider(color: Colors.white24),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Paying Now (Reservation)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                      Text('LKR ${booking.totalReservationFee.toStringAsFixed(0)}', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.success)),
+                    ],
                   ),
                 ],
               ),

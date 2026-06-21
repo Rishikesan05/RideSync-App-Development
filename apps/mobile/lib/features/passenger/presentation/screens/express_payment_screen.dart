@@ -77,7 +77,7 @@ class _ExpressPaymentScreenState extends State<ExpressPaymentScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Your ${widget.methodName} payment of LKR ${booking.totalFare.toStringAsFixed(0)} was successful. Your appointment has been booked.',
+              'Your ${widget.methodName} reservation payment of LKR ${booking.totalReservationFee.toStringAsFixed(0)} was successful. Your appointment has been booked.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: AppColors.textLight, height: 1.5),
             ),
@@ -165,7 +165,7 @@ class _ExpressPaymentScreenState extends State<ExpressPaymentScreen> {
                 child: Column(
                   children: [
                     Text(
-                      'RIDESYNC TRANSIT', 
+                      'RESERVATION DEPOSIT', 
                       style: TextStyle(
                         fontSize: 14, 
                         color: isDark ? Colors.white70 : Colors.black54, 
@@ -175,7 +175,7 @@ class _ExpressPaymentScreenState extends State<ExpressPaymentScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'LKR ${booking.totalFare.toStringAsFixed(0)}', 
+                      'LKR ${booking.totalReservationFee.toStringAsFixed(0)}', 
                       style: TextStyle(
                         fontSize: 40, 
                         fontWeight: FontWeight.bold, 
