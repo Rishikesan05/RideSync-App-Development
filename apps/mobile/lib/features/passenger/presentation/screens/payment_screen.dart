@@ -151,8 +151,14 @@ class _PaymentMethodCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(icon, color: iconColor, size: iconSize),
-              const SizedBox(width: 20),
+              SizedBox(
+                width: 46,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Icon(icon, color: iconColor, size: iconSize),
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,
