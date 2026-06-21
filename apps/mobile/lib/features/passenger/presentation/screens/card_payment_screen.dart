@@ -73,7 +73,10 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
       _isCvvValid == true;
 
   void _showExpiryPicker() {
-    DateTime tempDate = DateTime.now();
+    final now = DateTime.now();
+    int selectedMonth = now.month;
+    int selectedYear = now.year;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppColors.surfaceMutedDark : Colors.white,
@@ -95,7 +98,7 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                     TextButton(
                       onPressed: () {
                         setState(() {
-                          _expiryController.text = '${tempDate.month.toString().padLeft(2, '0')}/${tempDate.year.toString().substring(2)}';
+                          _expiryController.text = '${selectedMonth.toString().padLeft(2, '0')}/${selectedYear.toString().substring(2)}';
                         });
                         Navigator.pop(context);
                       },
@@ -105,19 +108,49 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                 ),
               ),
               Expanded(
-                child: CupertinoTheme(
-                  data: CupertinoThemeData(
-                    brightness: Theme.of(context).brightness,
-                  ),
-                  child: CupertinoDatePicker(
-                    mode: CupertinoDatePickerMode.monthYear,
-                    initialDateTime: DateTime.now(),
-                    minimumDate: DateTime(DateTime.now().year, DateTime.now().month),
-                    maximumDate: DateTime(DateTime.now().year + 15),
-                    onDateTimeChanged: (DateTime newDate) {
-                      tempDate = newDate;
-                    },
-                  ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: CupertinoPicker(
+                        scrollController: FixedExtentScrollController(initialItem: selectedMonth - 1),
+                        itemExtent: 40,
+                        onSelectedItemChanged: (index) {
+                          selectedMonth = index + 1;
+                        },
+                        children: List.generate(12, (index) {
+                          return Center(
+                            child: Text(
+                              (index + 1).toString().padLeft(2, '0'),
+                              style: TextStyle(
+                                fontSize: 20,
+                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                    Expanded(
+                      child: CupertinoPicker(
+                        scrollController: FixedExtentScrollController(initialItem: 0),
+                        itemExtent: 40,
+                        onSelectedItemChanged: (index) {
+                          selectedYear = now.year + index;
+                        },
+                        children: List.generate(15, (index) {
+                          return Center(
+                            child: Text(
+                              (now.year + index).toString(),
+                              style: TextStyle(
+                                fontSize: 20,
+                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
