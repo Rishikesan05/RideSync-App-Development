@@ -20,6 +20,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final _nameController = TextEditingController();
 
   bool _isProcessing = false;
+  String _selectedMethod = 'card';
 
   @override
   void dispose() {
@@ -163,6 +164,65 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  Widget _buildPaymentOption({
+    required String value,
+    required String title,
+    required IconData icon,
+    required Color iconColor,
+    required bool isDark,
+    required Widget expandedContent,
+  }) {
+    final isSelected = _selectedMethod == value;
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              _selectedMethod = value;
+            });
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.surfaceMutedDark : AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected ? AppColors.primaryOrange : (isDark ? AppColors.strokeDark : AppColors.stroke),
+                width: isSelected ? 2 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: iconColor, size: 28),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                      color: isDark ? Colors.white : AppColors.textDark,
+                    ),
+                  ),
+                ),
+                Icon(
+                  isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                  color: isSelected ? AppColors.primaryOrange : AppColors.textLight,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (isSelected) ...[
+          const SizedBox(height: 16),
+          expandedContent,
+        ],
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final booking = Provider.of<BookingProvider>(context);
@@ -212,174 +272,179 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             const SizedBox(height: 32),
 
-            // Express Checkouts
-            if (_isProcessing)
-              const Center(child: CircularProgressIndicator(color: AppColors.primaryOrange))
-            else ...[
-              ElevatedButton(
-                onPressed: () => _processExpressPayment(context, booking, auth, 'Apple Pay'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.apple, size: 24),
-                    SizedBox(width: 8),
-                    Text('Pay', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () => _processExpressPayment(context, booking, auth, 'Google Pay'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isDark ? Colors.white : Colors.black,
-                  foregroundColor: isDark ? Colors.black : Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('G', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.black : Colors.white)),
-                    const SizedBox(width: 4),
-                    const Text('Pay', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(child: Divider(color: isDark ? Colors.white24 : Colors.black12)),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('OR PAY WITH CARD', style: TextStyle(color: AppColors.textLight, fontSize: 12, fontWeight: FontWeight.bold)),
-                  ),
-                  Expanded(child: Divider(color: isDark ? Colors.white24 : Colors.black12)),
-                ],
-              ),
-            ],
-            const SizedBox(height: 24),
-
-            // Mock Card Visual
-            Container(
-              height: 200,
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primaryNavy, Color(0xFF1E293B)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(AppStyles.borderRadius),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primaryNavy.withValues(alpha: 0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Icon(Icons.contactless, color: Colors.white, size: 32),
-                      Text('VISA', style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 24, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic)),
-                    ],
-                  ),
-                  const Text(
-                    '**** **** **** 1234',
-                    style: TextStyle(color: Colors.white, fontSize: 22, letterSpacing: 3, fontFamily: 'monospace'),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('CARD HOLDER', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 10, letterSpacing: 1)),
-                          const SizedBox(height: 4),
-                          const Text('JOHN DOE', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text('EXPIRES', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 10, letterSpacing: 1)),
-                          const SizedBox(height: 4),
-                          const Text('12/28', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            const Text('Card Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Select Payment Method', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
 
-            _PaymentTextField(
-              controller: _nameController,
-              label: 'Cardholder Name',
-              hint: 'John Doe',
-              icon: Icons.person_outline,
-              isDark: isDark,
-            ),
-            const SizedBox(height: 16),
-            _PaymentTextField(
-              controller: _cardNumberController,
-              label: 'Card Number',
-              hint: '0000 0000 0000 0000',
+            _buildPaymentOption(
+              value: 'card',
+              title: 'Visa or Mastercard',
               icon: Icons.credit_card,
-              keyboardType: TextInputType.number,
+              iconColor: AppColors.primaryNavy,
               isDark: isDark,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _PaymentTextField(
-                    controller: _expiryController,
-                    label: 'Expiry Date',
-                    hint: 'MM/YY',
-                    icon: Icons.calendar_today,
-                    keyboardType: TextInputType.datetime,
+              expandedContent: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Mock Card Visual
+                  Container(
+                    height: 200,
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppColors.primaryNavy, Color(0xFF1E293B)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(AppStyles.borderRadius),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryNavy.withValues(alpha: 0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Icon(Icons.contactless, color: Colors.white, size: 32),
+                            Text('VISA', style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 24, fontWeight: FontWeight.w900, fontStyle: FontStyle.italic)),
+                          ],
+                        ),
+                        const Text(
+                          '**** **** **** 1234',
+                          style: TextStyle(color: Colors.white, fontSize: 22, letterSpacing: 3, fontFamily: 'monospace'),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('CARD HOLDER', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 10, letterSpacing: 1)),
+                                const SizedBox(height: 4),
+                                const Text('JOHN DOE', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text('EXPIRES', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 10, letterSpacing: 1)),
+                                const SizedBox(height: 4),
+                                const Text('12/28', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  const Text('Card Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+
+                  _PaymentTextField(
+                    controller: _nameController,
+                    label: 'Cardholder Name',
+                    hint: 'John Doe',
+                    icon: Icons.person_outline,
                     isDark: isDark,
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _PaymentTextField(
-                    controller: _cvvController,
-                    label: 'CVV',
-                    hint: '123',
-                    icon: Icons.security,
+                  const SizedBox(height: 16),
+                  _PaymentTextField(
+                    controller: _cardNumberController,
+                    label: 'Card Number',
+                    hint: '0000 0000 0000 0000',
+                    icon: Icons.credit_card,
                     keyboardType: TextInputType.number,
                     isDark: isDark,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 48),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _PaymentTextField(
+                          controller: _expiryController,
+                          label: 'Expiry Date',
+                          hint: 'MM/YY',
+                          icon: Icons.calendar_today,
+                          keyboardType: TextInputType.datetime,
+                          isDark: isDark,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _PaymentTextField(
+                          controller: _cvvController,
+                          label: 'CVV',
+                          hint: '123',
+                          icon: Icons.security,
+                          keyboardType: TextInputType.number,
+                          isDark: isDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
 
-            CustomButton(
-              label: 'Pay Now',
-              color: AppColors.primaryOrange,
-              isLoading: _isProcessing,
-              onPressed: () => _processPayment(context, booking, auth),
+                  CustomButton(
+                    label: 'Pay Now',
+                    color: AppColors.primaryOrange,
+                    isLoading: _isProcessing,
+                    onPressed: () => _processPayment(context, booking, auth),
+                  ),
+                ],
+              ),
+            ),
+
+            _buildPaymentOption(
+              value: 'paypal',
+              title: 'PayPal',
+              icon: Icons.account_balance_wallet,
+              iconColor: Colors.blue.shade700,
+              isDark: isDark,
+              expandedContent: CustomButton(
+                label: 'Pay with PayPal',
+                color: Colors.blue.shade700,
+                isLoading: _isProcessing,
+                onPressed: () => _processExpressPayment(context, booking, auth, 'PayPal'),
+              ),
+            ),
+
+            _buildPaymentOption(
+              value: 'gpay',
+              title: 'Google Pay',
+              icon: Icons.android,
+              iconColor: Colors.green,
+              isDark: isDark,
+              expandedContent: CustomButton(
+                label: 'Pay with Google Pay',
+                color: isDark ? Colors.white : Colors.black,
+                textColor: isDark ? Colors.black : Colors.white,
+                isLoading: _isProcessing,
+                onPressed: () => _processExpressPayment(context, booking, auth, 'Google Pay'),
+              ),
+            ),
+
+            _buildPaymentOption(
+              value: 'applepay',
+              title: 'Apple Pay',
+              icon: Icons.apple,
+              iconColor: isDark ? Colors.white : Colors.black,
+              isDark: isDark,
+              expandedContent: CustomButton(
+                label: 'Pay with Apple Pay',
+                icon: Icons.apple,
+                color: isDark ? Colors.white : Colors.black,
+                textColor: isDark ? Colors.black : Colors.white,
+                isLoading: _isProcessing,
+                onPressed: () => _processExpressPayment(context, booking, auth, 'Apple Pay'),
+              ),
             ),
           ],
         ),
