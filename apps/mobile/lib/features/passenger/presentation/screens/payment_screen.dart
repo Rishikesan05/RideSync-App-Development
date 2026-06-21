@@ -69,18 +69,6 @@ class PaymentScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (context) => const CardPaymentScreen()),
               ),
             ),
-            
-            _PaymentMethodCard(
-              title: 'PayPal',
-              icon: Icons.account_balance_wallet,
-              iconColor: Colors.blue.shade700,
-              isDark: isDark,
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('PayPal integration coming soon!')),
-                );
-              },
-            ),
 
             _PaymentMethodCard(
               title: 'Google Pay',
@@ -103,6 +91,18 @@ class PaymentScreen extends StatelessWidget {
                 context,
                 MaterialPageRoute(builder: (context) => const ExpressPaymentScreen(methodName: 'Apple Pay')),
               ),
+            ),
+            
+            _PaymentMethodCard(
+              title: 'PayPal',
+              icon: Icons.account_balance_wallet,
+              iconColor: Colors.blue.shade700,
+              isDark: isDark,
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('PayPal integration coming soon!')),
+                );
+              },
             ),
           ],
         ),
