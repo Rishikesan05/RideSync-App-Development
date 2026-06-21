@@ -30,6 +30,33 @@ class _PaymentScreenState extends State<PaymentScreen> {
     super.dispose();
   }
 
+  void _processExpressPayment(BuildContext context, BookingProvider booking, AuthProvider auth, String method) async {
+    setState(() {
+      _isProcessing = true;
+    });
+
+    await Future.delayed(const Duration(seconds: 2));
+
+    final success = await booking.bookSeats(auth.user?.id ?? 'guest_uid');
+    
+    if (!context.mounted) return;
+
+    setState(() {
+      _isProcessing = false;
+    });
+
+    if (success) {
+      _showSuccessDialog(context, booking, method: method);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(booking.errorMessage ?? 'Booking failed'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
   void _processPayment(BuildContext context, BookingProvider booking, AuthProvider auth) async {
     if (_nameController.text.isEmpty || _cardNumberController.text.isEmpty || _expiryController.text.isEmpty || _cvvController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -69,7 +96,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  void _showSuccessDialog(BuildContext context, BookingProvider booking) {
+  void _showSuccessDialog(BuildContext context, BookingProvider booking, {String? method}) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -99,7 +126,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Your payment of LKR ${booking.totalFare.toStringAsFixed(0)} was successful. Your appointment has been booked.',
+              method != null 
+                ? 'Your $method payment of LKR ${booking.totalFare.toStringAsFixed(0)} was successful. Your appointment has been booked.'
+                : 'Your card payment of LKR ${booking.totalFare.toStringAsFixed(0)} was successful. Your appointment has been booked.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: AppColors.textLight, height: 1.5),
             ),
@@ -182,6 +211,61 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
             ),
             const SizedBox(height: 32),
+
+            // Express Checkouts
+            if (_isProcessing)
+              const Center(child: CircularProgressIndicator(color: AppColors.primaryOrange))
+            else ...[
+              ElevatedButton(
+                onPressed: () => _processExpressPayment(context, booking, auth, 'Apple Pay'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.apple, size: 24),
+                    SizedBox(width: 8),
+                    Text('Pay', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () => _processExpressPayment(context, booking, auth, 'Google Pay'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDark ? Colors.white : Colors.black,
+                  foregroundColor: isDark ? Colors.black : Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('G', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.black : Colors.white)),
+                    const SizedBox(width: 4),
+                    const Text('Pay', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: isDark ? Colors.white24 : Colors.black12)),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('OR PAY WITH CARD', style: TextStyle(color: AppColors.textLight, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                  Expanded(child: Divider(color: isDark ? Colors.white24 : Colors.black12)),
+                ],
+              ),
+            ],
+            const SizedBox(height: 24),
 
             // Mock Card Visual
             Container(
