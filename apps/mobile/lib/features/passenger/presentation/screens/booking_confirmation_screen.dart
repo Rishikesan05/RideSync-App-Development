@@ -346,8 +346,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                 height: 52,
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    Navigator.pop(context); // Back to booking
-                    Navigator.pop(context); // Back to home
+                    Navigator.of(context).popUntil((route) => route.isFirst);
                     // The user can tap Live tab from bottom nav
                   },
                   icon: const Icon(Icons.near_me, size: 18),
@@ -365,8 +364,7 @@ class BookingConfirmationScreen extends StatelessWidget {
               // Done button
               TextButton(
                 onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
+                  Navigator.of(context).popUntil((route) => route.isFirst);
                 },
                 child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w600)),
               ),
