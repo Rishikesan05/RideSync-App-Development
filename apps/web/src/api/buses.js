@@ -68,6 +68,15 @@ export const deactivateBus = async (id) => {
 };
 
 /**
+ * Activate a bus — sets isActive to true.
+ */
+export const activateBus = async (id) => {
+  const ref = doc(db, COLLECTION, id);
+  await updateDoc(ref, { isActive: true, updatedAt: serverTimestamp() });
+  return { id };
+};
+
+/**
  * Permanently delete a bus document from Firestore.
  */
 export const deleteBus = async (id) => {
@@ -100,6 +109,15 @@ export const useDeactivateBus = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: deactivateBus,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['buses'] }),
+  });
+};
+
+/** Activate a bus (sets isActive: true). */
+export const useActivateBus = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: activateBus,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['buses'] }),
   });
 };

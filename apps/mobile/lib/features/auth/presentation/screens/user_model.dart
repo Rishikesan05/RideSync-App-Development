@@ -7,6 +7,7 @@ class UserModel {
   final String email;
   final String role; // 'Passenger' or 'Operator'
   final String? operatorType; // 'driver' or 'conductor' (only for Operator)
+  final String? operatorId; // Custom operator ID (e.g., RSOP2002)
   final int joinYear;
   final int totalRides;
   final double rating;
@@ -18,6 +19,7 @@ class UserModel {
     required this.email,
     required this.role,
     this.operatorType,
+    this.operatorId,
     this.joinYear = 2024,
     this.totalRides = 0,
     this.rating = 5.0,

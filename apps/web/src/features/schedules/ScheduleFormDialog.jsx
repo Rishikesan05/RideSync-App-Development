@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -40,7 +40,16 @@ const scheduleSchema = z.object({
   routeId:       z.string().min(1, 'Please select a route'),
   busId:         z.string().min(1, 'Please select a bus'),
   opId:          z.string().min(1, 'Operator ID is required'),
-  departureDate: z.string().min(1, 'Departure date is required'),
+  departureDate: z.string()
+    .min(1, 'Departure date is required')
+    .refine((val) => {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${yyyy}-${mm}-${dd}`;
+      return val >= todayStr;
+    }, { message: 'Date cannot be in the past' }),
   departureTime: z.string().min(1, 'Departure time is required'),
 });
 
@@ -59,6 +68,28 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
   const theme = useTheme();
   const { routes, loading: isLoadingRoutes } = useRoutesFirestore();
   const { buses, loading: isLoadingBuses } = useBusesFirestore();
+  const [operators, setOperators] = useState([]);
+  const [isLoadingOperators, setIsLoadingOperators] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      const fetchOperators = async () => {
+        setIsLoadingOperators(true);
+        try {
+          const opsSnapshot = await getDocs(collection(db, 'operators'));
+          const opsList = opsSnapshot.docs
+            .map((doc) => ({ id: doc.id, ...doc.data() }))
+            .filter((op) => op.status !== 'pending' && op.status !== 'pending_review' && op.isApproved !== false);
+          setOperators(opsList);
+        } catch (e) {
+          console.error('Error fetching operators', e);
+        } finally {
+          setIsLoadingOperators(false);
+        }
+      };
+      fetchOperators();
+    }
+  }, [open]);
 
   const {
     control,
@@ -369,68 +400,126 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
 
             {/* ── OPERATOR SECTION ──────────────────────────────────────── */}
             <SectionLabel icon={<Person fontSize="small" />} text="Operator" />
-            <Controller
-              name="opId"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label="Operator ID"
-                  placeholder="Enter the operatorId from the operators collection"
-                  variant="outlined"
-                  margin="dense"
-                  error={!!errors.opId}
-                  helperText={errors.opId?.message || 'Must match an operatorId in the operators collection'}
-                  disabled={!!initialData}
-                  InputLabelProps={{ shrink: true }}
-                />
-              )}
-            />
+            <FormControl fullWidth margin="dense" error={!!errors.opId}>
+              <InputLabel id="operator-select-label" shrink>Select Operator</InputLabel>
+              <Controller
+                name="opId"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    labelId="operator-select-label"
+                    label="Select Operator"
+                    notched
+                    disabled={!!initialData}
+                    displayEmpty
+                    renderValue={(val) => {
+                      if (!val) return <Typography color="text.disabled">Choose an operator…</Typography>;
+                      const op = operators.find((o) => o.operatorId === val || o.id === val);
+                      if (!op) return val;
+                      return (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{op.name || op.displayName || 'Unknown Operator'}</Typography>
+                          <Typography variant="caption" color="text.secondary">({op.operatorId || op.id})</Typography>
+                        </Box>
+                      );
+                    }}
+                  >
+                    {isLoadingOperators ? (
+                      <MenuItem disabled value="">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <CircularProgress size={16} />
+                          <Typography variant="body2">Loading operators…</Typography>
+                        </Box>
+                      </MenuItem>
+                    ) : operators.length === 0 ? (
+                      <MenuItem disabled value="">No operators available</MenuItem>
+                    ) : (
+                      operators.map((op) => {
+                        const opId = op.operatorId || op.id;
+                        const opName = op.name || op.displayName || 'Unknown Operator';
+                        return (
+                          <MenuItem key={opId} value={opId}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 0.3 }}>
+                              <Person fontSize="small" sx={{ color: 'primary.light' }} />
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>{opName}</Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  ID: {opId} {op.phone ? `· ${op.phone}` : ''}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </MenuItem>
+                        );
+                      })
+                    )}
+                  </Select>
+                )}
+              />
+              {errors.opId && <FormHelperText>{errors.opId.message}</FormHelperText>}
+            </FormControl>
 
             {/* ── DATE & TIME SECTION ──────────────────────────────────── */}
             <SectionLabel icon={<AccessTime fontSize="small" />} text="Date & Time" />
 
-            <Grid container spacing={2} sx={{ mt: 0 }}>
+            <Grid container spacing={2} sx={{ mt: 0, alignItems: 'flex-start' }}>
               <Grid item xs={12} sm={6}>
-                <Controller
-                  name="departureDate"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Departure Date"
-                      type="date"
-                      margin="dense"
-                      InputLabelProps={{ shrink: true }}
-                      inputProps={{ min: new Date().toISOString().slice(0, 10) }}
-                      error={!!errors.departureDate}
-                      helperText={errors.departureDate?.message}
-                      disabled={!!initialData}
-                    />
-                  )}
-                />
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+                    Departure Date
+                  </Typography>
+                  <Controller
+                    name="departureDate"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        type="date"
+                        margin="none"
+                        inputProps={{ 
+                          min: (() => {
+                            const today = new Date();
+                            const yyyy = today.getFullYear();
+                            const mm = String(today.getMonth() + 1).padStart(2, '0');
+                            const dd = String(today.getDate()).padStart(2, '0');
+                            return `${yyyy}-${mm}-${dd}`;
+                          })()
+                        }}
+                        error={!!errors.departureDate}
+                        helperText={errors.departureDate?.message}
+                        disabled={!!initialData}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                            height: 48,
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                </Box>
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <Controller
-                  name="departureTime"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Departure Time"
-                      type="time"
-                      margin="dense"
-                      InputLabelProps={{ shrink: true }}
-                      error={!!errors.departureTime}
-                      helperText={errors.departureTime?.message}
-                      disabled={!!initialData}
-                    />
-                  )}
-                />
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+                    Departure Time
+                  </Typography>
+                  <Controller
+                    name="departureTime"
+                    control={control}
+                    render={({ field }) => (
+                      <TimeWheelPicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        disabled={!!initialData}
+                        error={!!errors.departureTime}
+                        helperText={errors.departureTime?.message}
+                      />
+                    )}
+                  />
+                </Box>
               </Grid>
             </Grid>
 
@@ -439,16 +528,24 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
               <Box
                 sx={{
                   mt: 2.5,
-                  p: 2,
-                  borderRadius: 2,
-                  backgroundColor: 'rgba(99,102,241,0.08)',
-                  border: '1px solid rgba(99,102,241,0.2)',
+                  p: 2.5,
+                  borderRadius: '12px',
+                  border: `1.5px solid ${theme.palette.primary.main}40`,
+                  borderTop: `4px solid ${theme.palette.primary.main}`,
+                  background: theme.palette.mode === 'dark'
+                    ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.45) 100%)'
+                    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(248, 250, 252, 0.6) 100%)',
+                  boxShadow: theme.palette.mode === 'dark'
+                    ? '0 4px 12px rgba(0, 0, 0, 0.15)'
+                    : '0 4px 12px rgba(0, 0, 0, 0.02)',
+                  position: 'relative',
+                  overflow: 'visible',
                 }}
               >
                 <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.light', textTransform: 'uppercase', letterSpacing: 0.8 }}>
                   Schedule Preview
                 </Typography>
-                <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                   <Typography variant="body2">
                     <strong>Route:</strong>{' '}
                     {selectedRoute.routeNumber ? `#${selectedRoute.routeNumber} · ` : ''}
@@ -464,11 +561,69 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
                       day: 'numeric', hour: '2-digit', minute: '2-digit',
                     })}
                   </Typography>
-                  {watch('opId') && (
-                    <Typography variant="body2">
-                      <strong>Operator ID:</strong> {watch('opId')}
-                    </Typography>
-                  )}
+
+                  {/* Ticket Divider & Cutout Notches */}
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    mx: -2.5, 
+                    my: 1.5,
+                    height: '16px',
+                    position: 'relative'
+                  }}>
+                    {/* Left Notch */}
+                    <Box 
+                      className="ticket-notch"
+                      sx={{
+                        position: 'absolute',
+                        left: '-8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        backgroundColor: theme.palette.background.paper,
+                        border: `1.5px solid ${theme.palette.primary.main}40`,
+                        borderLeftColor: 'transparent',
+                        borderTopColor: 'transparent',
+                        borderBottomColor: 'transparent',
+                        zIndex: 2,
+                      }} 
+                    />
+                    
+                    {/* Perforation Line */}
+                    <Box sx={{ 
+                      flex: 1, 
+                      borderTop: `1.2px dashed ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'}`, 
+                      height: '1px', 
+                      mx: 1.5
+                    }} />
+                    
+                    {/* Right Notch */}
+                    <Box 
+                      className="ticket-notch"
+                      sx={{
+                        position: 'absolute',
+                        right: '-8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        backgroundColor: theme.palette.background.paper,
+                        border: `1.5px solid ${theme.palette.primary.main}40`,
+                        borderRightColor: 'transparent',
+                        borderTopColor: 'transparent',
+                        borderBottomColor: 'transparent',
+                        zIndex: 2,
+                      }} 
+                    />
+                  </Box>
+
+                  <Typography variant="body2">
+                    <strong>Operator ID:</strong> {watch('opId') || 'Unassigned'}
+                  </Typography>
                 </Box>
               </Box>
             )}
@@ -504,5 +659,171 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
         </form>
       )}
     </Dialog>
+  );
+};
+
+// ── Time Wheel Picker Helpers ────────────────────────────────────────────────
+const parseTime = (timeStr) => {
+  if (!timeStr) return { hour: '12', minute: '00', period: 'AM' };
+  const [h24Str, mStr] = timeStr.split(':');
+  const h24 = parseInt(h24Str, 10);
+  const period = h24 >= 12 ? 'PM' : 'AM';
+  let h12 = h24 % 12;
+  if (h12 === 0) h12 = 12;
+  const hour = String(h12).padStart(2, '0');
+  const minute = mStr || '00';
+  return { hour, minute, period };
+};
+
+const formatTime = (hour, minute, period) => {
+  let h24 = parseInt(hour, 10);
+  if (period === 'PM' && h24 !== 12) h24 += 12;
+  if (period === 'AM' && h24 === 12) h24 = 0;
+  const h24Str = String(h24).padStart(2, '0');
+  return `${h24Str}:${minute}`;
+};
+
+// ── Wheel Column Component ───────────────────────────────────────────────────
+const WheelColumn = ({ items, selectedValue, onChange }) => {
+  const containerRef = useRef(null);
+  const scrollTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const index = items.indexOf(selectedValue);
+    if (index !== -1) {
+      const targetScroll = index * 32;
+      if (Math.abs(container.scrollTop - targetScroll) > 2) {
+        container.scrollTo({ top: targetScroll, behavior: 'smooth' });
+      }
+    }
+  }, [selectedValue, items]);
+
+  const handleScroll = () => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    scrollTimeoutRef.current = setTimeout(() => {
+      const index = Math.round(container.scrollTop / 32);
+      if (index >= 0 && index < items.length) {
+        const val = items[index];
+        if (val !== selectedValue) {
+          onChange(val);
+        }
+      }
+    }, 150);
+  };
+
+  const handleItemClick = (val) => {
+    onChange(val);
+  };
+
+  return (
+    <Box
+      ref={containerRef}
+      onScroll={handleScroll}
+      sx={{
+        height: 32,
+        overflowY: 'auto',
+        scrollbarWidth: 'none',
+        '&::-webkit-scrollbar': { display: 'none' },
+        scrollSnapType: 'y mandatory',
+        width: '35px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        position: 'relative',
+        '&::before, &::after': {
+          content: '""',
+          display: 'block',
+          height: 0,
+          flexShrink: 0,
+        }
+      }}
+    >
+      {items.map((item) => (
+        <Box
+          key={item}
+          onClick={() => handleItemClick(item)}
+          sx={{
+            height: 32,
+            lineHeight: '32px',
+            fontSize: '0.82rem',
+            fontWeight: item === selectedValue ? 700 : 400,
+            color: item === selectedValue ? 'primary.main' : 'text.secondary',
+            cursor: 'pointer',
+            scrollSnapAlign: 'center',
+            textAlign: 'center',
+            width: '100%',
+            transition: 'color 0.15s ease, font-weight 0.15s ease',
+            opacity: item === selectedValue ? 1 : 0.4,
+          }}
+        >
+          {item}
+        </Box>
+      ))}
+    </Box>
+  );
+};
+
+// ── Time Wheel Picker Component ──────────────────────────────────────────────
+const TimeWheelPicker = ({ value, onChange, disabled, error, helperText }) => {
+  const { hour, minute, period } = parseTime(value);
+
+  const hoursList = ['12', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11'];
+  const minutesList = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+  const periodsList = ['AM', 'PM'];
+
+  const handleHourChange = (newHour) => {
+    if (disabled) return;
+    onChange(formatTime(newHour, minute, period));
+  };
+
+  const handleMinuteChange = (newMinute) => {
+    if (disabled) return;
+    onChange(formatTime(hour, newMinute, period));
+  };
+
+  const handlePeriodChange = (newPeriod) => {
+    if (disabled) return;
+    onChange(formatTime(hour, minute, newPeriod));
+  };
+
+  return (
+    <Box>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)',
+          border: (theme) => `1px solid ${error ? theme.palette.error.main : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)')}`,
+          borderRadius: 2,
+          p: '0px 12px',
+          position: 'relative',
+          height: 48,
+          width: '100%',
+          boxSizing: 'border-box',
+          opacity: disabled ? 0.6 : 1,
+          pointerEvents: disabled ? 'none' : 'auto',
+        }}
+      >
+        <WheelColumn items={hoursList} selectedValue={hour} onChange={handleHourChange} />
+        <Typography variant="body2" sx={{ mx: 0.8, fontWeight: 700, color: 'text.secondary', zIndex: 3 }}>:</Typography>
+        <WheelColumn items={minutesList} selectedValue={minute} onChange={handleMinuteChange} />
+        <Box sx={{ width: 8 }} />
+        <WheelColumn items={periodsList} selectedValue={period} onChange={handlePeriodChange} />
+      </Box>
+      {helperText && (
+        <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5, ml: 1 }}>
+          {helperText}
+        </Typography>
+      )}
+    </Box>
   );
 };

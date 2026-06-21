@@ -8,15 +8,15 @@ import { motion } from 'framer-motion';
  * Handles visual states: Available, Selected, Reserved/Booked
  */
 
-const SeatContainer = styled(motion.div)(({ theme, status, type }) => ({
+const SeatContainer = styled(motion.div)(({ status, type }) => ({
   width: '100%',
   aspectRatio: '1/1',
-  borderRadius: '8px',
+  borderRadius: '6px',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   cursor: type === 'driver' ? 'default' : 'pointer',
-  border: '2px solid',
+  border: '1.5px solid',
   transition: 'all 0.2s ease',
   
   // Dynamic Backgrounds based on status
@@ -71,7 +71,7 @@ const Seat = ({ seat, onSelect, isSelected }) => {
         whileTap={{ scale: 0.95 }}
         onClick={() => seat.type !== 'driver' && onSelect(seat)}
       >
-        <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>
+        <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.68rem' }}>
           {seat.seatNumber}
         </Typography>
       </SeatContainer>

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:ridesync/core/constants.dart';
+import 'package:provider/provider.dart';
+import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class OperatorContactScreen extends StatefulWidget {
   const OperatorContactScreen({super.key});
@@ -10,29 +14,9 @@ class OperatorContactScreen extends StatefulWidget {
 }
 
 class _OperatorContactScreenState extends State<OperatorContactScreen> {
-  final List<Map<String, dynamic>> _recentTickets = [
-    {
-      'id': 'TCK-892',
-      'title': 'App Not Syncing Data',
-      'status': 'Pending',
-      'date': 'Today, 10:30 AM',
-      'type': 'Technical',
-    },
-    {
-      'id': 'TCK-885',
-      'title': 'Request Route Change to 120',
-      'status': 'Resolved',
-      'date': 'Yesterday, 4:15 PM',
-      'type': 'Schedule',
-    },
-    {
-      'id': 'TCK-812',
-      'title': 'Bus Breakdown at Kadawatha',
-      'status': 'Resolved',
-      'date': 'June 5, 2026',
-      'type': 'Emergency',
-    },
-  ];
+  String get _operatorId {
+    return Provider.of<AuthProvider>(context, listen: false).user?.id ?? '';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,15 +27,14 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
       appBar: AppBar(
         backgroundColor: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
         elevation: 0,
+        automaticallyImplyLeading: false,
         title: const Text(
           'Contact Admin',
           style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: 0.5),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          _showNewTicketBottomSheet(context, isDark);
-        },
+        onPressed: () => _showNewTicketBottomSheet(context, isDark),
         backgroundColor: AppColors.primaryOrange,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.edit_document),
@@ -151,71 +134,161 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
   }
 
   Widget _buildTicketList(bool isDark) {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      itemCount: _recentTickets.length,
-      itemBuilder: (context, index) {
-        final ticket = _recentTickets[index];
-        final isResolved = ticket['status'] == 'Resolved';
+    if (_operatorId.isEmpty) {
+      return const Center(child: Text('Not authenticated.'));
+    }
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white10 : Colors.grey.shade50,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  ticket['type'] == 'Emergency' ? Icons.car_crash_rounded :
-                  ticket['type'] == 'Schedule' ? Icons.calendar_month_rounded : Icons.build_circle_rounded,
-                  color: isDark ? Colors.white54 : Colors.grey.shade600,
-                  size: 20,
-                ),
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('operator_reports')
+          .where('operatorId', isEqualTo: _operatorId)
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: Padding(
+            padding: EdgeInsets.all(24),
+            child: CircularProgressIndicator(color: AppColors.primaryOrange),
+          ));
+        }
+
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Text('Error loading reports: ${snapshot.error}', style: const TextStyle(color: Colors.red)),
+          );
+        }
+
+        final docs = snapshot.data?.docs ?? [];
+
+        if (docs.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(ticket['title'], style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : AppColors.textDark)),
-                    const SizedBox(height: 4),
-                    Text('${ticket['id']} • ${ticket['date']}', style: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade500, fontSize: 11)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isResolved ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
+              child: Center(
                 child: Text(
-                  ticket['status'],
-                  style: TextStyle(
-                    color: isResolved ? Colors.green : Colors.orange,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  'No reports submitted yet.\nTap "New Report" to contact admin.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade500),
                 ),
               ),
-            ],
-          ),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final data = docs[index].data() as Map<String, dynamic>;
+            final isResolved = data['status'] == 'resolved';
+
+            // Format time
+            String dateStr = '';
+            if (data['createdAt'] is Timestamp) {
+              final dt = (data['createdAt'] as Timestamp).toDate();
+              final now = DateTime.now();
+              if (dt.day == now.day && dt.month == now.month && dt.year == now.year) {
+                dateStr = 'Today, ${DateFormat('h:mm a').format(dt)}';
+              } else if (dt.day == now.day - 1 && dt.month == now.month && dt.year == now.year) {
+                dateStr = 'Yesterday, ${DateFormat('h:mm a').format(dt)}';
+              } else {
+                dateStr = DateFormat('MMM d, y').format(dt);
+              }
+            }
+
+            final type = data['type'] as String? ?? 'General';
+            final title = data['title'] as String? ?? type;
+            final status = data['status'] as String? ?? 'pending';
+
+            Color statusColor;
+            if (isResolved) {
+              statusColor = Colors.green;
+            } else if (status == 'in_progress') {
+              statusColor = Colors.blue;
+            } else {
+              statusColor = Colors.orange;
+            }
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white10 : Colors.grey.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _iconForType(type),
+                      color: isDark ? Colors.white54 : Colors.grey.shade600,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : AppColors.textDark)),
+                        const SizedBox(height: 4),
+                        Text(dateStr.isEmpty ? '' : dateStr, style: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade500, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _formatStatus(status),
+                      style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
+  }
+
+  IconData _iconForType(String type) {
+    final lower = type.toLowerCase();
+    if (lower.contains('breakdown') || lower.contains('emergency')) return Icons.car_crash_rounded;
+    if (lower.contains('schedule') || lower.contains('delay') || lower.contains('traffic')) return Icons.calendar_month_rounded;
+    if (lower.contains('tech') || lower.contains('app')) return Icons.build_circle_rounded;
+    if (lower.contains('passenger') || lower.contains('dispute')) return Icons.people_alt_rounded;
+    return Icons.report_problem_rounded;
+  }
+
+  String _formatStatus(String status) {
+    switch (status) {
+      case 'pending': return 'Pending';
+      case 'in_progress': return 'In Progress';
+      case 'resolved': return 'Resolved';
+      default: return status[0].toUpperCase() + status.substring(1);
+    }
   }
 
   void _showNewTicketBottomSheet(BuildContext context, bool isDark) {
@@ -227,138 +300,162 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
       '📱 App / Tech Issue',
       '➕ Other',
     ];
+    final descController = TextEditingController();
+    final otherController = TextEditingController();
+    bool isSubmitting = false;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return Container(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-              left: 24,
-              right: 24,
-              top: 24,
-            ),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(width: 40, height: 4, decoration: BoxDecoration(color: isDark ? Colors.white24 : Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
-                ),
-                const SizedBox(height: 24),
-                Text('Report an Issue', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedIssue,
-                  dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        builder: (context, setModal) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(color: isDark ? Colors.white24 : Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+                    ),
                   ),
-                  items: issues.map((String issue) {
-                    return DropdownMenuItem<String>(
+                  const SizedBox(height: 24),
+                  Text('Report an Issue', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                  const SizedBox(height: 16),
+                  // Issue type dropdown
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedIssue,
+                    dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    ),
+                    items: issues.map((String issue) => DropdownMenuItem<String>(
                       value: issue,
                       child: Text(issue, style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontSize: 14, fontWeight: FontWeight.w500)),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        selectedIssue = newValue;
-                      });
-                    }
-                  },
-                ),
-                if (selectedIssue == '➕ Other') ...[
+                    )).toList(),
+                    onChanged: (String? newValue) {
+                      if (newValue != null) setModal(() => selectedIssue = newValue);
+                    },
+                  ),
+
+                  if (selectedIssue == '➕ Other') ...[
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: otherController,
+                      style: TextStyle(color: isDark ? Colors.white : AppColors.textDark),
+                      decoration: InputDecoration(
+                        hintText: 'Specify reason...',
+                        hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400),
+                        filled: true,
+                        fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      ),
+                    ),
+                  ],
+
                   const SizedBox(height: 16),
                   TextField(
+                    controller: descController,
+                    maxLines: 4,
+                    style: TextStyle(color: isDark ? Colors.white : AppColors.textDark),
                     decoration: InputDecoration(
-                      hintText: 'Specify reason...',
+                      hintText: 'Describe the issue in detail...',
                       hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400),
                       filled: true,
                       fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     ),
                   ),
+
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: isSubmitting
+                          ? null
+                          : () async {
+                              final desc = descController.text.trim();
+                              if (desc.length < 5) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Please describe the issue (minimum 5 characters).')),
+                                );
+                                return;
+                              }
+
+                              final operatorId = _operatorId;
+                              if (operatorId.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Authentication error. Please re-login.')),
+                                );
+                                return;
+                              }
+
+                              setModal(() => isSubmitting = true);
+
+                              try {
+                                final type = selectedIssue == '➕ Other'
+                                    ? (otherController.text.trim().isEmpty ? 'Other' : otherController.text.trim())
+                                    : selectedIssue;
+
+                                await FirebaseFirestore.instance.collection('operator_reports').add({
+                                  'operatorId': operatorId,
+                                  'type': type,
+                                  'title': type,
+                                  'description': desc,
+                                  'status': 'pending',
+                                  'createdAt': FieldValue.serverTimestamp(),
+                                });
+
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Report submitted! Admin will review shortly.'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                setModal(() => isSubmitting = false);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Failed to submit report: $e'), backgroundColor: Colors.red),
+                                  );
+                                }
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryOrange,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: AppColors.primaryOrange.withValues(alpha: 0.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: isSubmitting
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text('Submit Report', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
                 ],
-                const SizedBox(height: 16),
-            TextField(
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText: 'Describe the issue or request in detail...',
-                hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400),
-                filled: true,
-                fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    icon: Icon(Icons.add_a_photo_rounded, color: isDark ? Colors.white70 : Colors.grey.shade700),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Camera opened')));
-                    },
-                    tooltip: 'Attach Photo',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    icon: Icon(Icons.mic_none_rounded, color: isDark ? Colors.white70 : Colors.grey.shade700),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Recording voice note...')));
-                    },
-                    tooltip: 'Record Voice Note',
-                  ),
-                ),
-                const Spacer(),
-                Text('Add Attachments', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade500, fontSize: 12)),
-              ],
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Report submitted successfully!')));
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryOrange,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                child: const Text('Submit Report', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      );
-    },
-  ),
-);
-}
+          );
+        },
+      ),
+    );
+  }
 
   Future<void> _launchWhatsApp(String phone) async {
     final Uri url = Uri.parse('https://wa.me/$phone');

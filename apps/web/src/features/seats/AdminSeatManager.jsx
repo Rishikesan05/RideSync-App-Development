@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Dialog, 
   DialogTitle, 
@@ -9,12 +9,12 @@ import {
   Typography,
   Chip,
   Stack,
-  Divider,
-  Paper
+  Divider
 } from '@mui/material';
 import BusSeatMap from './BusSeatMap';
-import { bookSeat, updateSeatMeta, initializeRideSeats, relocateSeat } from './SeatService';
+import { updateSeatMeta, initializeRideSeats, relocateSeat } from './SeatService';
 import { useSeatMap } from './useSeatMap';
+import { format, isValid } from 'date-fns';
 
 /**
  * Admin Seat Management Panel
@@ -86,18 +86,6 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
     setSelectedSeat(null);
   };
 
-  const handleMarkVIP = async () => {
-    if (!selectedSeat) return;
-    await updateSeatMeta(rideId, selectedSeat.seatNumber, { type: 'vip' });
-    setSelectedSeat(null);
-  };
-
-  const handleRemoveVIP = async () => {
-    if (!selectedSeat) return;
-    await updateSeatMeta(rideId, selectedSeat.seatNumber, { type: 'standard' });
-    setSelectedSeat(null);
-  };
-
   const handleMakeAvailable = async () => {
     if (!selectedSeat) return;
     await updateSeatMeta(rideId, selectedSeat.seatNumber, { status: 'available', type: 'standard' });
@@ -105,8 +93,24 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
   };
 
   const isBlocked = selectedSeat && selectedSeat.status === 'booked' && selectedSeat.type === 'blocked';
-  const isVip = selectedSeat && selectedSeat.type === 'vip';
   const isBooked = selectedSeat && ['reserved', 'booked', 'occupied', 'sold'].includes(selectedSeat.status) && selectedSeat.type !== 'blocked';
+
+  const formatDateTime = (dateValue) => {
+    if (!dateValue) return 'N/A';
+    try {
+      let date;
+      if (dateValue._seconds) {
+        date = new Date(dateValue._seconds * 1000);
+      } else if (dateValue.seconds) {
+        date = new Date(dateValue.seconds * 1000);
+      } else {
+        date = new Date(dateValue);
+      }
+      return isValid(date) ? format(date, 'MMM dd, yyyy - hh:mm a') : 'Invalid Time';
+    } catch {
+      return 'N/A';
+    }
+  };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -185,6 +189,16 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
                   <Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Selected Seat: {selectedSeat.seatNumber}</Typography>
                     <Typography variant="caption" color="text.secondary">Current Status: {selectedSeat.status}</Typography>
+                    {isBooked && (
+                      <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'rgba(230, 141, 51, 0.08)', borderRadius: 2, border: '1px solid rgba(230, 141, 51, 0.2)' }}>
+                        <Typography variant="caption" display="block">
+                          <strong>Booked By:</strong> {selectedSeat.passengerId || 'Unknown'}
+                        </Typography>
+                        <Typography variant="caption" display="block">
+                          <strong>Booked At:</strong> {formatDateTime(selectedSeat.bookedAt)}
+                        </Typography>
+                      </Box>
+                    )}
                   </Box>
                   
                   {/* Ticket Divider & Cutout Notches */}
@@ -269,12 +283,6 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
                   </Button>
                 )}
 
-                {isVip && (
-                  <Button fullWidth variant="contained" color="success" onClick={handleRemoveVIP}>
-                    Undo VIP (Set to Standard)
-                  </Button>
-                )}
-
                 {isBooked && (
                   <>
                     <Button 
@@ -298,13 +306,10 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
                   </>
                 )}
 
-                {!isBlocked && !isVip && !isBooked && (
+                {!isBlocked && !isBooked && (
                   <>
                     <Button fullWidth variant="contained" color="error" onClick={handleBlockSeat}>
                       Block Seat (Maintenance)
-                    </Button>
-                    <Button fullWidth variant="contained" color="warning" onClick={handleMarkVIP}>
-                      Set as VIP Seat
                     </Button>
                   </>
                 )}

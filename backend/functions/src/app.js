@@ -23,6 +23,7 @@ const notificationController = require('./modules/notification/notification.cont
 const feedbackController = require('./modules/feedback/feedback.controller');
 const chatbotController = require('./modules/chatbot/chatbot.controller');
 const usersController = require('./modules/users/users.controller');
+const operatorController = require('./modules/operator/operator.controller');
 
 const app = express();
 
@@ -81,6 +82,7 @@ app.use('/api/bookings', bookingController);
 app.use('/api/notify', notificationController);
 app.use('/api/feedback', feedbackController);
 app.use('/api/chatbot', chatbotController);
+app.use('/api/operator', operatorController);
 
 // ─── 404 Handler ─────────────────────────────────────────────────
 

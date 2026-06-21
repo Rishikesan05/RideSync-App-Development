@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:ridesync/core/constants.dart';
+import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:ui';
@@ -12,109 +14,274 @@ class OperatorEarningsScreen extends StatefulWidget {
 }
 
 class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
-  // Navigation State
-  String _selectedTimeframe = 'Week'; // 'Today', 'Week', 'Month'
+  String _selectedTimeframe = 'Week';
+  bool _isLoading = true;
+  String? _error;
 
-  // Mock Data
-  final int _tripsCompleted = 24;
-  final double _hoursOnline = 36.5;
+  // Fetched data
+  double _totalLifetimeRevenue = 0;
+  double _pendingHandover = 0;
+  double _awaitingApproval = 0;
+  double _deposited = 0;
+  List<Map<String, dynamic>> _weeklyData = [];
+  List<Map<String, dynamic>> _recentTrips = [];
+  int _tripsCompleted = 0;
+  String _nextHandoverDate = '';
 
-  final List<Map<String, dynamic>> _weeklyData = [
-    {'day': 'Mon', 'amount': 12000, 'max': false},
-    {'day': 'Tue', 'amount': 14000, 'max': false},
-    {'day': 'Wed', 'amount': 9500, 'max': false},
-    {'day': 'Thu', 'amount': 18500, 'max': true},
-    {'day': 'Fri', 'amount': 14500, 'max': false}, // today
-    {'day': 'Sat', 'amount': 4000, 'max': false},
-    {'day': 'Sun', 'amount': 0, 'max': false},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchEarnings();
+  }
 
-  final List<Map<String, dynamic>> _transactions = [
-    {'id': 'TX-1204', 'route': 'Route 138 (Kadawatha)', 'time': '2:30 PM', 'amount': 4500.00, 'status': 'Completed', 'type': 'card'},
-    {'id': 'TX-1203', 'route': 'Route 138 (Pettah)', 'time': '11:15 AM', 'amount': 5200.00, 'status': 'Completed', 'type': 'cash'},
-    {'id': 'TX-1202', 'route': 'Route 120 (Kesbewa)', 'time': '8:00 AM', 'amount': 4800.00, 'status': 'Completed', 'type': 'online'},
-    {'id': 'TX-1201', 'route': 'Route 120 (Pettah)', 'time': 'Yesterday', 'amount': 3200.00, 'status': 'Completed', 'type': 'cash'},
-  ];
+  String get _operatorId {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    return auth.user?.id ?? '';
+  }
+
+  Future<void> _fetchEarnings() async {
+    if (_operatorId.isEmpty) {
+      setState(() {
+        _isLoading = false;
+        _error = 'User not authenticated.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // 1. Fetch all completed schedules for this operator
+      final schedulesSnap = await FirebaseFirestore.instance
+          .collection('schedules')
+          .where('operatorId', isEqualTo: _operatorId)
+          .where('status', isEqualTo: 'completed')
+          .get();
+
+      double totalRevenue = 0;
+      int tripsCompleted = 0;
+      final List<Map<String, dynamic>> allTrips = [];
+
+      for (final doc in schedulesSnap.docs) {
+        final data = doc.data();
+        final revenue = (data['revenue'] ?? 0).toDouble();
+        totalRevenue += revenue;
+        tripsCompleted++;
+
+        DateTime? completedAt;
+        if (data['actualEndTime'] is Timestamp) {
+          completedAt = (data['actualEndTime'] as Timestamp).toDate();
+        } else if (data['updatedAt'] is Timestamp) {
+          completedAt = (data['updatedAt'] as Timestamp).toDate();
+        }
+
+        allTrips.add({
+          'id': doc.id,
+          'routeName': data['routeName'] ?? 'Unknown Route',
+          'plateNumber': data['plateNumber'] ?? 'N/A',
+          'revenue': revenue,
+          'bookedSeatsCount': data['bookedSeatsCount'] ?? 0,
+          'completedAt': completedAt,
+        });
+      }
+
+      // Sort trips newest first
+      allTrips.sort((a, b) {
+        final DateTime? tA = a['completedAt'];
+        final DateTime? tB = b['completedAt'];
+        if (tA == null && tB == null) return 0;
+        if (tA == null) return 1;
+        if (tB == null) return -1;
+        return tB.compareTo(tA);
+      });
+
+      // 2. Build weekly breakdown (last 7 days)
+      final weeklyData = _buildWeeklyBreakdown(allTrips);
+
+      // 3. Fetch cash handovers for this operator
+      final handoverSnap = await FirebaseFirestore.instance
+          .collection('cash_handovers')
+          .where('operatorId', isEqualTo: _operatorId)
+          .get();
+
+      double awaitingApproval = 0;
+      double deposited = 0;
+
+      for (final doc in handoverSnap.docs) {
+        final data = doc.data();
+        final amount = (data['amount'] ?? 0).toDouble();
+        final status = data['status'] as String? ?? '';
+        if (status == 'pending_approval') {
+          awaitingApproval += amount;
+        } else if (status == 'approved') {
+          deposited += amount;
+        }
+      }
+
+      // Pending handover = what hasn't been logged yet
+      double pendingHandover = totalRevenue - (awaitingApproval + deposited);
+      if (pendingHandover < 0) pendingHandover = 0;
+
+      // Next handover date (every Friday)
+      final nextFriday = _nextFriday();
+
+      if (mounted) {
+        setState(() {
+          _totalLifetimeRevenue = totalRevenue;
+          _pendingHandover = pendingHandover;
+          _awaitingApproval = awaitingApproval;
+          _deposited = deposited;
+          _weeklyData = weeklyData;
+          _recentTrips = allTrips.take(10).toList();
+          _tripsCompleted = tripsCompleted;
+          _nextHandoverDate = DateFormat('EEEE, d MMMM').format(nextFriday);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching earnings: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _error = 'Failed to load earnings. Pull to refresh.';
+        });
+      }
+    }
+  }
+
+  List<Map<String, dynamic>> _buildWeeklyBreakdown(List<Map<String, dynamic>> trips) {
+    final now = DateTime.now();
+    final result = <Map<String, dynamic>>[];
+
+    for (int i = 6; i >= 0; i--) {
+      final day = DateTime(now.year, now.month, now.day - i);
+      final dayEnd = day.add(const Duration(days: 1));
+      final dayLabel = DateFormat('E').format(day);
+
+      double amount = 0;
+      for (final trip in trips) {
+        final DateTime? completedAt = trip['completedAt'];
+        if (completedAt != null && completedAt.isAfter(day.subtract(const Duration(seconds: 1))) && completedAt.isBefore(dayEnd)) {
+          amount += (trip['revenue'] as double);
+        }
+      }
+
+      result.add({'day': dayLabel, 'amount': amount, 'isToday': i == 0});
+    }
+
+    return result;
+  }
+
+  DateTime _nextFriday() {
+    final now = DateTime.now();
+    final daysUntilFriday = (DateTime.friday - now.weekday + 7) % 7;
+    return now.add(Duration(days: daysUntilFriday == 0 ? 7 : daysUntilFriday));
+  }
+
+  List<Map<String, dynamic>> get _displayedTrips {
+    if (_selectedTimeframe == 'Today') {
+      final today = DateTime.now();
+      return _recentTrips.where((t) {
+        final DateTime? d = t['completedAt'];
+        if (d == null) return false;
+        return d.year == today.year && d.month == today.month && d.day == today.day;
+      }).toList();
+    } else if (_selectedTimeframe == 'Week') {
+      final weekAgo = DateTime.now().subtract(const Duration(days: 7));
+      return _recentTrips.where((t) {
+        final DateTime? d = t['completedAt'];
+        return d != null && d.isAfter(weekAgo);
+      }).toList();
+    }
+    return _recentTrips; // Month — show all (up to 10)
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('cash_handovers')
-            .where('operatorId', isEqualTo: 'op_001')
-            .snapshots(),
-        builder: (context, snapshot) {
-          double awaitingApproval = 0;
-          double deposited = 0;
-          
-          if (snapshot.hasData) {
-            for (var doc in snapshot.data!.docs) {
-              final data = doc.data() as Map<String, dynamic>;
-              final amount = (data['amount'] ?? 0).toDouble();
-              final status = data['status'] as String?;
-              
-              if (status == 'pending_approval') {
-                awaitingApproval += amount;
-              } else if (status == 'approved') {
-                deposited += amount;
-              }
-            }
-          }
-
-          // Mock total lifetime collected cash for this operator
-          const double totalLifetimeCollected = 68500;
-          double pendingHandover = totalLifetimeCollected - (awaitingApproval + deposited);
-          if (pendingHandover < 0) pendingHandover = 0;
-
-          return CustomScrollView(
-            slivers: [
-              _buildSliverAppBar(isDark),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 120),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildBalanceCard(isDark, totalLifetimeCollected, pendingHandover),
-                      const SizedBox(height: 8),
-                      _buildTimeframeToggle(isDark),
-                      const SizedBox(height: 24),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildEarningsBreakdown(isDark, pendingHandover, awaitingApproval, deposited),
-                            const SizedBox(height: 24),
-                            _buildChartSection(isDark),
-                            const SizedBox(height: 32),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('Recent Payouts', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
-                                TextButton(
-                                  onPressed: () {},
-                                  style: TextButton.styleFrom(foregroundColor: AppColors.primaryOrange),
-                                  child: const Text('See All', style: TextStyle(fontWeight: FontWeight.w600)),
+      body: RefreshIndicator(
+        onRefresh: _fetchEarnings,
+        color: AppColors.primaryOrange,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: AppColors.primaryOrange))
+            : _error != null
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, color: Colors.red.shade400, size: 48),
+                        const SizedBox(height: 16),
+                        Text(_error!, style: TextStyle(color: isDark ? Colors.white70 : Colors.black54)),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _fetchEarnings,
+                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange),
+                          child: const Text('Retry', style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
+                    ),
+                  )
+                : CustomScrollView(
+                    slivers: [
+                      _buildSliverAppBar(isDark),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 120),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildBalanceCard(isDark),
+                              const SizedBox(height: 8),
+                              _buildTimeframeToggle(isDark),
+                              const SizedBox(height: 24),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildEarningsBreakdown(isDark),
+                                    const SizedBox(height: 24),
+                                    _buildChartSection(isDark),
+                                    const SizedBox(height: 32),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('Recent Trips', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                                        TextButton(
+                                          onPressed: _fetchEarnings,
+                                          style: TextButton.styleFrom(foregroundColor: AppColors.primaryOrange),
+                                          child: const Text('Refresh', style: TextStyle(fontWeight: FontWeight.w600)),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    if (_displayedTrips.isEmpty)
+                                      Center(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(24.0),
+                                          child: Text(
+                                            'No completed trips in this period.',
+                                            style: TextStyle(color: isDark ? Colors.white54 : Colors.grey),
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      ..._displayedTrips.map((trip) => _buildTripCard(trip, isDark)),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            ..._transactions.map((tx) => _buildTransactionCard(tx, isDark)),
-                          ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-            ],
-          );
-        }
       ),
     );
   }
@@ -126,6 +293,7 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
       floating: true,
       pinned: true,
       elevation: 0,
+      automaticallyImplyLeading: false,
       flexibleSpace: const FlexibleSpaceBar(
         titlePadding: EdgeInsets.only(left: 24, bottom: 16),
         title: Text(
@@ -163,8 +331,8 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
                   timeframe,
                   style: TextStyle(
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                    color: isSelected 
-                        ? (isDark ? Colors.white : AppColors.textDark) 
+                    color: isSelected
+                        ? (isDark ? Colors.white : AppColors.textDark)
                         : (isDark ? Colors.white54 : Colors.grey.shade600),
                   ),
                 ),
@@ -176,7 +344,7 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
     );
   }
 
-  Widget _buildBalanceCard(bool isDark, double totalLifetimeCollected, double pendingHandover) {
+  Widget _buildBalanceCard(bool isDark) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
@@ -185,7 +353,7 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isDark 
+          colors: isDark
               ? [const Color(0xFFE65100), const Color(0xFFBF360C)]
               : [AppColors.primaryOrange, const Color(0xFFFF7043)],
         ),
@@ -213,10 +381,10 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
                 Icon(Icons.account_balance_wallet_rounded, color: Colors.white.withValues(alpha: 0.9), size: 16),
                 const SizedBox(width: 8),
                 Text(
-                  'TOTAL BALANCE', 
+                  'TOTAL LIFETIME REVENUE',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9), 
-                    fontSize: 11, 
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 11,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.2,
                   ),
@@ -234,7 +402,7 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
                 Text('LKR', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 18, fontWeight: FontWeight.bold, height: 2.2)),
                 const SizedBox(width: 8),
                 TweenAnimationBuilder<double>(
-                  tween: Tween<double>(begin: 0, end: totalLifetimeCollected),
+                  tween: Tween<double>(begin: 0, end: _totalLifetimeRevenue),
                   duration: const Duration(milliseconds: 1200),
                   curve: Curves.easeOutQuart,
                   builder: (context, value, child) {
@@ -247,11 +415,9 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: pendingHandover <= 0 
-                ? null 
-                : () {
-                    _showHandoverConfirmation(context, pendingHandover);
-                  },
+            onPressed: _pendingHandover <= 0
+                ? null
+                : () => _showHandoverConfirmation(context, _pendingHandover),
             icon: const Icon(Icons.account_balance_rounded, size: 18),
             label: const Text('Log Cash Handover', style: TextStyle(fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
@@ -267,11 +433,10 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Next required depot handover: Friday, 12th June',
+            _nextHandoverDate.isEmpty ? '' : 'Next depot handover: $_nextHandoverDate',
             style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 32),
-          // Glassmorphic Stats Row
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: BackdropFilter(
@@ -288,7 +453,7 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
                   children: [
                     _buildStatCard('Trips', '$_tripsCompleted', Icons.route_rounded),
                     Container(width: 1, height: 30, color: Colors.white.withValues(alpha: 0.2)),
-                    _buildStatCard('Hours', '$_hoursOnline', Icons.schedule_rounded),
+                    _buildStatCard('Pending', 'LKR ${NumberFormat('#,##0').format(_pendingHandover.toInt())}', Icons.pending_actions_rounded),
                     Container(width: 1, height: 30, color: Colors.white.withValues(alpha: 0.2)),
                     _buildStatCard('Status', 'Active', Icons.verified_rounded),
                   ],
@@ -306,7 +471,7 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
       children: [
         Icon(icon, color: Colors.white, size: 22),
         const SizedBox(height: 6),
-        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
         const SizedBox(height: 2),
         Text(label, style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w500)),
       ],
@@ -314,6 +479,9 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
   }
 
   void _showHandoverConfirmation(BuildContext context, double amount) {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final operatorId = auth.user?.id ?? '';
+
     showDialog(
       context: context,
       builder: (context) {
@@ -332,17 +500,32 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context);
-                FirebaseFirestore.instance.collection('cash_handovers').add({
-                  'operatorId': 'op_001',
-                  'amount': amount,
-                  'status': 'pending_approval',
-                  'timestamp': FieldValue.serverTimestamp(),
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Cash handover logged successfully! Awaiting approval.')),
-                );
+                try {
+                  await FirebaseFirestore.instance.collection('cash_handovers').add({
+                    'operatorId': operatorId,
+                    'amount': amount,
+                    'notes': '',
+                    'status': 'pending_approval',
+                    'createdAt': FieldValue.serverTimestamp(),
+                  });
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Cash handover logged! Awaiting admin approval.'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                  await _fetchEarnings();
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to log handover: $e'), backgroundColor: Colors.red),
+                    );
+                  }
+                }
               },
               child: const Text('Confirm'),
             ),
@@ -352,7 +535,7 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
     );
   }
 
-  Widget _buildEarningsBreakdown(bool isDark, double pendingHandover, double awaitingApproval, double deposited) {
+  Widget _buildEarningsBreakdown(bool isDark) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
@@ -361,17 +544,17 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
           _buildBreakdownCard(
             isDark: isDark,
             title: 'Pending',
-            amount: pendingHandover,
+            amount: _pendingHandover,
             subtitle: 'Cash in hand',
             icon: Icons.warning_amber_rounded,
             color: Colors.orange,
           ),
           const SizedBox(width: 16),
-          if (awaitingApproval > 0) ...[
+          if (_awaitingApproval > 0) ...[
             _buildBreakdownCard(
               isDark: isDark,
               title: 'Awaiting',
-              amount: awaitingApproval,
+              amount: _awaitingApproval,
               subtitle: 'Depot approval',
               icon: Icons.access_time_rounded,
               color: Colors.amber,
@@ -381,7 +564,7 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
           _buildBreakdownCard(
             isDark: isDark,
             title: 'Deposited',
-            amount: deposited,
+            amount: _deposited,
             subtitle: 'Already handed over',
             icon: Icons.check_circle_outline_rounded,
             color: Colors.green,
@@ -391,7 +574,14 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
     );
   }
 
-  Widget _buildBreakdownCard({required bool isDark, required String title, required double amount, required String subtitle, required IconData icon, required MaterialColor color}) {
+  Widget _buildBreakdownCard({
+    required bool isDark,
+    required String title,
+    required double amount,
+    required String subtitle,
+    required IconData icon,
+    required MaterialColor color,
+  }) {
     return Container(
       width: 160,
       padding: const EdgeInsets.all(16),
@@ -427,6 +617,9 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
   }
 
   Widget _buildChartSection(bool isDark) {
+    final maxAmount = _weeklyData.fold<double>(0, (max, d) => d['amount'] > max ? d['amount'].toDouble() : max);
+    final effectiveMax = maxAmount > 0 ? maxAmount : 1;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -444,84 +637,84 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('$_selectedTimeframe Analytics', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryOrange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+              if (maxAmount > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryOrange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.bar_chart_rounded, color: AppColors.primaryOrange, size: 16),
+                      const SizedBox(width: 4),
+                      Text('LKR ${NumberFormat('#,##0').format(maxAmount.toInt())} peak', style: const TextStyle(color: AppColors.primaryOrange, fontWeight: FontWeight.bold, fontSize: 11)),
+                    ],
+                  ),
                 ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.trending_up_rounded, color: AppColors.primaryOrange, size: 16),
-                    SizedBox(width: 4),
-                    Text('+12%', style: TextStyle(color: AppColors.primaryOrange, fontWeight: FontWeight.bold, fontSize: 12)),
-                  ],
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 32),
           SizedBox(
             height: 160,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: _weeklyData.map((data) {
-                final double maxAmount = 20000.0;
-                final double heightPercentage = (data['amount'] as int) / maxAmount;
-                final bool isHighest = data['max'] == true;
-                final bool isToday = data['day'] == 'Fri';
+            child: _weeklyData.isEmpty
+                ? const Center(child: Text('No data', style: TextStyle(color: AppColors.textLight)))
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: _weeklyData.map((data) {
+                      final double amount = (data['amount'] as num).toDouble();
+                      final double heightPercentage = amount / effectiveMax;
+                      final bool isToday = data['isToday'] == true;
+                      final bool isHighest = amount == maxAmount && maxAmount > 0;
 
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (isHighest) 
-                      Text('Max', style: TextStyle(fontSize: 10, color: AppColors.primaryOrange, fontWeight: FontWeight.bold, height: 2)),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 500),
-                      curve: Curves.easeOutCubic,
-                      width: 28,
-                      height: (120 * heightPercentage).clamp(4.0, 120.0),
-                      decoration: BoxDecoration(
-                        gradient: isHighest 
-                            ? const LinearGradient(colors: [AppColors.primaryOrange, Color(0xFFFF8A65)], begin: Alignment.bottomCenter, end: Alignment.topCenter)
-                            : null,
-                        color: !isHighest 
-                            ? (isDark ? const Color(0xFF334155) : Colors.grey.shade200) 
-                            : null,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: isHighest 
-                            ? [BoxShadow(color: AppColors.primaryOrange.withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 4))] 
-                            : [],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      data['day'],
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
-                        color: isToday ? AppColors.primaryOrange : (isDark ? Colors.white54 : Colors.grey.shade500),
-                      ),
-                    ),
-                  ],
-                );
-              }).toList(),
-            ),
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (isHighest)
+                            Text('Peak', style: TextStyle(fontSize: 10, color: AppColors.primaryOrange, fontWeight: FontWeight.bold, height: 2)),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 500),
+                            curve: Curves.easeOutCubic,
+                            width: 28,
+                            height: (120 * heightPercentage).clamp(4.0, 120.0),
+                            decoration: BoxDecoration(
+                              gradient: isHighest
+                                  ? const LinearGradient(colors: [AppColors.primaryOrange, Color(0xFFFF8A65)], begin: Alignment.bottomCenter, end: Alignment.topCenter)
+                                  : null,
+                              color: !isHighest
+                                  ? (isDark ? const Color(0xFF334155) : Colors.grey.shade200)
+                                  : null,
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: isHighest
+                                  ? [BoxShadow(color: AppColors.primaryOrange.withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 4))]
+                                  : [],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            data['day'],
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
+                              color: isToday ? AppColors.primaryOrange : (isDark ? Colors.white54 : Colors.grey.shade500),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTransactionCard(Map<String, dynamic> tx, bool isDark) {
-    IconData getTxIcon() {
-      switch (tx['type']) {
-        case 'card': return Icons.credit_card_rounded;
-        case 'online': return Icons.language_rounded;
-        default: return Icons.payments_rounded;
-      }
-    }
+  Widget _buildTripCard(Map<String, dynamic> trip, bool isDark) {
+    final DateTime? completedAt = trip['completedAt'];
+    final String timeStr = completedAt != null ? DateFormat('MMM d, hh:mm a').format(completedAt) : 'Unknown';
+    final double revenue = (trip['revenue'] as num).toDouble();
+    final int seats = trip['bookedSeatsCount'] as int? ?? 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -542,22 +735,22 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
               color: isDark ? Colors.green.withValues(alpha: 0.15) : Colors.green.shade50,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(getTxIcon(), color: Colors.green.shade600, size: 24),
+            child: Icon(Icons.directions_bus_rounded, color: Colors.green.shade600, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(tx['route'], style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isDark ? Colors.white : AppColors.textDark)),
+                Text(trip['routeName'], style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isDark ? Colors.white : AppColors.textDark)),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Text(tx['time'], style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500)),
+                    Text(timeStr, style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500)),
                     const SizedBox(width: 6),
                     Container(width: 4, height: 4, decoration: BoxDecoration(color: Colors.grey.shade400, shape: BoxShape.circle)),
                     const SizedBox(width: 6),
-                    Text(tx['id'], style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade500, fontSize: 12)),
+                    Text('${trip['plateNumber']}  •  $seats seats', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade500, fontSize: 12)),
                   ],
                 ),
               ],
@@ -566,7 +759,7 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('+${tx['amount'].toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green)),
+              Text('+LKR ${NumberFormat('#,##0').format(revenue.toInt())}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.green)),
               const SizedBox(height: 4),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -574,10 +767,7 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
                   color: isDark ? Colors.white10 : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Text(
-                  tx['status'], 
-                  style: TextStyle(color: isDark ? Colors.white70 : Colors.grey.shade600, fontSize: 10, fontWeight: FontWeight.w600),
-                ),
+                child: Text('Completed', style: TextStyle(color: isDark ? Colors.white70 : Colors.grey.shade600, fontSize: 10, fontWeight: FontWeight.w600)),
               ),
             ],
           ),

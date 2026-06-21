@@ -66,5 +66,18 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Location usage descriptions (required for geolocator on iOS) -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>RideSync needs your location to show your position on the map and help passengers find buses.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>RideSync broadcasts your bus location in the background so passengers can track the bus even when the app is minimised.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>RideSync broadcasts your bus location in the background so passengers can track the bus even when the app is minimised.</string>
+	<!-- Required for background GPS broadcasting (operator keeps phone in pocket during trip) -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>fetch</string>
+	</array>
 </dict>
 </plist>

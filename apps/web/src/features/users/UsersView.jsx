@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Typography,
   Box,
@@ -19,10 +19,6 @@ import {
   TextField,
   Divider,
   Snackbar,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from '@mui/material';
 import {
   AdminPanelSettings,
@@ -30,13 +26,12 @@ import {
   Person,
   Edit,
   Delete,
-  VerifiedUser,
   HourglassEmpty,
   Close,
   Save,
   Warning,
   Search,
-  ManageAccounts,
+  VpnKey,
   CheckCircle,
   PendingActions,
 } from '@mui/icons-material';
@@ -115,7 +110,6 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
   const name       = user.name || user.displayName || 'Unknown User';
   const email      = user.email || '—';
   const phone      = user.phone || user.phoneNumber || '—';
-  const isApproved = user.isApproved !== false;
   const isPending  = categoryKey === 'pending';
 
   return (
@@ -126,17 +120,11 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
         gap: 2,
         p: 2,
         borderRadius: 2,
-        backgroundColor: isPending
-          ? (theme.palette.mode === 'dark' ? 'rgba(245,158,11,0.05)' : 'rgba(245,158,11,0.03)')
-          : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)'),
-        border: `1px solid ${isPending
-          ? 'rgba(245,158,11,0.2)'
-          : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)')}`,
+        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)',
+        border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'}`,
         transition: 'all 0.18s ease',
         '&:hover': {
-          backgroundColor: isPending
-            ? 'rgba(245,158,11,0.08)'
-            : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.035)'),
+          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.035)',
           transform: 'translateY(-1px)',
           boxShadow: `0 4px 16px ${cat.color}18`,
         },
@@ -151,6 +139,11 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           <Typography variant="body1" sx={{ fontWeight: 700 }} noWrap>{name}</Typography>
+          {user.operatorId && (
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>
+              (ID: <strong style={{ color: theme.palette.text.primary }}>{user.operatorId}</strong>)
+            </Typography>
+          )}
 
           {/* Pending role label */}
           {isPending && (
@@ -160,27 +153,9 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
               size="small"
               sx={{
                 height: 18, fontSize: '0.62rem', fontWeight: 700,
-                backgroundColor: 'rgba(245,158,11,0.12)',
+                backgroundColor: 'transparent',
                 color: '#f59e0b',
                 border: '1px solid rgba(245,158,11,0.3)',
-                '& .MuiChip-icon': { color: 'inherit' },
-              }}
-            />
-          )}
-
-          {/* Operator approval badge */}
-          {categoryKey === 'operators' && (
-            <Chip
-              icon={isApproved
-                ? <VerifiedUser sx={{ fontSize: '0.7rem !important' }} />
-                : <HourglassEmpty sx={{ fontSize: '0.7rem !important' }} />}
-              label={isApproved ? 'Approved' : 'Pending'}
-              size="small"
-              sx={{
-                height: 18, fontSize: '0.62rem', fontWeight: 700,
-                backgroundColor: isApproved ? 'rgba(52,197,119,0.12)' : 'rgba(245,158,11,0.12)',
-                color: isApproved ? '#34c577' : '#f59e0b',
-                border: `1px solid ${isApproved ? 'rgba(52,197,119,0.3)' : 'rgba(245,158,11,0.3)'}`,
                 '& .MuiChip-icon': { color: 'inherit' },
               }}
             />
@@ -190,7 +165,6 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mt: 0.2 }}>
           <Typography variant="caption" color="text.secondary">{email}</Typography>
           {phone !== '—' && <Typography variant="caption" color="text.disabled">· {phone}</Typography>}
-          {user.operatorId && <Typography variant="caption" color="text.disabled">· ID: {user.operatorId}</Typography>}
         </Box>
       </Box>
 
@@ -200,8 +174,8 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
         size="small"
         sx={{
           fontWeight: 700, fontSize: '0.68rem',
-          backgroundColor: cat.bgColor, color: cat.color,
-          border: `1px solid ${cat.color}33`, flexShrink: 0,
+          backgroundColor: 'transparent', color: cat.color,
+          border: `1px solid ${cat.color}60`, flexShrink: 0,
         }}
       />
 
@@ -209,32 +183,36 @@ const UserCard = ({ user, categoryKey, onEdit, onDelete, onChangeRole, theme }) 
       <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
 
         {/* "Change Role" — shown on pending cards AND as an extra action on all cards */}
-        <Tooltip title={isPending ? 'Verify & assign role' : 'Change role'}>
-          <IconButton
-            id={`role-btn-${user.id}`}
-            size="small"
-            onClick={() => onChangeRole(user, categoryKey)}
-            sx={{
-              color: '#f59e0b',
-              backgroundColor: isPending ? 'rgba(245,158,11,0.08)' : 'transparent',
-              border: isPending ? '1px solid rgba(245,158,11,0.3)' : 'none',
-              '&:hover': { backgroundColor: 'rgba(245,158,11,0.15)' },
-            }}
-          >
-            <ManageAccounts fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        {categoryKey !== 'passengers' && categoryKey !== 'operators' && (
+          <Tooltip title={isPending ? 'Verify & assign role' : 'Change role'}>
+            <IconButton
+              id={`role-btn-${user.id}`}
+              size="small"
+              onClick={() => onChangeRole(user, categoryKey)}
+              sx={{
+                color: '#f59e0b',
+                backgroundColor: 'transparent',
+                border: 'none',
+                '&:hover': { backgroundColor: 'rgba(245,158,11,0.08)' },
+              }}
+            >
+              <VpnKey fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
 
-        <Tooltip title="Edit user">
-          <IconButton
-            id={`edit-btn-${user.id}`}
-            size="small"
-            onClick={() => onEdit(user, categoryKey)}
-            sx={{ color: '#4f86f7', '&:hover': { backgroundColor: 'rgba(79,134,247,0.1)' } }}
-          >
-            <Edit fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        {categoryKey !== 'passengers' && categoryKey !== 'operators' && (
+          <Tooltip title="Edit user">
+            <IconButton
+              id={`edit-btn-${user.id}`}
+              size="small"
+              onClick={() => onEdit(user, categoryKey)}
+              sx={{ color: '#4f86f7', '&:hover': { backgroundColor: 'rgba(79,134,247,0.1)' } }}
+            >
+              <Edit fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
 
         <Tooltip title="Delete user">
           <IconButton
@@ -300,10 +278,6 @@ const ChangeRoleDialog = ({ open, user, onClose, onDone, theme }) => {
 
   const name = user ? (user.name || user.displayName || 'this user') : '';
 
-  React.useEffect(() => {
-    if (open) { setSelectedRole('admin'); setErr(''); }
-  }, [open]);
-
   const handleApprove = async () => {
     setSaving(true);
     setErr('');
@@ -320,8 +294,7 @@ const ChangeRoleDialog = ({ open, user, onClose, onDone, theme }) => {
 
   const roleOptions = [
     { value: 'admin',     label: 'Admin',     icon: '🛡️', desc: 'Full dashboard access' },
-    { value: 'operator',  label: 'Operator',  icon: '🚌', desc: 'Bus operator access' },
-    { value: 'passenger', label: 'Passenger', icon: '👤', desc: 'Mobile app passenger' },
+    { value: 'operator',  label: 'Operator',  icon: '🚌', desc: 'Bus driver / route operator access' },
   ];
 
   return (
@@ -344,10 +317,10 @@ const ChangeRoleDialog = ({ open, user, onClose, onDone, theme }) => {
       <DialogTitle sx={{ pb: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box sx={{
-            bgcolor: 'rgba(245,158,11,0.12)', borderRadius: 2,
+            bgcolor: 'transparent', borderRadius: 2,
             p: 0.8, display: 'flex', color: '#f59e0b',
           }}>
-            <ManageAccounts fontSize="small" />
+            <VpnKey fontSize="small" />
           </Box>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
@@ -373,7 +346,7 @@ const ChangeRoleDialog = ({ open, user, onClose, onDone, theme }) => {
         {user?.role && (
           <Box sx={{
             mb: 2.5, p: 1.5, borderRadius: 2,
-            backgroundColor: 'rgba(245,158,11,0.07)',
+            backgroundColor: 'transparent',
             border: '1px solid rgba(245,158,11,0.2)',
             display: 'flex', alignItems: 'center', gap: 1,
           }}>
@@ -450,20 +423,13 @@ const ChangeRoleDialog = ({ open, user, onClose, onDone, theme }) => {
 
 // ── Edit Dialog ───────────────────────────────────────────────────────────────
 const EditDialog = ({ open, user, categoryKey, onClose, onSaved, theme }) => {
-  const [form, setForm]     = useState({ name: '', email: '', phone: '' });
+  const [form, setForm]     = useState({
+    name:  user?.name || user?.displayName || '',
+    email: user?.email || '',
+    phone: user?.phone || user?.phoneNumber || '',
+  });
   const [saving, setSaving] = useState(false);
   const [err, setErr]       = useState('');
-
-  React.useEffect(() => {
-    if (user) {
-      setForm({
-        name:  user.name || user.displayName || '',
-        email: user.email || '',
-        phone: user.phone || user.phoneNumber || '',
-      });
-      setErr('');
-    }
-  }, [user]);
 
   const handleSave = async () => {
     if (!form.name.trim()) { setErr('Name is required.'); return; }
@@ -649,11 +615,11 @@ export const UsersView = () => {
           onClick={() => { setActiveTab(3); setSearch(''); }}
           sx={{
             mb: 3, p: 2, borderRadius: 2, cursor: 'pointer',
-            backgroundColor: 'rgba(245,158,11,0.08)',
+            backgroundColor: 'transparent',
             border: '1px solid rgba(245,158,11,0.35)',
             display: 'flex', alignItems: 'center', gap: 1.5,
             transition: 'all 0.2s',
-            '&:hover': { backgroundColor: 'rgba(245,158,11,0.14)' },
+            '&:hover': { backgroundColor: 'rgba(245,158,11,0.04)' },
           }}
         >
           <PendingActions sx={{ color: '#f59e0b' }} />
@@ -682,13 +648,18 @@ export const UsersView = () => {
             onClick={() => { setActiveTab(i); setSearch(''); }}
             sx={{
               p: 2, borderRadius: 3, cursor: 'pointer',
-              backgroundColor: activeTab === i ? cat.bgColor : theme.palette.background.paper,
-              border: `1px solid ${activeTab === i ? cat.color + '55' : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)')}`,
+              backgroundColor: theme.palette.background.paper,
+              border: `1.5px solid ${activeTab === i ? cat.color : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)')}`,
               transition: 'all 0.2s ease',
-              boxShadow: activeTab === i
-                ? `0 6px 20px ${cat.color}28`
-                : (theme.palette.mode === 'dark' ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.04)'),
-              '&:hover': { transform: 'translateY(-2px)', boxShadow: `0 8px 24px ${cat.color}28` },
+              boxShadow: theme.palette.mode === 'dark'
+                ? '0 4px 12px rgba(0, 0, 0, 0.3)'
+                : '0 4px 12px rgba(0, 0, 0, 0.04)',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: theme.palette.mode === 'dark'
+                  ? '0 8px 24px rgba(0, 0, 0, 0.4)'
+                  : '0 8px 24px rgba(0, 0, 0, 0.08)',
+              },
               // Pulsing ring on Pending card if there are pending users
               ...(cat.key === 'pending' && pending.length > 0 && activeTab !== i && {
                 animation: 'pendingPulse 2s infinite',
@@ -702,8 +673,9 @@ export const UsersView = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <Box sx={{
                 color: cat.color,
-                bgcolor: activeTab === i ? cat.color + '22' : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'),
-                borderRadius: 2, p: 0.8, display: 'flex',
+                bgcolor: 'transparent',
+                display: 'flex',
+                '& .MuiSvgIcon-root': { fontSize: 28 },
               }}>
                 {cat.icon}
               </Box>
@@ -825,6 +797,7 @@ export const UsersView = () => {
 
       {/* ── Dialogs ──────────────────────────────────────────────────── */}
       <ChangeRoleDialog
+        key={roleTarget ? `role-${roleTarget.user.id}` : 'role-closed'}
         open={Boolean(roleTarget)}
         user={roleTarget?.user || null}
         onClose={() => setRoleTarget(null)}
@@ -833,6 +806,7 @@ export const UsersView = () => {
       />
 
       <EditDialog
+        key={editTarget ? `edit-${editTarget.user.id}` : 'edit-closed'}
         open={Boolean(editTarget)}
         user={editTarget?.user || null}
         categoryKey={editTarget?.categoryKey || 'passengers'}
@@ -842,6 +816,7 @@ export const UsersView = () => {
       />
 
       <DeleteDialog
+        key={deleteTarget ? `delete-${deleteTarget.user.id}` : 'delete-closed'}
         open={Boolean(deleteTarget)}
         user={deleteTarget?.user || null}
         categoryKey={deleteTarget?.categoryKey || 'passengers'}

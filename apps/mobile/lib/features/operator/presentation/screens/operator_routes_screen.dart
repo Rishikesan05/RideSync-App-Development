@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import 'package:ridesync/core/constants.dart';
+import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/features/operator/presentation/screens/operator_manage_schedule_screen.dart';
 
 class OperatorRoutesScreen extends StatefulWidget {
@@ -10,35 +14,94 @@ class OperatorRoutesScreen extends StatefulWidget {
 }
 
 class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
-  final List<Map<String, dynamic>> _mockRoutes = [
-    {
-      'id': 'RT-138',
-      'name': 'Route 138: Kadawatha - Pettah',
-      'type': 'Express',
-      'duration': '1h 15m',
-      'distance': '18 km',
-      'stops': 12,
-      'isAssigned': true,
-    },
-    {
-      'id': 'RT-120',
-      'name': 'Route 120: Kesbewa - Pettah',
-      'type': 'Normal',
-      'duration': '1h 45m',
-      'distance': '22 km',
-      'stops': 24,
-      'isAssigned': true,
-    },
-    {
-      'id': 'RT-EX1',
-      'name': 'EX01: Makumbura - Galle',
-      'type': 'Intercity Highway',
-      'duration': '1h 30m',
-      'distance': '110 km',
-      'stops': 3,
-      'isAssigned': false,
-    },
-  ];
+  List<Map<String, dynamic>> _schedules = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSchedules();
+  }
+
+  Future<void> _fetchSchedules() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final userId = auth.user?.id;
+    final operatorId = auth.user?.operatorId ?? userId;
+    if (operatorId == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('schedules')
+          .where('operatorId', isEqualTo: operatorId)
+          .get()
+          .timeout(const Duration(seconds: 10));
+
+      List<Map<String, dynamic>> schedules = [];
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data();
+        
+        DateTime? depTime;
+        final rawTime = data['departureTime'];
+        if (rawTime is Timestamp) {
+          depTime = rawTime.toDate();
+        } else if (rawTime is String) {
+          depTime = DateTime.tryParse(rawTime);
+        }
+
+        // Fetch route data to get real stop count
+        int stopCount = 0;
+        final routeId = data['routeId'] as String? ?? '';
+        if (routeId.isNotEmpty) {
+          try {
+            final routeDoc = await FirebaseFirestore.instance.collection('routes').doc(routeId).get();
+            if (routeDoc.exists) {
+              final stops = routeDoc.data()?['stops'] as List<dynamic>? ?? [];
+              stopCount = stops.length;
+            }
+          } catch (_) {
+            // Non-fatal — keep stopCount as 0
+          }
+        }
+
+        schedules.add({
+          'id': doc.id,
+          'routeId': routeId,
+          'name': data['routeName'] ?? 'Unknown Route',
+          'type': data['status']?.toUpperCase() ?? 'SCHEDULED',
+          'time': depTime != null 
+              ? DateFormat('MMM dd, hh:mm a').format(depTime) 
+              : 'Unknown Time',
+          'rawTime': depTime, // For sorting
+          'bus': data['plateNumber'] ?? data['busPlateNumber'] ?? 'Unknown Bus',
+          'stops': stopCount,
+          'isAssigned': true,
+        });
+      }
+
+      // Sort in Dart to avoid Firestore index errors
+      schedules.sort((a, b) {
+        final DateTime? timeA = a['rawTime'];
+        final DateTime? timeB = b['rawTime'];
+        if (timeA == null && timeB == null) return 0;
+        if (timeA == null) return 1;
+        if (timeB == null) return -1;
+        return timeA.compareTo(timeB);
+      });
+
+      if (mounted) {
+        setState(() {
+          _schedules = schedules;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching schedules: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,29 +122,40 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 120, top: 24),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSearchBar(isDark),
-              const SizedBox(height: 24),
-              Text('Assigned Schedules', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
-              const SizedBox(height: 16),
-              ..._mockRoutes.where((r) => r['isAssigned'] == true).map((route) => _buildRouteCard(route, isDark)),
-              if (_mockRoutes.any((r) => r['isAssigned'] == false)) ...[
-                const SizedBox(height: 24),
-                Text('New Routes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
-                const SizedBox(height: 16),
-                ..._mockRoutes.where((r) => r['isAssigned'] == false).map((route) => _buildRouteCard(route, isDark)),
-              ],
-            ],
-          ),
-        ),
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _fetchSchedules,
+              color: AppColors.primaryOrange,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 120, top: 24),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSearchBar(isDark),
+                      const SizedBox(height: 24),
+                      Text('Assigned Schedules', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
+                      const SizedBox(height: 16),
+                      if (_schedules.isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24.0),
+                            child: Text(
+                              'No schedules assigned to you yet.',
+                              style: TextStyle(color: isDark ? Colors.white54 : Colors.grey),
+                            ),
+                          ),
+                        )
+                      else
+                        ..._schedules.map((route) => _buildRouteCard(route, isDark)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
     );
   }
 
@@ -109,8 +183,7 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
   }
 
   Widget _buildRouteCard(Map<String, dynamic> route, bool isDark) {
-    final isExpress = route['type'].toString().toLowerCase().contains('express') || route['type'].toString().toLowerCase().contains('highway');
-    final badgeColor = isExpress ? Colors.purple : AppColors.primaryOrange;
+    final badgeColor = route['type'] == 'ACTIVE' ? Colors.green : AppColors.primaryOrange;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -142,7 +215,7 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
                       ),
                       child: Text(route['type'], style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold)),
                     ),
-                    Text(route['id'], style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                    Text(route['routeId'], style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -150,9 +223,9 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    _routeMetric(Icons.timer_outlined, route['duration'], isDark),
+                    _routeMetric(Icons.access_time, route['time'], isDark),
                     const SizedBox(width: 24),
-                    _routeMetric(Icons.route_outlined, route['distance'], isDark),
+                    _routeMetric(Icons.directions_bus, route['bus'], isDark),
                     const SizedBox(width: 24),
                     _routeMetric(Icons.location_on_outlined, '${route['stops']} Stops', isDark),
                   ],
@@ -212,6 +285,8 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
   }
 
   void _showStopsSheet(BuildContext context, Map<String, dynamic> route, bool isDark) {
+    final routeId = route['routeId'] as String? ?? '';
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -236,73 +311,96 @@ class _OperatorRoutesScreenState extends State<OperatorRoutesScreen> {
                 ],
               ),
             ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                itemCount: route['stops'],
-                itemBuilder: (context, index) {
-                  final isLast = index == route['stops'] - 1;
-                  return IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SizedBox(
-                          width: 30,
-                          child: Column(
+            if (routeId.isEmpty)
+              const Expanded(child: Center(child: Text('No route linked.', style: TextStyle(color: Colors.grey))))
+            else
+              Expanded(
+                child: FutureBuilder<DocumentSnapshot>(
+                  future: FirebaseFirestore.instance.collection('routes').doc(routeId).get(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: AppColors.primaryOrange));
+                    }
+                    if (!snapshot.hasData || !snapshot.data!.exists) {
+                      return const Center(child: Text('Route not found.', style: TextStyle(color: Colors.grey)));
+                    }
+
+                    final routeData = snapshot.data!.data() as Map<String, dynamic>;
+                    final stops = List<Map<String, dynamic>>.from(
+                      (routeData['stops'] as List<dynamic>? ?? []).map((s) => Map<String, dynamic>.from(s as Map)),
+                    );
+
+                    if (stops.isEmpty) {
+                      return const Center(child: Text('No stops defined for this route.', style: TextStyle(color: Colors.grey)));
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      itemCount: stops.length,
+                      itemBuilder: (context, index) {
+                        final stop = stops[index];
+                        final isLast = index == stops.length - 1;
+                        final stopName = stop['name'] as String? ?? 'Stop ${index + 1}';
+                        final distKm = stop['distFromStartKm'];
+                        final distLabel = distKm != null ? '${distKm.toStringAsFixed(1)} km from start' : 'Km N/A';
+
+                        return IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Container(
-                                width: 16,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  color: index == 0 ? Colors.green : (isLast ? Colors.red : Colors.white),
-                                  border: Border.all(color: index == 0 ? Colors.green : (isLast ? Colors.red : AppColors.primaryOrange), width: 4),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              if (!isLast)
-                                Expanded(child: Container(width: 2, color: isDark ? Colors.white12 : Colors.grey.shade300)),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(bottom: 24.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              SizedBox(
+                                width: 30,
+                                child: Column(
                                   children: [
-                                    Text('Stop ${index + 1}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : AppColors.textDark)),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      width: 16,
+                                      height: 16,
                                       decoration: BoxDecoration(
-                                        color: AppColors.primaryOrange.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.people, size: 12, color: AppColors.primaryOrange),
-                                          const SizedBox(width: 4),
-                                          Text('${(index * 7 + 3) % 15 + 1} Booked', style: const TextStyle(color: AppColors.primaryOrange, fontSize: 11, fontWeight: FontWeight.bold)),
-                                        ],
+                                        color: index == 0 ? Colors.green : (isLast ? Colors.red : Colors.white),
+                                        border: Border.all(
+                                          color: index == 0 ? Colors.green : (isLast ? Colors.red : AppColors.primaryOrange),
+                                          width: 4,
+                                        ),
+                                        shape: BoxShape.circle,
                                       ),
                                     ),
+                                    if (!isLast)
+                                      Expanded(child: Container(width: 2, color: isDark ? Colors.white12 : Colors.grey.shade300)),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
-                                Text('Estimated arrival: +${index * 5} mins', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 12)),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 24.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        stopName,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: isDark ? Colors.white : AppColors.textDark,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        distLabel,
+                                        style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
           ],
         ),
       ),
