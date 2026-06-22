@@ -50,6 +50,99 @@ import { useRoutesFirestore } from './useRoutesFirestore';
 import { RouteFormDialog } from './RouteFormDialog';
 import { RouteStatsBar } from './RouteStatsBar';
 
+export const syncRouteFares = (updatedRoute, allRoutes) => {
+  const getRoutePoints = (r) => {
+    const pts = [{ name: r.startPoint || '', price: 0, isStart: true }];
+    (r.stops || []).forEach(s => {
+      pts.push({ name: s.name || '', price: s.price || 0, isStop: true });
+    });
+    pts.push({ name: r.endPoint || '', price: r.endPrice || 0, isEnd: true });
+    return pts;
+  };
+
+  const updatedPoints = getRoutePoints(updatedRoute);
+  const fareMap = {};
+
+  // Extract all fares between any two points in the updated route
+  for (let i = 0; i < updatedPoints.length; i++) {
+    for (let j = i + 1; j < updatedPoints.length; j++) {
+      const pA = updatedPoints[i];
+      const pB = updatedPoints[j];
+      const fare = (pB.price || 0) - (pA.price || 0);
+      if (fare > 0 && pA.name && pB.name) {
+        const key = [pA.name.trim().toLowerCase(), pB.name.trim().toLowerCase()].sort().join('||');
+        fareMap[key] = fare;
+      }
+    }
+  }
+
+  const updates = [];
+
+  allRoutes.forEach(otherRoute => {
+    if (otherRoute.id === updatedRoute.id) return;
+
+    let otherPoints = getRoutePoints(otherRoute);
+    let modified = false;
+
+    // Rule 1: If they share the same origin, sync absolute prices relative to origin
+    if (updatedRoute.startPoint && otherRoute.startPoint && 
+        updatedRoute.startPoint.trim().toLowerCase() === otherRoute.startPoint.trim().toLowerCase()) {
+      
+      otherPoints.forEach((op) => {
+        if (op.isStart) return;
+        
+        const match = updatedPoints.find(up => 
+          up.name.trim().toLowerCase() === op.name.trim().toLowerCase()
+        );
+        if (match && match.price !== op.price) {
+          op.price = match.price;
+          modified = true;
+        }
+      });
+    }
+
+    // Rule 2: Segment-based sync (adjacent segments in otherRoute)
+    for (let k = 0; k < otherPoints.length - 1; k++) {
+      const current = otherPoints[k];
+      const next = otherPoints[k + 1];
+      const segmentKey = [current.name.trim().toLowerCase(), next.name.trim().toLowerCase()].sort().join('||');
+
+      if (fareMap[segmentKey] !== undefined) {
+        const newSegmentFare = fareMap[segmentKey];
+        const oldSegmentFare = next.price - current.price;
+        if (newSegmentFare !== oldSegmentFare) {
+          const delta = newSegmentFare - oldSegmentFare;
+          for (let m = k + 1; m < otherPoints.length; m++) {
+            otherPoints[m].price = (otherPoints[m].price || 0) + delta;
+          }
+          modified = true;
+        }
+      }
+    }
+
+    if (modified) {
+      const updatedStops = (otherRoute.stops || []).map((stop, idx) => ({
+        ...stop,
+        price: otherPoints[idx + 1].price
+      }));
+      const updatedEndPrice = otherPoints[otherPoints.length - 1].price;
+
+      const { id, createdAt, updatedAt, ...cleanData } = otherRoute;
+
+      updates.push({
+        id: otherRoute.id,
+        data: {
+          ...cleanData,
+          stops: updatedStops,
+          endPrice: updatedEndPrice
+        }
+      });
+    }
+  });
+
+  return updates;
+};
+
 export const RoutesView = () => {
   const theme = useTheme();
   const { routes, loading, error } = useRoutesFirestore();
@@ -168,12 +261,26 @@ export const RoutesView = () => {
 
   const handleSubmit = async (formData) => {
     try {
+      let savedRoute;
       if (selectedRoute) {
-        await updateRoute.mutateAsync({ id: selectedRoute.id, data: formData });
+        savedRoute = await updateRoute.mutateAsync({ id: selectedRoute.id, data: formData });
         setSnackbar({ open: true, message: 'Route updated successfully!', severity: 'success' });
       } else {
-        await createRoute.mutateAsync(formData);
+        savedRoute = await createRoute.mutateAsync(formData);
         setSnackbar({ open: true, message: 'Route created successfully!', severity: 'success' });
+      }
+
+      // Synchronize fares across other routes containing the same place pairs
+      const updates = syncRouteFares(savedRoute, routes);
+      if (updates.length > 0) {
+        await Promise.all(
+          updates.map(u => updateRoute.mutateAsync({ id: u.id, data: u.data }))
+        );
+        setSnackbar({ 
+          open: true, 
+          message: `Route saved! Fare sync applied to ${updates.length} other route(s).`, 
+          severity: 'success' 
+        });
       }
     } catch (err) {
       console.error('Error saving route', err);
