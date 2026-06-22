@@ -228,7 +228,7 @@ export const AdminLayout = () => {
               </IconButton>
             </Tooltip>
             <Tooltip title={`${currentUser?.email || 'Profile'} (${roleLabel})`}>
-              <IconButton onClick={handleMenuOpen} sx={{ p: 0, display: 'flex', alignItems: 'center', gap: 0.8 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
                 {roleLabel && (
                   <Typography
                     variant="caption"
@@ -237,10 +237,12 @@ export const AdminLayout = () => {
                     {roleLabel}
                   </Typography>
                 )}
-                <Avatar sx={{ bgcolor: '#E68D33', color: '#fff', width: 36, height: 36 }}>
-                  {currentUser?.email?.charAt(0).toUpperCase() || 'A'}
-                </Avatar>
-              </IconButton>
+                <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
+                  <Avatar sx={{ bgcolor: '#E68D33', color: '#fff', width: 36, height: 36 }}>
+                    {currentUser?.email?.charAt(0).toUpperCase() || 'A'}
+                  </Avatar>
+                </IconButton>
+              </Box>
             </Tooltip>
             <Menu
               anchorEl={anchorEl}
