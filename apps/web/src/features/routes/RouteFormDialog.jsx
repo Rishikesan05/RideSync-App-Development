@@ -36,7 +36,6 @@ const routeSchema = z.object({
   routeNumber: z.string().min(1, 'Route number is required'),
   name: z.string().min(3, 'Name must be at least 3 characters'),
   startPoint: z.string().min(1, 'Start point is required'),
-  startPrice: z.preprocess((val) => (val === '' || val === undefined || isNaN(Number(val)) ? 0 : Number(val)), z.number().min(0)),
   endPoint: z.string().min(1, 'End point is required'),
   endPrice: z.preprocess((val) => (val === '' || val === undefined || isNaN(Number(val)) ? 0 : Number(val)), z.number().min(0)),
   totalDistanceKm: z.number().min(0),
@@ -126,7 +125,6 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
       routeNumber: '',
       name: '',
       startPoint: '',
-      startPrice: 0,
       endPoint: '',
       endPrice: 0,
       totalDistanceKm: 0,
@@ -222,7 +220,6 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
           routeNumber: initialData.routeNumber || '',
           name: initialData.name || '',
           startPoint: initialData.startPoint || '',
-          startPrice: initialData.startPrice || 0,
           endPoint: initialData.endPoint || '',
           endPrice: initialData.endPrice || 0,
           totalDistanceKm: initialData.totalDistanceKm || 0,
@@ -238,7 +235,6 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
           routeNumber: '',
           name: '',
           startPoint: '',
-          startPrice: 0,
           endPoint: '',
           endPrice: 0,
           totalDistanceKm: 0,
@@ -445,41 +441,22 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
                   Main Journey Points
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Box sx={{ display: 'flex', gap: 2 }}>
-                    <Box sx={{ flex: 3.2 }}>
-                      <Controller
-                        name="startPoint"
-                        control={control}
-                        render={({ field }) => (
-                          <LocationAutocomplete
-                            fullWidth
-                            size="small"
-                            label="Start Location (Origin)"
-                            placeholder="e.g., Colombo Fort"
-                            defaultValue={field.value}
-                            onSelect={(val) => field.onChange(val)}
-                            error={!!errors.startPoint}
-                            InputLabelProps={{ shrink: true }}
-                          />
-                        )}
-                      />
-                    </Box>
-                    <Box sx={{ flex: 1.2 }}>
-                      <TextField
-                        {...register('startPrice', { valueAsNumber: true })}
+                  <Controller
+                    name="startPoint"
+                    control={control}
+                    render={({ field }) => (
+                      <LocationAutocomplete
                         fullWidth
                         size="small"
-                        type="number"
-                        label="Price"
-                        placeholder="0"
+                        label="Start Location (Origin)"
+                        placeholder="e.g., Colombo Fort"
+                        defaultValue={field.value}
+                        onSelect={(val) => field.onChange(val)}
+                        error={!!errors.startPoint}
                         InputLabelProps={{ shrink: true }}
-                        InputProps={{
-                          sx: { fontSize: '0.8rem' },
-                          startAdornment: <Typography sx={{ fontSize: 12, mr: 0.5, opacity: 0.5 }}>LKR</Typography>
-                        }}
                       />
-                    </Box>
-                  </Box>
+                    )}
+                  />
 
                   <Box sx={{ display: 'flex', gap: 2 }}>
                     <Box sx={{ flex: 3.2 }}>
