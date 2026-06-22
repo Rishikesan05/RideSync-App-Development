@@ -99,7 +99,7 @@ const LocationAutocomplete = ({ label, placeholder, onSelect, error, helperText,
   );
 };
 
-export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving = false }) => {
+export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving = false, routes = [] }) => {
   const theme = useTheme();
   const [calculating, setCalculating] = useState(false);
   const [durationText, setDurationText] = useState('');
@@ -340,6 +340,70 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
     }, 1500);
     return () => clearTimeout(timer);
   }, [startPoint, endPoint, stopsNames, recalculateRoute]);
+
+  // Look up if there is an existing route with a fare between p1 and p2
+  const findFareForPlaces = useCallback((p1, p2) => {
+    if (!p1 || !p2 || !routes || routes.length === 0) return null;
+    const name1 = p1.split(',')[0].trim().toLowerCase();
+    const name2 = p2.split(',')[0].trim().toLowerCase();
+
+    for (const r of routes) {
+      if (initialData && r.id === initialData.id) continue;
+
+      const rStart = (r.startPoint || '').split(',')[0].trim().toLowerCase();
+      const rEnd = (r.endPoint || '').split(',')[0].trim().toLowerCase();
+
+      // Case 1: Start and End match
+      if ((rStart === name1 && rEnd === name2) || (rStart === name2 && rEnd === name1)) {
+        if (r.endPrice) return r.endPrice;
+      }
+
+      // Case 2: Start matches name1, and stop name matches name2
+      if (rStart === name1) {
+        const stop = (r.stops || []).find(s => (s.name || '').split(',')[0].trim().toLowerCase() === name2);
+        if (stop && stop.price) return stop.price;
+      }
+
+      // Case 3: Start matches name2, and stop name matches name1
+      if (rStart === name2) {
+        const stop = (r.stops || []).find(s => (s.name || '').split(',')[0].trim().toLowerCase() === name1);
+        if (stop && stop.price) return stop.price;
+      }
+    }
+    return null;
+  }, [routes, initialData]);
+
+  // Auto-fill prices from existing matching fares
+  const stopsNamesStr = JSON.stringify(stops?.map(s => s.name));
+  useEffect(() => {
+    if (!routes || routes.length === 0) return;
+
+    // Check endPoint price
+    if (startPoint && endPoint) {
+      const currentEndPrice = watch('endPrice');
+      if (!currentEndPrice || currentEndPrice === 0) {
+        const suggestedEndPrice = findFareForPlaces(startPoint, endPoint);
+        if (suggestedEndPrice) {
+          setValue('endPrice', suggestedEndPrice, { shouldValidate: true });
+        }
+      }
+    }
+
+    // Check stops prices
+    if (startPoint && stops && stops.length > 0) {
+      stops.forEach((stop, index) => {
+        if (stop.name) {
+          const currentStopPrice = stop.price;
+          if (!currentStopPrice || currentStopPrice === 0) {
+            const suggestedStopPrice = findFareForPlaces(startPoint, stop.name);
+            if (suggestedStopPrice) {
+              setValue(`stops.${index}.price`, suggestedStopPrice, { shouldValidate: true });
+            }
+          }
+        }
+      });
+    }
+  }, [startPoint, endPoint, stopsNamesStr, routes, findFareForPlaces, setValue, watch]);
 
   const handleFormSubmit = async (data) => {
     await onSubmit(data);
