@@ -133,6 +133,12 @@ export const Login = () => {
                     }}
                     {...register('email')}
                     autoComplete="email"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSubmit(onSubmit)();
+                      }
+                    }}
                   />
                 </div>
                 {errors.email && <p style={styles.fieldError}>{errors.email.message}</p>}
@@ -161,6 +167,12 @@ export const Login = () => {
                     }}
                     {...register('password')}
                     autoComplete="current-password"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSubmit(onSubmit)();
+                      }
+                    }}
                   />
                   <button
                     type="button"
