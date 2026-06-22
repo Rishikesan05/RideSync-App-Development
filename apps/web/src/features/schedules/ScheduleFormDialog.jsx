@@ -419,8 +419,12 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
                       if (!op) return val;
                       return (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>{op.name || op.displayName || 'Unknown Operator'}</Typography>
-                          <Typography variant="caption" color="text.secondary">({op.operatorId || op.id})</Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                            {op.operatorId || op.id}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            — {op.name || op.displayName || 'Unknown Operator'}
+                          </Typography>
                         </Box>
                       );
                     }}
@@ -443,9 +447,11 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 0.3 }}>
                               <Person fontSize="small" sx={{ color: 'primary.light' }} />
                               <Box>
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>{opName}</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                                  {opId}
+                                </Typography>
                                 <Typography variant="caption" color="text.secondary">
-                                  ID: {opId} {op.phone ? `· ${op.phone}` : ''}
+                                  Name: {opName} {op.phone ? `· ${op.phone}` : ''}
                                 </Typography>
                               </Box>
                             </Box>
@@ -622,7 +628,14 @@ export const ScheduleFormDialog = ({ open, onClose, onSubmit, initialData }) => 
                   </Box>
 
                   <Typography variant="body2">
-                    <strong>Operator ID:</strong> {watch('opId') || 'Unassigned'}
+                    <strong>Operator:</strong>{' '}
+                    <span style={{ fontWeight: 700, color: theme.palette.primary.main }}>
+                      {watch('opId') || 'Unassigned'}
+                    </span>
+                    {(() => {
+                      const op = operators.find(o => o.operatorId === watch('opId') || o.id === watch('opId'));
+                      return op ? ` (${op.name || op.displayName || 'Unknown'})` : '';
+                    })()}
                   </Typography>
                 </Box>
               </Box>
