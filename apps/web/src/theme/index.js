@@ -13,7 +13,7 @@ export const getDesignTokens = (mode) => ({
       : {
           primary: { main: '#f59e0b', light: '#fbbf24', dark: '#d97706' },
           secondary: { main: '#0f172a', light: '#1e293b', dark: '#334155' },
-          background: { default: '#ffffff', paper: '#ffffff' },
+          background: { default: '#FAF2E5', paper: '#ffffff' },
           text: { primary: '#0f172a', secondary: '#475569' },
         }),
     error: { main: '#ef4444' },
