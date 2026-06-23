@@ -50,7 +50,25 @@ class OperatorPendingScreen extends StatelessWidget {
             CustomButton(
               label: 'Refresh Status',
               onPressed: () async {
-                await Provider.of<AuthProvider>(context, listen: false).refreshUser();
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                await authProvider.refreshUser();
+                if (context.mounted) {
+                  if (authProvider.status == 'pending_review') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Your application is still under review.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  } else if (authProvider.status == 'approved') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Application approved! Welcome to RideSync.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                }
               },
             ),
             const SizedBox(height: 16),
