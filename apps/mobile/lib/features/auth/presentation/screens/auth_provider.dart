@@ -194,6 +194,7 @@ class AuthProvider with ChangeNotifier {
   // Used to manually refresh user document and listeners
   Future<void> refreshUser() async {
     if (_auth.currentUser != null) {
+      _lastProcessedUid = null; // Clear guard to force a fresh Firestore read
       await _onAuthStateChanged(_auth.currentUser);
     }
   }
