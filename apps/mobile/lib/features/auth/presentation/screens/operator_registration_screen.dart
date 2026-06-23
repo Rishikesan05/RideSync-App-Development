@@ -83,11 +83,11 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
         'registrationDate': FieldValue.serverTimestamp(),
       });
 
-      // 4. Sign out immediately so AuthWrapper doesn't route them to the
-      //    operator hub before admin approval — they'll see the pending screen
-      //    after re-login once approved.
-      await auth.signOut();
-
+      // NOTE: We intentionally do NOT sign out here.
+      // AuthWrapper reads status from Firestore — since both docs are now written
+      // with status:'pending_review', it will automatically show OperatorPendingScreen.
+      // Calling auth.signOut() here triggers the authStateChanges stream multiple
+      // times causing repeated rebuilds and navigation conflicts.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Registration submitted! We will review your application within 24–48 hours.')),
