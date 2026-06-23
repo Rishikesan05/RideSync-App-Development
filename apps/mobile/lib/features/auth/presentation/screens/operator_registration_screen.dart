@@ -19,8 +19,14 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
   final _operatorIdC = TextEditingController();
   final _nicC = TextEditingController();
 
+  // One FormKey per step so we can validate each step independently
+  final _step0Key = GlobalKey<FormState>();
+  final _step1Key = GlobalKey<FormState>();
+  final _step2Key = GlobalKey<FormState>();
+
   int _currentStep = 0;
   bool _isLoading = false;
+  bool _obscurePass = false;
 
   @override
   void dispose() {
@@ -33,8 +39,18 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
     super.dispose();
   }
 
+  /// Returns the FormKey for the currently active step.
+  GlobalKey<FormState> get _currentStepKey {
+    switch (_currentStep) {
+      case 0: return _step0Key;
+      case 1: return _step1Key;
+      default: return _step2Key;
+    }
+  }
+
   Future<void> _handleRegistration() async {
-    if (!_formKey.currentState!.validate()) return;
+    // Validate the final step before submitting
+    if (!_step2Key.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
     try {
@@ -47,7 +63,7 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
         password: _passC.text.trim(),
       );
 
-      // 2. Create User Doc (role: operator, status: pending)
+      // 2. Create User Doc (role: operator, status: pending_review)
       await firestore.collection('users').doc(cred.user!.uid).set({
         'role': 'operator',
         'status': 'pending_review',
@@ -67,12 +83,24 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
         'registrationDate': FieldValue.serverTimestamp(),
       });
 
+      // 4. Sign out immediately so AuthWrapper doesn't route them to the
+      //    operator hub before admin approval — they'll see the pending screen
+      //    after re-login once approved.
+      await auth.signOut();
+
       if (mounted) {
-        // Show success and go to pending screen
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration submitted! We will review your application.')),
+          const SnackBar(content: Text('Registration submitted! We will review your application within 24–48 hours.')),
         );
         Navigator.pushNamedAndRemoveUntil(context, '/operator-pending', (r) => false);
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        String msg = 'Registration failed';
+        if (e.code == 'email-already-in-use') msg = 'An account with this email already exists. Try signing in.';
+        if (e.code == 'weak-password') msg = 'Password is too weak. Use at least 8 characters with 1 uppercase.';
+        if (e.code == 'invalid-email') msg = 'The email address is not valid.';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       }
     } catch (e) {
       if (mounted) {
@@ -145,12 +173,12 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
                   primary: AppColors.primaryOrange, // Stepper colors
                 ),
               ),
-              child: Form(
-                key: _formKey,
-                child: Stepper(
+              child: Stepper(
         type: StepperType.horizontal,
         currentStep: _currentStep,
         onStepContinue: () {
+          // Validate the CURRENT step only before advancing
+          if (!_currentStepKey.currentState!.validate()) return;
           if (_currentStep < 2) {
             setState(() => _currentStep++);
           } else {
@@ -215,55 +243,63 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
           Step(
             title: const Text('Personal'),
             isActive: _currentStep >= 0,
-            content: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _formField(isDark, 'Full Name', Icons.person_outline, _nameC, hintText: 'e.g. Nimal Perera', validator: (val) => val == null || val.trim().isEmpty ? 'Please enter your full name' : null),
-                const SizedBox(height: 16),
-                _formField(isDark, 'Gmail Address', Icons.email_outlined, _emailC, hintText: 'e.g. nimal@gmail.com', validator: (val) => val == null || !val.endsWith('@gmail.com') ? 'Must be a valid @gmail.com address' : null),
-                const SizedBox(height: 16),
-                _formField(isDark, 'Phone Number', Icons.phone_outlined, _phoneC, hintText: 'e.g. +94771234567', validator: (val) => val == null || !RegExp(r'^\+94\d{9}$').hasMatch(val) ? 'Format: +94 followed by 9 digits' : null),
-              ],
+            content: Form(
+              key: _step0Key,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _formField(isDark, 'Full Name', Icons.person_outline, _nameC, hintText: 'e.g. Nimal Perera', validator: (val) => val == null || val.trim().isEmpty ? 'Please enter your full name' : null),
+                  const SizedBox(height: 16),
+                  _formField(isDark, 'Gmail Address', Icons.email_outlined, _emailC, hintText: 'e.g. nimal@gmail.com', validator: (val) => val == null || !val.contains('@') ? 'Enter a valid email address' : null),
+                  const SizedBox(height: 16),
+                  _formField(isDark, 'Phone Number', Icons.phone_outlined, _phoneC, hintText: 'e.g. +94771234567', validator: (val) => val == null || !RegExp(r'^\+94\d{9}$').hasMatch(val) ? 'Format: +94 followed by 9 digits' : null),
+                ],
+              ),
             ),
           ),
           Step(
             title: const Text('Account'),
             isActive: _currentStep >= 1,
-            content: Column(
-              children: [
-                _formField(isDark, 'Password', Icons.lock_outline, _passC, isPassword: true, hintText: 'Min 8 chars, 1 uppercase', validator: (val) {
-                  if (val == null || val.length < 8) return 'Minimum 8 characters required';
-                  if (!val.contains(RegExp(r'[A-Z]'))) return 'Must contain at least 1 uppercase letter';
-                  return null;
-                }),
-                const SizedBox(height: 16),
-                const Text('Choose a strong password for your operator portal.', style: TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
+            content: Form(
+              key: _step1Key,
+              child: Column(
+                children: [
+                  _formField(isDark, 'Password', Icons.lock_outline, _passC, isPassword: true, hintText: 'Min 8 chars, 1 uppercase', validator: (val) {
+                    if (val == null || val.length < 8) return 'Minimum 8 characters required';
+                    if (!val.contains(RegExp(r'[A-Z]'))) return 'Must contain at least 1 uppercase letter';
+                    return null;
+                  }),
+                  const SizedBox(height: 16),
+                  const Text('Choose a strong password for your operator portal.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
             ),
           ),
           Step(
             title: const Text('Credentials'),
             isActive: _currentStep >= 2,
-            content: Column(
-              children: [
-                _formField(isDark, 'Operator ID', Icons.badge, _operatorIdC, hintText: 'e.g. RSOP26-001 or RSCOP26-001', validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Operator ID is required';
-                  if (!val.startsWith('RSOP') && !val.startsWith('RSCOP')) return 'Must start with RSOP or RSCOP';
-                  return null;
-                }),
-                const SizedBox(height: 16),
-                _formField(isDark, 'National Identity Card (NIC)', Icons.credit_card_outlined, _nicC, hintText: 'e.g. 199912345678 or 991234567V', validator: (val) {
-                  if (val == null || (!RegExp(r'^\d{9}[vVxX]$').hasMatch(val) && !RegExp(r'^\d{12}$').hasMatch(val))) {
-                    return 'Must be 9 digits+V/X or 12 digits';
-                  }
-                  return null;
-                }),
-              ],
+            content: Form(
+              key: _step2Key,
+              child: Column(
+                children: [
+                  _formField(isDark, 'Operator ID', Icons.badge, _operatorIdC, hintText: 'e.g. RSOP26-001 or RSCOP26-001', validator: (val) {
+                    if (val == null || val.trim().isEmpty) return 'Operator ID is required';
+                    if (!val.startsWith('RSOP') && !val.startsWith('RSCOP')) return 'Must start with RSOP or RSCOP';
+                    return null;
+                  }),
+                  const SizedBox(height: 16),
+                  _formField(isDark, 'National Identity Card (NIC)', Icons.credit_card_outlined, _nicC, hintText: 'e.g. 199912345678 or 991234567V', validator: (val) {
+                    if (val == null || (!RegExp(r'^\d{9}[vVxX]$').hasMatch(val) && !RegExp(r'^\d{12}$').hasMatch(val))) {
+                      return 'Must be 9 digits+V/X or 12 digits';
+                    }
+                    return null;
+                  }),
+                ],
+              ),
             ),
           ),
         ],
       ),
-              ),
             ),
           ),
         ],
@@ -275,7 +311,7 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
     return TextFormField(
       controller: controller,
       validator: validator,
-      obscureText: isPassword,
+      obscureText: isPassword ? _obscurePass : false,
       keyboardType: keyboardType,
       style: TextStyle(fontWeight: FontWeight.w500, color: isDark ? Colors.white : AppColors.textDark),
       decoration: InputDecoration(
@@ -285,6 +321,12 @@ class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen>
         hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400, fontWeight: FontWeight.normal),
         floatingLabelBehavior: FloatingLabelBehavior.always,
         prefixIcon: Icon(icon, color: isDark ? Colors.white54 : Colors.grey.shade500),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(_obscurePass ? Icons.visibility_off : Icons.visibility,
+                    color: isDark ? Colors.white38 : Colors.grey.shade400, size: 20),
+                onPressed: () => setState(() => _obscurePass = !_obscurePass))
+            : null,
         filled: true,
         fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         enabledBorder: OutlineInputBorder(
