@@ -38,7 +38,8 @@ import {
   PowerSettingsNew,
   DeleteOutlined,
   ExpandMore,
-  ExpandLess
+  ExpandLess,
+  DirectionsBus
 } from '@mui/icons-material';
 import { 
   useCreateRoute, 
@@ -47,12 +48,18 @@ import {
   useDeleteRoute
 } from '../../api/routes';
 import { useRoutesFirestore } from './useRoutesFirestore';
+import { useBusesFirestore } from '../fleet/useBusesFirestore';
 import { RouteFormDialog } from './RouteFormDialog';
 import { RouteStatsBar } from './RouteStatsBar';
 
 export const RoutesView = () => {
   const theme = useTheme();
-  const { routes, loading, error } = useRoutesFirestore();
+  const { routes, loading: loadingRoutes, error: errorRoutes } = useRoutesFirestore();
+  const { buses = [], loading: loadingBuses, error: errorBuses } = useBusesFirestore();
+
+  const loading = loadingRoutes || loadingBuses;
+  const error = errorRoutes || errorBuses;
+
   const createRoute      = useCreateRoute();
   const updateRoute      = useUpdateRoute();
   const toggleActive     = useToggleRouteActive();
@@ -314,6 +321,7 @@ export const RoutesView = () => {
       <Grid ref={gridRef} container spacing={3} alignItems="flex-start">
         {filteredRoutes.map((route) => {
           const isExpanded = expandedRouteId === route.id;
+          const assignedBus = buses.find((b) => b.id === route.busId);
           return (
             <Grid item xs={12} lg={6} key={route.id}>
               <Card 
@@ -396,7 +404,7 @@ export const RoutesView = () => {
                 </IconButton>
               </Box>
               <CardContent sx={{ p: 3, pb: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1, pr: 4 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1, pr: 4, flexWrap: 'wrap' }}>
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>
                     {route.routeNumber ? `R-${route.routeNumber}: ` : ''}{route.name}
                   </Typography>
@@ -406,6 +414,20 @@ export const RoutesView = () => {
                     size="small" 
                     variant={route.isActive ? "filled" : "outlined"}
                   />
+                  {assignedBus && (
+                    <Chip
+                      icon={<DirectionsBus sx={{ fontSize: '0.9rem !important' }} />}
+                      label={`${assignedBus.plateNumber} (${assignedBus.class === 'AC' ? 'A/C' : 'Non-A/C'})`}
+                      size="small"
+                      color={assignedBus.class === 'AC' ? 'info' : 'default'}
+                      variant="outlined"
+                      sx={{ 
+                        fontWeight: 600,
+                        backgroundColor: assignedBus.class === 'AC' ? 'rgba(2, 136, 209, 0.08)' : 'rgba(255, 255, 255, 0.05)',
+                        borderColor: assignedBus.class === 'AC' ? 'rgba(2, 136, 209, 0.3)' : 'rgba(255, 255, 255, 0.1)',
+                      }}
+                    />
+                  )}
                 </Box>
                 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>

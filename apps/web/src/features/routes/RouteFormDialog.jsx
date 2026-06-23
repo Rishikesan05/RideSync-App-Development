@@ -17,8 +17,14 @@ import {
   InputAdornment,
   CircularProgress,
   Paper,
-  Grid
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Chip
 } from '@mui/material';
+import { useBusesFirestore } from '../fleet/useBusesFirestore';
 import { 
   Add, 
   Delete, 
@@ -28,7 +34,8 @@ import {
   ArrowUpward, 
   ArrowDownward,
   Timer,
-  Navigation
+  Navigation,
+  DirectionsBus
 } from '@mui/icons-material';
 
 // Zod schema for route validation
@@ -45,6 +52,7 @@ const routeSchema = z.object({
     distFromStartKm: z.number().min(0, 'Distance must be 0 or greater'),
     price: z.preprocess((val) => (val === '' || val === undefined || isNaN(Number(val)) ? 0 : Number(val)), z.number().min(0))
   })),
+  busId: z.string().optional().nullable(),
 });
 
 /**
@@ -107,6 +115,8 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
   // Track whether Google Maps loaded successfully for manual-fallback UX
   const [mapsAvailable, setMapsAvailable] = useState(true);
   
+  const { buses = [] } = useBusesFirestore();
+  
   // Map-related refs
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -131,7 +141,8 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
       endPrice: 0,
       totalDistanceKm: 0,
       totalDurationMin: 0,
-      stops: []
+      stops: [],
+      busId: ''
     }
   });
 
@@ -236,7 +247,8 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
             name: s.name || '',
             distFromStartKm: s.distFromStartKm || 0,
             price: s.price || 0
-          }))
+          })),
+          busId: initialData.busId || ''
         });
       } else {
         reset({
@@ -247,7 +259,8 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
           endPrice: 0,
           totalDistanceKm: 0,
           totalDurationMin: 0,
-          stops: []
+          stops: [],
+          busId: ''
         });
       }
     }
@@ -526,6 +539,56 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
                   InputLabelProps={{ shrink: true }}
                 />
               </Box>
+
+              <FormControl fullWidth size="small" error={!!errors.busId}>
+                <InputLabel id="route-bus-select-label">Assigned Bus</InputLabel>
+                <Controller
+                  name="busId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      labelId="route-bus-select-label"
+                      label="Assigned Bus"
+                      {...field}
+                      value={field.value || ''}
+                      displayEmpty
+                      renderValue={(val) => {
+                        if (!val) return <Typography color="text.secondary" sx={{ fontSize: '0.85rem' }}>No bus assigned</Typography>;
+                        const b = buses.find((b) => b.id === val);
+                        if (!b) return val;
+                        return (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{b.plateNumber}</Typography>
+                            <Chip 
+                              label={b.class === 'AC' ? 'A/C' : 'Non-A/C'} 
+                              size="small" 
+                              color={b.class === 'AC' ? 'info' : 'default'}
+                              sx={{ height: 18, fontSize: '0.65rem' }} 
+                            />
+                          </Box>
+                        );
+                      }}
+                    >
+                      <MenuItem value="">
+                        <Typography color="text.secondary" sx={{ fontSize: '0.85rem' }}>None</Typography>
+                      </MenuItem>
+                      {buses.map((b) => (
+                        <MenuItem key={b.id} value={b.id}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 0.3 }}>
+                            <DirectionsBus fontSize="small" sx={{ color: 'primary.light' }} />
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{b.plateNumber}</Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                {b.class === 'AC' ? 'Express A/C' : 'Normal'} · Capacity: {b.capacity || '—'}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  )}
+                />
+              </FormControl>
 
               <Box>
                 <Typography variant="subtitle2" color="primary" sx={{ mb: 2, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.7rem' }}>
