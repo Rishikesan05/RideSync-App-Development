@@ -49,7 +49,19 @@ class _OperatorAuthChoiceScreenState extends State<OperatorAuthChoiceScreen>
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       await auth.loginAsOperator(_emailC.text.trim(), _passC.text.trim());
-      if (mounted) Navigator.pushNamedAndRemoveUntil(context, '/operator-main', (r) => false);
+
+      // ── Status gate: check approval before routing ──────────────────
+      final status = auth.status;
+      if (!mounted) return;
+
+      if (status == 'pending_review') {
+        Navigator.pushNamedAndRemoveUntil(context, '/operator-pending', (r) => false);
+      } else if (status == 'rejected') {
+        Navigator.pushNamedAndRemoveUntil(context, '/operator-rejected', (r) => false);
+      } else {
+        // 'approved' or any other active state
+        Navigator.pushNamedAndRemoveUntil(context, '/operator-main', (r) => false);
+      }
     } on FirebaseAuthException catch (e) {
       String msg = 'Login failed';
       if (e.code == 'user-not-found') msg = 'No operator account found with this email';
