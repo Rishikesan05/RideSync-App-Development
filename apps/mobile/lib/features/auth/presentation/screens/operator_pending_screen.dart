@@ -60,13 +60,22 @@ class OperatorPendingScreen extends StatelessWidget {
                         duration: Duration(seconds: 2),
                       ),
                     );
-                  } else if (authProvider.status == 'approved') {
+                  } else if (authProvider.status == 'rejected') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Your application was rejected.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                    Navigator.pushNamedAndRemoveUntil(context, '/operator-rejected', (route) => false);
+                  } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Application approved! Welcome to RideSync.'),
                         duration: Duration(seconds: 2),
                       ),
                     );
+                    Navigator.pushNamedAndRemoveUntil(context, '/operator-main', (route) => false);
                   }
                 }
               },
@@ -75,6 +84,9 @@ class OperatorPendingScreen extends StatelessWidget {
             TextButton(
               onPressed: () async {
                 await Provider.of<AuthProvider>(context, listen: false).logout();
+                if (context.mounted) {
+                  Navigator.pushNamedAndRemoveUntil(context, '/splash', (route) => false);
+                }
               },
               child: Text(
                  'Logout',
