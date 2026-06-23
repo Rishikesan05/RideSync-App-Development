@@ -15,6 +15,8 @@ class AuthProvider with ChangeNotifier {
   UserRole _currentRole = UserRole.passenger;
   String _status = 'pending_review'; 
   bool _isInitialized = false;
+  // Guard against Firebase firing authStateChanges multiple times for the same UID
+  String? _lastProcessedUid;
 
   bool get isAuthenticated => _isAuthenticated;
   bool get isGuest => _isGuest;
@@ -39,7 +41,14 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> _onAuthStateChanged(User? firebaseUser) async {
-    debugPrint('Auth State Changed: ${firebaseUser?.uid}');
+    final incomingUid = firebaseUser?.uid;
+
+    // Skip duplicate events for the same UID to prevent multiple Firestore reads
+    // and repeated notifyListeners() calls that cause flickering UI rebuilds.
+    if (incomingUid == _lastProcessedUid && _isInitialized) return;
+    _lastProcessedUid = incomingUid;
+
+    debugPrint('Auth State Changed: $incomingUid');
     if (firebaseUser == null) {
       _isAuthenticated = false;
       _user = null;
@@ -196,6 +205,7 @@ class AuthProvider with ChangeNotifier {
     _user = null;
     _currentRole = UserRole.passenger;
     _status = 'pending_review';
+    _lastProcessedUid = null; // Reset so the next sign-in event is always processed
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_guest', false);
     notifyListeners();
