@@ -60,13 +60,17 @@ class AuthProvider with ChangeNotifier {
           Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
           String roleStr = data['role'] ?? 'passenger';
           _currentRole = roleStr == 'operator' ? UserRole.operator : UserRole.passenger;
-          _status = data['status'] ?? 'pending_review';
 
           String profileCollection = roleStr == 'operator' ? 'operators' : 'passengers';
           DocumentSnapshot profileDoc = await _firestore.collection(profileCollection).doc(firebaseUser.uid).get();
           Map<String, dynamic> profileData = {};
           if (profileDoc.exists && profileDoc.data() != null) {
             profileData = profileDoc.data() as Map<String, dynamic>;
+          }
+
+          _status = data['status'] ?? 'pending_review';
+          if (roleStr == 'operator' && profileData['status'] != null) {
+            _status = profileData['status'];
           }
 
           _user = UserModel(
