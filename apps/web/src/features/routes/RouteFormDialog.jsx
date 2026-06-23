@@ -37,11 +37,13 @@ const routeSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters'),
   startPoint: z.string().min(1, 'Start point is required'),
   endPoint: z.string().min(1, 'End point is required'),
+  endPrice: z.preprocess((val) => (val === '' || val === undefined || isNaN(Number(val)) ? 0 : Number(val)), z.number().min(0)),
   totalDistanceKm: z.number().min(0),
   totalDurationMin: z.number().optional(),
   stops: z.array(z.object({
     name: z.string().min(1, 'Stop name is required'),
-    distFromStartKm: z.number().min(0, 'Distance must be 0 or greater')
+    distFromStartKm: z.number().min(0, 'Distance must be 0 or greater'),
+    price: z.preprocess((val) => (val === '' || val === undefined || isNaN(Number(val)) ? 0 : Number(val)), z.number().min(0))
   })),
 });
 
@@ -97,7 +99,7 @@ const LocationAutocomplete = ({ label, placeholder, onSelect, error, helperText,
   );
 };
 
-export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving = false }) => {
+export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving = false, routes = [] }) => {
   const theme = useTheme();
   const [calculating, setCalculating] = useState(false);
   const [durationText, setDurationText] = useState('');
@@ -124,6 +126,7 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
       name: '',
       startPoint: '',
       endPoint: '',
+      endPrice: 0,
       totalDistanceKm: 0,
       totalDurationMin: 0,
       stops: []
@@ -218,9 +221,14 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
           name: initialData.name || '',
           startPoint: initialData.startPoint || '',
           endPoint: initialData.endPoint || '',
+          endPrice: initialData.endPrice || 0,
           totalDistanceKm: initialData.totalDistanceKm || 0,
           totalDurationMin: initialData.totalDurationMin || 0,
-          stops: (initialData.stops || []).map(s => ({ ...s }))
+          stops: (initialData.stops || []).map(s => ({
+            name: s.name || '',
+            distFromStartKm: s.distFromStartKm || 0,
+            price: s.price || 0
+          }))
         });
       } else {
         reset({
@@ -228,6 +236,7 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
           name: '',
           startPoint: '',
           endPoint: '',
+          endPrice: 0,
           totalDistanceKm: 0,
           totalDurationMin: 0,
           stops: []
@@ -331,6 +340,70 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
     }, 1500);
     return () => clearTimeout(timer);
   }, [startPoint, endPoint, stopsNames, recalculateRoute]);
+
+  // Look up if there is an existing route with a fare between p1 and p2
+  const findFareForPlaces = useCallback((p1, p2) => {
+    if (!p1 || !p2 || !routes || routes.length === 0) return null;
+    const name1 = p1.split(',')[0].trim().toLowerCase();
+    const name2 = p2.split(',')[0].trim().toLowerCase();
+
+    for (const r of routes) {
+      if (initialData && r.id === initialData.id) continue;
+
+      const rStart = (r.startPoint || '').split(',')[0].trim().toLowerCase();
+      const rEnd = (r.endPoint || '').split(',')[0].trim().toLowerCase();
+
+      // Case 1: Start and End match
+      if ((rStart === name1 && rEnd === name2) || (rStart === name2 && rEnd === name1)) {
+        if (r.endPrice) return r.endPrice;
+      }
+
+      // Case 2: Start matches name1, and stop name matches name2
+      if (rStart === name1) {
+        const stop = (r.stops || []).find(s => (s.name || '').split(',')[0].trim().toLowerCase() === name2);
+        if (stop && stop.price) return stop.price;
+      }
+
+      // Case 3: Start matches name2, and stop name matches name1
+      if (rStart === name2) {
+        const stop = (r.stops || []).find(s => (s.name || '').split(',')[0].trim().toLowerCase() === name1);
+        if (stop && stop.price) return stop.price;
+      }
+    }
+    return null;
+  }, [routes, initialData]);
+
+  // Auto-fill prices from existing matching fares
+  const stopsNamesStr = JSON.stringify(stops?.map(s => s.name));
+  useEffect(() => {
+    if (!routes || routes.length === 0) return;
+
+    // Check endPoint price
+    if (startPoint && endPoint) {
+      const currentEndPrice = watch('endPrice');
+      if (!currentEndPrice || currentEndPrice === 0) {
+        const suggestedEndPrice = findFareForPlaces(startPoint, endPoint);
+        if (suggestedEndPrice) {
+          setValue('endPrice', suggestedEndPrice, { shouldValidate: true });
+        }
+      }
+    }
+
+    // Check stops prices
+    if (startPoint && stops && stops.length > 0) {
+      stops.forEach((stop, index) => {
+        if (stop.name) {
+          const currentStopPrice = stop.price;
+          if (!currentStopPrice || currentStopPrice === 0) {
+            const suggestedStopPrice = findFareForPlaces(startPoint, stop.name);
+            if (suggestedStopPrice) {
+              setValue(`stops.${index}.price`, suggestedStopPrice, { shouldValidate: true });
+            }
+          }
+        }
+      });
+    }
+  }, [startPoint, endPoint, stopsNamesStr, routes, findFareForPlaces, setValue, watch]);
 
   const handleFormSubmit = async (data) => {
     await onSubmit(data);
@@ -448,22 +521,42 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
                       />
                     )}
                   />
-                  <Controller
-                    name="endPoint"
-                    control={control}
-                    render={({ field }) => (
-                      <LocationAutocomplete
+
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Box sx={{ flex: 3.2 }}>
+                      <Controller
+                        name="endPoint"
+                        control={control}
+                        render={({ field }) => (
+                          <LocationAutocomplete
+                            fullWidth
+                            size="small"
+                            label="End Location (Destination)"
+                            placeholder="e.g., Kalmunai Station"
+                            defaultValue={field.value}
+                            onSelect={(val) => field.onChange(val)}
+                            error={!!errors.endPoint}
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        )}
+                      />
+                    </Box>
+                    <Box sx={{ flex: 1.2 }}>
+                      <TextField
+                        {...register('endPrice', { valueAsNumber: true })}
                         fullWidth
                         size="small"
-                        label="End Location (Destination)"
-                        placeholder="e.g., Kalmunai Station"
-                        defaultValue={field.value}
-                        onSelect={(val) => field.onChange(val)}
-                        error={!!errors.endPoint}
+                        type="number"
+                        label="Price"
+                        placeholder="0"
                         InputLabelProps={{ shrink: true }}
+                        InputProps={{
+                          sx: { fontSize: '0.8rem' },
+                          startAdornment: <Typography sx={{ fontSize: 12, mr: 0.5, opacity: 0.5 }}>LKR</Typography>
+                        }}
                       />
-                    )}
-                  />
+                    </Box>
+                  </Box>
                 </Box>
               </Box>
 
@@ -476,7 +569,7 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
                     variant="text"
                     startIcon={<Add />} 
                     size="small" 
-                    onClick={() => append({ name: '', distFromStartKm: 0 })}
+                    onClick={() => append({ name: '', distFromStartKm: 0, price: 0 })}
                   >
                     Add Stop
                   </Button>
@@ -486,7 +579,7 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
                   {fields.map((field, index) => (
                     <Box key={field.id} sx={{ 
                       display: 'flex', 
-                      gap: 1, 
+                      gap: 1.2, 
                       alignItems: 'flex-start',
                       p: 1.5,
                       borderRadius: 2,
@@ -504,7 +597,7 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
                         </IconButton>
                       </Box>
 
-                      <Box sx={{ flex: 3 }}>
+                      <Box sx={{ flex: 2.2 }}>
                         <Controller
                           name={`stops.${index}.name`}
                           control={control}
@@ -522,7 +615,7 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
                         />
                       </Box>
                       
-                      <Box sx={{ flex: 1.2 }}>
+                      <Box sx={{ flex: 1 }}>
                         <TextField
                           {...register(`stops.${index}.distFromStartKm`, { valueAsNumber: true })}
                           fullWidth
@@ -533,6 +626,22 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
                             readOnly: true,
                             sx: { fontSize: '0.8rem' },
                             startAdornment: <Straighten sx={{ fontSize: 14, mr: 0.5, opacity: 0.5 }} />
+                          }}
+                        />
+                      </Box>
+
+                      <Box sx={{ flex: 1.2 }}>
+                        <TextField
+                          {...register(`stops.${index}.price`, { valueAsNumber: true })}
+                          fullWidth
+                          size="small"
+                          type="number"
+                          label="Price"
+                          placeholder="0"
+                          InputLabelProps={{ shrink: true }}
+                          InputProps={{
+                            sx: { fontSize: '0.8rem' },
+                            startAdornment: <Typography sx={{ fontSize: 12, mr: 0.5, opacity: 0.5 }}>LKR</Typography>
                           }}
                         />
                       </Box>

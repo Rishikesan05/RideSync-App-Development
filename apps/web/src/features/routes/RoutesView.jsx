@@ -418,14 +418,24 @@ export const RoutesView = () => {
                   </Typography>
                 </Box>
 
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Total Distance:{' '}
-                  <strong>
-                    {route.totalDistanceKm
-                      ?? route.stops?.[route.stops.length - 1]?.distFromStartKm
-                      ?? 0} km
-                  </strong>
-                </Typography>
+                 <Box sx={{ display: 'flex', gap: 3, mb: 1 }}>
+                   <Typography variant="body2" color="text.secondary">
+                     Total Distance:{' '}
+                     <strong>
+                       {route.totalDistanceKm
+                         ?? route.stops?.[route.stops.length - 1]?.distFromStartKm
+                         ?? 0} km
+                     </strong>
+                   </Typography>
+                   {(route.endPrice !== undefined && route.endPrice !== null) && (
+                     <Typography variant="body2" color="text.secondary">
+                       Full Fare:{' '}
+                       <strong style={{ color: '#ff9800' }}>
+                         LKR {route.endPrice}
+                       </strong>
+                     </Typography>
+                   )}
+                 </Box>
                 
               </CardContent>
 
@@ -499,18 +509,34 @@ export const RoutesView = () => {
                                 >
                                   {stop.name}
                                 </Typography>
-                                <Chip
-                                  label={`${stop.distFromStartKm} km`}
-                                  size="small"
-                                  sx={{
-                                    height: 20,
-                                    fontSize: '0.68rem',
-                                    fontWeight: 700,
-                                    backgroundColor: `${dotColor}18`,
-                                    color: dotColor,
-                                    border: `1px solid ${dotColor}40`,
-                                  }}
-                                />
+                                 <Box sx={{ display: 'flex', gap: 1 }}>
+                                   {stop.price !== undefined && stop.price !== null && (
+                                     <Chip
+                                       label={`LKR ${stop.price}`}
+                                       size="small"
+                                       sx={{
+                                         height: 20,
+                                         fontSize: '0.68rem',
+                                         fontWeight: 700,
+                                         backgroundColor: 'rgba(255, 152, 0, 0.08)',
+                                         color: '#ff9800',
+                                         border: '1px solid rgba(255, 152, 0, 0.25)',
+                                       }}
+                                     />
+                                   )}
+                                   <Chip
+                                     label={`${stop.distFromStartKm} km`}
+                                     size="small"
+                                     sx={{
+                                       height: 20,
+                                       fontSize: '0.68rem',
+                                       fontWeight: 700,
+                                       backgroundColor: `${dotColor}18`,
+                                       color: dotColor,
+                                       border: `1px solid ${dotColor}40`,
+                                     }}
+                                   />
+                                 </Box>
                               </Box>
                               {isFirst && <Typography variant="caption" color="success.dark">Origin</Typography>}
                               {isLast  && <Typography variant="caption" color="error.dark">Destination</Typography>}
@@ -635,6 +661,7 @@ export const RoutesView = () => {
         onSubmit={handleSubmit}
         initialData={selectedRoute}
         isSaving={createRoute.isPending || updateRoute.isPending}
+        routes={routes}
       />
 
       {/* ── Success / Error snackbar ────────────────────────────────── */}
