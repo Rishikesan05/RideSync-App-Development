@@ -15,6 +15,8 @@ class AuthProvider with ChangeNotifier {
   UserRole _currentRole = UserRole.passenger;
   String _status = 'pending_review'; 
   bool _isInitialized = false;
+  // Guard against Firebase firing authStateChanges multiple times for the same UID
+  String? _lastProcessedUid;
 
   bool get isAuthenticated => _isAuthenticated;
   bool get isGuest => _isGuest;
@@ -39,7 +41,14 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> _onAuthStateChanged(User? firebaseUser) async {
-    debugPrint('Auth State Changed: ${firebaseUser?.uid}');
+    final incomingUid = firebaseUser?.uid;
+
+    // Skip duplicate events for the same UID to prevent multiple Firestore reads
+    // and repeated notifyListeners() calls that cause flickering UI rebuilds.
+    if (incomingUid == _lastProcessedUid && _isInitialized) return;
+    _lastProcessedUid = incomingUid;
+
+    debugPrint('Auth State Changed: $incomingUid');
     if (firebaseUser == null) {
       _isAuthenticated = false;
       _user = null;
@@ -51,13 +60,17 @@ class AuthProvider with ChangeNotifier {
           Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
           String roleStr = data['role'] ?? 'passenger';
           _currentRole = roleStr == 'operator' ? UserRole.operator : UserRole.passenger;
-          _status = data['status'] ?? 'pending_review';
 
           String profileCollection = roleStr == 'operator' ? 'operators' : 'passengers';
           DocumentSnapshot profileDoc = await _firestore.collection(profileCollection).doc(firebaseUser.uid).get();
           Map<String, dynamic> profileData = {};
           if (profileDoc.exists && profileDoc.data() != null) {
             profileData = profileDoc.data() as Map<String, dynamic>;
+          }
+
+          _status = data['status'] ?? 'pending_review';
+          if (roleStr == 'operator' && profileData['status'] != null) {
+            _status = profileData['status'];
           }
 
           _user = UserModel(
@@ -185,6 +198,7 @@ class AuthProvider with ChangeNotifier {
   // Used to manually refresh user document and listeners
   Future<void> refreshUser() async {
     if (_auth.currentUser != null) {
+      _lastProcessedUid = null; // Clear guard to force a fresh Firestore read
       await _onAuthStateChanged(_auth.currentUser);
     }
   }
@@ -196,6 +210,7 @@ class AuthProvider with ChangeNotifier {
     _user = null;
     _currentRole = UserRole.passenger;
     _status = 'pending_review';
+    _lastProcessedUid = null; // Reset so the next sign-in event is always processed
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_guest', false);
     notifyListeners();

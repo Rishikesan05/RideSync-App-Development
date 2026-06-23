@@ -112,6 +112,8 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
   const [calculating, setCalculating] = useState(false);
   const [durationText, setDurationText] = useState('');
   const [apiError, setApiError] = useState(null);
+  // Track whether Google Maps loaded successfully for manual-fallback UX
+  const [mapsAvailable, setMapsAvailable] = useState(true);
   
   const { buses = [] } = useBusesFirestore();
   
@@ -198,16 +200,22 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
             if (mapRef.current) ro.observe(mapRef.current);
 
             setApiError(null);
+            setMapsAvailable(true);
           } catch (e) {
             console.error('Map init error:', e);
-            setApiError("Failed to initialize map. Ensure 'Maps JavaScript API' is enabled.");
+            setMapsAvailable(false);
+            setApiError("Failed to initialize map. Ensure 'Maps JavaScript API' is enabled in Google Cloud Console.");
           }
         }
       } else if (attempt < 40) {
         // Retry up to 40 times (4 seconds total)
         setTimeout(() => waitForGoogle(attempt + 1), 100);
       } else {
-        setApiError('Google Maps failed to load. Check your API key and internet connection.');
+        setMapsAvailable(false);
+        setApiError(
+          'Google Maps failed to load. Ensure VITE_GOOGLE_MAPS_API_KEY is set in .env and the ' +
+          'following APIs are enabled in Google Cloud Console: Maps JavaScript API, Places API, Directions API.'
+        );
       }
     };
 
@@ -331,13 +339,32 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
         setDurationText(totalTimeSec >= 3600 
           ? `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m` 
           : `${totalMinutes}m`);
+
+        // Clear any previous API error on success
+        setApiError(null);
+        setMapsAvailable(true);
       } else {
-        setApiError("No route found. Check your locations.");
+        setApiError("No route found between these locations. Verify the place names are correct.");
       }
     } catch (error) {
-      console.error("Directions error:", error);
-      const errorMsg = error?.code || error?.message || "Check API activation.";
-      setApiError(`Calculation failed: ${errorMsg}`);
+      console.error("Directions API error:", error);
+      // Provide specific guidance for the most common failure modes
+      let errorMsg;
+      if (error?.code === 'REQUEST_DENIED' || String(error).includes('REQUEST_DENIED')) {
+        errorMsg =
+          'REQUEST_DENIED — The Directions API call was rejected. ' +
+          'Go to Google Cloud Console → APIs & Services and enable: ' +
+          '(1) Maps JavaScript API  (2) Places API  (3) Directions API. ' +
+          'Also check that your API key has no HTTP referrer restrictions blocking localhost.';
+        setMapsAvailable(false);
+      } else if (error?.code === 'ZERO_RESULTS') {
+        errorMsg = 'No driving route found between these two locations. Try different start/end points.';
+      } else if (error?.code === 'OVER_QUERY_LIMIT') {
+        errorMsg = 'Directions API quota exceeded. Please wait a moment and try again.';
+      } else {
+        errorMsg = `Route calculation failed (${error?.code || error?.message || 'unknown error'}). Check your API key and internet connection.`;
+      }
+      setApiError(errorMsg);
     } finally {
       setCalculating(false);
     }
@@ -684,10 +711,11 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
                           fullWidth
                           size="small"
                           label="Km"
+                          type={mapsAvailable ? 'text' : 'number'}
                           InputLabelProps={{ shrink: true }}
                           InputProps={{
-                            readOnly: true,
-                            sx: { fontSize: '0.8rem' },
+                            readOnly: mapsAvailable, // auto-filled by Maps; editable when Maps is unavailable
+                            sx: { fontSize: '0.8rem', opacity: mapsAvailable ? 1 : 0.85 },
                             startAdornment: <Straighten sx={{ fontSize: 14, mr: 0.5, opacity: 0.5 }} />
                           }}
                         />
@@ -797,7 +825,10 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
                     {apiError}
                     <br />
                     <span style={{ fontWeight: 700, marginTop: '8px', display: 'block' }}>
-                      Required: Maps JavaScript API & Directions API
+                      Required APIs: Maps JavaScript API · Places API · Directions API
+                    </span>
+                    <span style={{ display: 'block', marginTop: '4px', opacity: 0.8 }}>
+                      Set VITE_GOOGLE_MAPS_API_KEY in apps/web/.env then restart the dev server.
                     </span>
                   </Typography>
                 </Paper>
@@ -828,9 +859,25 @@ export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving
               gap: 1 
             }}>
               <Navigation sx={{ color: '#ff9800', fontSize: 18 }} />
-              <Typography sx={{ color: '#ff9800', fontWeight: 800, fontSize: '0.9rem' }}>
-                {totalDistanceKm || 0} <span style={{ opacity: 0.6, fontSize: '0.7rem' }}>KM</span>
-              </Typography>
+              {mapsAvailable ? (
+                <Typography sx={{ color: '#ff9800', fontWeight: 800, fontSize: '0.9rem' }}>
+                  {totalDistanceKm || 0} <span style={{ opacity: 0.6, fontSize: '0.7rem' }}>KM</span>
+                </Typography>
+              ) : (
+                /* Manual fallback: editable when Maps API is unavailable */
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <TextField
+                    {...register('totalDistanceKm', { valueAsNumber: true })}
+                    type="number"
+                    size="small"
+                    variant="standard"
+                    placeholder="0"
+                    inputProps={{ min: 0, style: { color: '#ff9800', fontWeight: 800, fontSize: '0.9rem', width: 60, textAlign: 'center' } }}
+                    sx={{ '& .MuiInput-underline:before': { borderBottomColor: 'rgba(255,152,0,0.3)' } }}
+                  />
+                  <Typography sx={{ color: '#ff9800', opacity: 0.6, fontSize: '0.7rem' }}>KM</Typography>
+                </Box>
+              )}
             </Box>
 
             <Box sx={{ 

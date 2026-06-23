@@ -57,6 +57,9 @@ class OperatorRejectedScreen extends StatelessWidget {
             TextButton(
               onPressed: () async {
                 await Provider.of<AuthProvider>(context, listen: false).logout();
+                if (context.mounted) {
+                  Navigator.pushNamedAndRemoveUntil(context, '/splash', (route) => false);
+                }
               },
               child: Text(
                  'Logout',

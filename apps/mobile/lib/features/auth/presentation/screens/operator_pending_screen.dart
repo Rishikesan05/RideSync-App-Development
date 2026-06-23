@@ -50,13 +50,43 @@ class OperatorPendingScreen extends StatelessWidget {
             CustomButton(
               label: 'Refresh Status',
               onPressed: () async {
-                await Provider.of<AuthProvider>(context, listen: false).refreshUser();
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                await authProvider.refreshUser();
+                if (context.mounted) {
+                  if (authProvider.status == 'pending_review') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Your application is still under review.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  } else if (authProvider.status == 'rejected') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Your application was rejected.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                    Navigator.pushNamedAndRemoveUntil(context, '/operator-rejected', (route) => false);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Application approved! Welcome to RideSync.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                    Navigator.pushNamedAndRemoveUntil(context, '/operator-main', (route) => false);
+                  }
+                }
               },
             ),
             const SizedBox(height: 16),
             TextButton(
               onPressed: () async {
                 await Provider.of<AuthProvider>(context, listen: false).logout();
+                if (context.mounted) {
+                  Navigator.pushNamedAndRemoveUntil(context, '/splash', (route) => false);
+                }
               },
               child: Text(
                  'Logout',
