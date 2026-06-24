@@ -178,6 +178,8 @@ class BookingProvider extends ChangeNotifier {
             'passengerId': passengerId,
             'ticketCode': ticketCode,
             'updatedAt': FieldValue.serverTimestamp(),
+            'origin': origin?.name ?? '',
+            'destination': destination?.name ?? '',
           }, SetOptions(merge: true));
         }
 

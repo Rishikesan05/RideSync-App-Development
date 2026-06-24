@@ -631,9 +631,9 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
             ],
             _detailRow(Icons.person, 'Passenger', bookingData['passengerName'] ?? bookingData['passengerId'] ?? 'Unknown', isDark),
             const SizedBox(height: 16),
-            _detailRow(Icons.trip_origin, 'Boarding', bookingData['pickup'] ?? 'Pettah Terminal', isDark),
+            _detailRow(Icons.trip_origin, 'Boarding', bookingData['origin'] ?? bookingData['pickup'] ?? 'Unknown', isDark),
             const SizedBox(height: 16),
-            _detailRow(Icons.location_on, 'Drop-off', bookingData['dropoff'] ?? 'Kaduwela', isDark),
+            _detailRow(Icons.location_on, 'Drop-off', bookingData['destination'] ?? bookingData['dropoff'] ?? 'Unknown', isDark),
             const SizedBox(height: 32),
             if (bookingData['status'] == 'boarded') ...[
               SizedBox(
@@ -689,12 +689,14 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
       children: [
         Icon(icon, color: AppColors.primaryOrange, size: 20),
         const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 12)),
-            Text(value, style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontSize: 16, fontWeight: FontWeight.w600)),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 12)),
+              Text(value, style: TextStyle(color: isDark ? Colors.white : AppColors.textDark, fontSize: 16, fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
+            ],
+          ),
         ),
       ],
     );
