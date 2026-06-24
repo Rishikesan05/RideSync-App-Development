@@ -631,9 +631,9 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
             ],
             _detailRow(Icons.person, 'Passenger', bookingData['passengerName'] ?? bookingData['passengerId'] ?? 'Unknown', isDark),
             const SizedBox(height: 16),
-            _detailRow(Icons.trip_origin, 'Boarding', bookingData['pickup'] ?? 'Pettah Terminal', isDark),
+            _detailRow(Icons.trip_origin, 'Boarding', bookingData['origin'] ?? bookingData['pickup'] ?? 'Unknown', isDark),
             const SizedBox(height: 16),
-            _detailRow(Icons.location_on, 'Drop-off', bookingData['dropoff'] ?? 'Kaduwela', isDark),
+            _detailRow(Icons.location_on, 'Drop-off', bookingData['destination'] ?? bookingData['dropoff'] ?? 'Unknown', isDark),
             const SizedBox(height: 32),
             if (bookingData['status'] == 'boarded') ...[
               SizedBox(
