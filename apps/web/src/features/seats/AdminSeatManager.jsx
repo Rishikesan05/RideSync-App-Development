@@ -9,8 +9,14 @@ import {
   Typography,
   Chip,
   Stack,
-  Divider
+  Divider,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
 } from '@mui/material';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../api/firebase';
 import BusSeatMap from './BusSeatMap';
 import { updateSeatMeta, initializeRideSeats, relocateSeat } from './SeatService';
 import { useSeatMap } from './useSeatMap';
@@ -29,6 +35,44 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
   const [relocatingSeat, setRelocatingSeat] = useState(null);
   const [relocatingStatus, setRelocatingStatus] = useState('idle'); // idle | error
   const [relocationErrorMsg, setRelocationErrorMsg] = useState('');
+  const [routeStops, setRouteStops] = useState([]);
+
+  useEffect(() => {
+    if (!rideId) return;
+    const fetchRouteStops = async () => {
+      try {
+        const scheduleRef = doc(db, 'schedules', rideId);
+        const scheduleSnap = await getDoc(scheduleRef);
+        if (scheduleSnap.exists()) {
+          const routeId = scheduleSnap.data().routeId;
+          if (routeId) {
+            const routeRef = doc(db, 'routes', routeId);
+            const routeSnap = await getDoc(routeRef);
+            if (routeSnap.exists()) {
+              const routeData = routeSnap.data();
+              let stops = [];
+              if (routeData.origin) stops.push(routeData.origin.split(',')[0].trim());
+              else if (routeData.startPoint) stops.push(routeData.startPoint.split(',')[0].trim());
+              
+              if (routeData.stops && Array.isArray(routeData.stops)) {
+                routeData.stops.forEach(s => {
+                  if(s.name) stops.push(s.name.split(',')[0].trim());
+                });
+              }
+              
+              if (routeData.destination) stops.push(routeData.destination.split(',')[0].trim());
+              else if (routeData.endPoint) stops.push(routeData.endPoint.split(',')[0].trim());
+              
+              setRouteStops([...new Set(stops)]);
+            }
+          }
+        }
+      } catch(e) {
+        console.error("Failed to fetch route stops", e);
+      }
+    };
+    fetchRouteStops();
+  }, [rideId]);
 
   // Automatically initialize seats if they don't exist
   useEffect(() => {
@@ -72,6 +116,12 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
     } else {
       setSelectedSeat(seat);
     }
+  };
+
+  const handleStopChange = async (field, value) => {
+    if (!selectedSeat) return;
+    await updateSeatMeta(rideId, selectedSeat.seatNumber, { [field]: value });
+    setSelectedSeat(prev => ({ ...prev, [field]: value }));
   };
 
   const handleBlockSeat = async () => {
@@ -194,9 +244,39 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
                         <Typography variant="caption" display="block">
                           <strong>Booked By:</strong> {selectedSeat.passengerId || 'Unknown'}
                         </Typography>
-                        <Typography variant="caption" display="block">
+                        <Typography variant="caption" display="block" sx={{ mb: 1.5 }}>
                           <strong>Booked At:</strong> {formatDateTime(selectedSeat.bookedAt)}
                         </Typography>
+
+                        <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
+                          <InputLabel sx={{ fontSize: '0.8rem' }}>Boarding Point</InputLabel>
+                          <Select
+                            value={selectedSeat.origin || selectedSeat.pickup || ''}
+                            label="Boarding Point"
+                            onChange={(e) => handleStopChange('origin', e.target.value)}
+                            sx={{ fontSize: '0.8rem' }}
+                          >
+                            <MenuItem value=""><em>Unknown</em></MenuItem>
+                            {routeStops.map((stop, idx) => (
+                              <MenuItem key={`orig-${idx}`} value={stop}>{stop}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+
+                        <FormControl fullWidth size="small">
+                          <InputLabel sx={{ fontSize: '0.8rem' }}>Drop-off Point</InputLabel>
+                          <Select
+                            value={selectedSeat.destination || selectedSeat.dropoff || ''}
+                            label="Drop-off Point"
+                            onChange={(e) => handleStopChange('destination', e.target.value)}
+                            sx={{ fontSize: '0.8rem' }}
+                          >
+                            <MenuItem value=""><em>Unknown</em></MenuItem>
+                            {routeStops.map((stop, idx) => (
+                              <MenuItem key={`dest-${idx}`} value={stop}>{stop}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
                       </Box>
                     )}
                   </Box>
