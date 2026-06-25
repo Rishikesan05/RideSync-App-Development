@@ -68,6 +68,11 @@ class BookingProvider extends ChangeNotifier {
   bool isBooking = false;
   String? lastGeneratedTicketCode;
 
+  // Route Stops for UI Selection
+  List<String> currentRouteStops = [];
+  String? selectedBoardingPoint;
+  String? selectedDropoffPoint;
+
   // --- Fare Calculation ---
   static const double _farePerKm = 15.0;
   static const double _minimumFare = 50.0;
@@ -111,10 +116,37 @@ class BookingProvider extends ChangeNotifier {
   /// Formatted fare string for display
   String get formattedFarePerSeat => 'LKR ${farePerSeat.toStringAsFixed(0)}';
 
-  void selectSchedule(ScheduleModel schedule) {
+  Future<void> selectSchedule(ScheduleModel schedule) async {
     selectedSchedule = schedule;
     selectedSeatNumbers.clear();
+    currentRouteStops.clear();
+    selectedBoardingPoint = origin?.name;
+    selectedDropoffPoint = destination?.name;
     notifyListeners();
+
+    try {
+      final routeSnap = await FirebaseFirestore.instance.collection('routes').doc(schedule.routeId).get();
+      if (routeSnap.exists) {
+        final data = routeSnap.data()!;
+        final stops = <String>[];
+        if (data['origin'] != null) stops.add(data['origin'].toString().split(',')[0].trim());
+        else if (data['startPoint'] != null) stops.add(data['startPoint'].toString().split(',')[0].trim());
+        
+        if (data['stops'] is List) {
+          for (var stop in data['stops']) {
+            if (stop['name'] != null) stops.add(stop['name'].toString().split(',')[0].trim());
+          }
+        }
+        
+        if (data['destination'] != null) stops.add(data['destination'].toString().split(',')[0].trim());
+        else if (data['endPoint'] != null) stops.add(data['endPoint'].toString().split(',')[0].trim());
+        
+        currentRouteStops = stops.toSet().toList();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("Failed to fetch route stops: $e");
+    }
   }
 
   void toggleSeat(String seatNumber) {
@@ -126,6 +158,16 @@ class BookingProvider extends ChangeNotifier {
         selectedSeatNumbers.add(seatNumber);
       }
     }
+    notifyListeners();
+  }
+
+  void setBoardingPoint(String? point) {
+    selectedBoardingPoint = point;
+    notifyListeners();
+  }
+
+  void setDropoffPoint(String? point) {
+    selectedDropoffPoint = point;
     notifyListeners();
   }
 
@@ -178,8 +220,8 @@ class BookingProvider extends ChangeNotifier {
             'passengerId': passengerId,
             'ticketCode': ticketCode,
             'updatedAt': FieldValue.serverTimestamp(),
-            'origin': origin?.name ?? '',
-            'destination': destination?.name ?? '',
+            'origin': selectedBoardingPoint ?? origin?.name ?? '',
+            'destination': selectedDropoffPoint ?? destination?.name ?? '',
           }, SetOptions(merge: true));
         }
 
@@ -191,8 +233,8 @@ class BookingProvider extends ChangeNotifier {
           'routeId': selectedSchedule!.routeId,
           'busId': selectedSchedule!.busId,
           'seats': selectedSeatNumbers.toList(),
-          'origin': origin?.name ?? '',
-          'destination': destination?.name ?? '',
+          'origin': selectedBoardingPoint ?? origin?.name ?? '',
+          'destination': selectedDropoffPoint ?? destination?.name ?? '',
           'distanceKm': distanceKm.toStringAsFixed(1),
           'farePerSeat': farePerSeat.roundToDouble(),
           'totalFare': totalFare.roundToDouble(),
