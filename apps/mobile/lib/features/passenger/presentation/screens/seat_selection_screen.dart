@@ -214,6 +214,58 @@ class SeatSelectionScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (booking.currentRouteStops.isNotEmpty) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText: 'Boarding Point',
+                        labelStyle: const TextStyle(fontSize: 12),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      value: booking.selectedBoardingPoint != null && booking.currentRouteStops.contains(booking.selectedBoardingPoint)
+                          ? booking.selectedBoardingPoint
+                          : null,
+                      items: booking.currentRouteStops.map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
+                        );
+                      }).toList(),
+                      onChanged: (newValue) {
+                        booking.setBoardingPoint(newValue);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText: 'Drop-off Point',
+                        labelStyle: const TextStyle(fontSize: 12),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      value: booking.selectedDropoffPoint != null && booking.currentRouteStops.contains(booking.selectedDropoffPoint)
+                          ? booking.selectedDropoffPoint
+                          : null,
+                      items: booking.currentRouteStops.map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
+                        );
+                      }).toList(),
+                      onChanged: (newValue) {
+                        booking.setDropoffPoint(newValue);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -232,6 +284,17 @@ class SeatSelectionScreen extends StatelessWidget {
                 ),
                 ElevatedButton(
                   onPressed: () {
+                    if (booking.currentRouteStops.isNotEmpty) {
+                      if (booking.selectedBoardingPoint == null || booking.selectedDropoffPoint == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please select both boarding and drop-off points'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+                    }
                     Navigator.push(
                       context,
                       MaterialPageRoute(

@@ -244,8 +244,13 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
                         <Typography variant="caption" display="block">
                           <strong>Booked By:</strong> {selectedSeat.passengerId || 'Unknown'}
                         </Typography>
+                        {selectedSeat.ticketCode && (
+                          <Typography variant="caption" display="block">
+                            <strong>Ticket Code:</strong> {selectedSeat.ticketCode}
+                          </Typography>
+                        )}
                         <Typography variant="caption" display="block" sx={{ mb: 1.5 }}>
-                          <strong>Booked At:</strong> {formatDateTime(selectedSeat.bookedAt)}
+                          <strong>Booked At:</strong> {formatDateTime(selectedSeat.updatedAt || selectedSeat.bookedAt)}
                         </Typography>
 
                         <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
