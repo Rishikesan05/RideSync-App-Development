@@ -629,7 +629,11 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
               _detailRow(Icons.confirmation_number, 'Ticket Code', bookingData['ticketCode'], isDark),
               const SizedBox(height: 16),
             ],
-            _detailRow(Icons.person, 'Passenger', bookingData['passengerName'] ?? bookingData['passengerId'] ?? 'Unknown', isDark),
+            if (bookingData['updatedAt'] != null || bookingData['bookedAt'] != null) ...[
+              _detailRow(Icons.access_time, 'Booked At', _formatTimestamp(bookingData['updatedAt'] ?? bookingData['bookedAt']), isDark),
+              const SizedBox(height: 16),
+            ],
+            _detailRow(Icons.person, 'Passenger', _formatPassenger(bookingData), isDark),
             const SizedBox(height: 16),
             _detailRow(Icons.trip_origin, 'Boarding', bookingData['origin'] ?? bookingData['pickup'] ?? 'Unknown', isDark),
             const SizedBox(height: 16),
@@ -700,6 +704,28 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
         ),
       ],
     );
+  }
+
+  String _formatTimestamp(dynamic timestamp) {
+    if (timestamp == null) return 'Unknown';
+    DateTime date;
+    if (timestamp.runtimeType.toString() == 'Timestamp') {
+      date = timestamp.toDate();
+    } else if (timestamp is String) {
+      date = DateTime.tryParse(timestamp) ?? DateTime.now();
+    } else {
+      return 'Unknown';
+    }
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _formatPassenger(Map<String, dynamic> data) {
+    String name = data['passengerName'] ?? '';
+    String id = data['passengerId'] ?? 'Unknown';
+    if (name.isNotEmpty && name != id) {
+      return '$name ($id)';
+    }
+    return id;
   }
 }
 
