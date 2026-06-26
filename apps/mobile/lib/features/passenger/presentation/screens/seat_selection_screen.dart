@@ -70,7 +70,7 @@ class SeatSelectionScreen extends StatelessWidget {
           const SizedBox(width: 20),
           _legendItem('Selected', AppColors.primaryOrange),
           const SizedBox(width: 20),
-          _legendItem('Sold', Colors.grey.shade400),
+          _legendItem('Sold', Colors.green),
         ],
       ),
     );
@@ -146,12 +146,68 @@ class SeatSelectionScreen extends StatelessWidget {
                 orElse: () => {},
               );
 
-              bool isBooked = ['occupied', 'sold', 'blocked', 'reserved'].contains(liveData['status']);
+              bool isFullySold = false;
+              double partialRatio = 0.0;
+              bool hasOverlap = false;
+
+              if (liveData.isNotEmpty && ['occupied', 'sold', 'blocked', 'reserved'].contains(liveData['status'])) {
+                  final String seatOrigin = liveData['origin'] ?? '';
+                  final String seatDest = liveData['destination'] ?? '';
+                  final stops = provider.currentRouteStops;
+                  
+                  if (seatOrigin.isNotEmpty && seatDest.isNotEmpty && stops.length > 1) {
+                      int oIdx = stops.indexOf(seatOrigin);
+                      int dIdx = stops.indexOf(seatDest);
+                      if (oIdx != -1 && dIdx != -1) {
+                          if (oIdx > dIdx) {
+                              final temp = oIdx;
+                              oIdx = dIdx;
+                              dIdx = temp;
+                          }
+                          partialRatio = (dIdx - oIdx) / (stops.length - 1);
+                          if (partialRatio >= 1.0) {
+                              isFullySold = true;
+                              partialRatio = 1.0;
+                          }
+
+                          final userOrigin = provider.selectedBoardingPoint ?? provider.origin?.name ?? '';
+                          final userDest = provider.selectedDropoffPoint ?? provider.destination?.name ?? '';
+                          int uOIdx = stops.indexOf(userOrigin);
+                          int uDIdx = stops.indexOf(userDest);
+                          
+                          if (uOIdx != -1 && uDIdx != -1) {
+                              if (uOIdx > uDIdx) {
+                                  final temp = uOIdx;
+                                  uOIdx = uDIdx;
+                                  uDIdx = temp;
+                              }
+                              // Overlap happens if segments intersect
+                              if (uOIdx < dIdx && uDIdx > oIdx) {
+                                  hasOverlap = true;
+                              }
+                          } else {
+                              hasOverlap = true; // Safe fallback
+                          }
+                      } else {
+                          isFullySold = true;
+                          hasOverlap = true;
+                      }
+                  } else {
+                      isFullySold = true;
+                      hasOverlap = true;
+                  }
+              } else if (liveData['status'] == 'sold') {
+                  isFullySold = true;
+                  hasOverlap = true;
+              }
+
               bool isSelected = provider.selectedSeatNumbers.contains(bp.seatNumber);
 
               return _SeatWidget(
                 number: bp.seatNumber,
-                isBooked: isBooked,
+                isBooked: hasOverlap || isFullySold,
+                isFullySold: isFullySold,
+                partialRatio: partialRatio,
                 isSelected: isSelected,
                 onTap: () => provider.toggleSeat(bp.seatNumber),
                 isDark: isDark,
@@ -321,6 +377,8 @@ class SeatSelectionScreen extends StatelessWidget {
 class _SeatWidget extends StatelessWidget {
   final String number;
   final bool isBooked;
+  final bool isFullySold;
+  final double partialRatio;
   final bool isSelected;
   final VoidCallback onTap;
   final bool isDark;
@@ -328,6 +386,8 @@ class _SeatWidget extends StatelessWidget {
   const _SeatWidget({
     required this.number,
     required this.isBooked,
+    this.isFullySold = false,
+    this.partialRatio = 0.0,
     required this.isSelected,
     required this.onTap,
     required this.isDark,
@@ -335,28 +395,53 @@ class _SeatWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color bgColor = isSelected 
+    Color baseBgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    Color fullBgColor = isSelected 
         ? AppColors.primaryOrange 
-        : (isBooked ? (isDark ? Colors.white10 : Colors.grey.shade300) : (isDark ? const Color(0xFF1E293B) : Colors.white));
-    
+        : (isFullySold ? Colors.green : baseBgColor);
+        
     Color textColor = isSelected 
         ? Colors.white 
-        : (isBooked ? AppColors.textLight : (isDark ? Colors.white70 : AppColors.textDark));
+        : (isFullySold ? Colors.white : (isDark ? Colors.white70 : AppColors.textDark));
+
+    Decoration decoration;
+    
+    if (isSelected || isFullySold || partialRatio <= 0.0) {
+        decoration = BoxDecoration(
+          color: fullBgColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected 
+                ? AppColors.primaryOrange 
+                : (isFullySold ? Colors.transparent : (isDark ? Colors.white10 : Colors.grey.shade200)),
+          ),
+          boxShadow: isSelected ? [BoxShadow(color: AppColors.primaryOrange.withValues(alpha: 0.3), blurRadius: 8)] : null,
+        );
+    } else {
+        decoration = BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+             color: isDark ? Colors.white10 : Colors.grey.shade200,
+          ),
+          gradient: LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            stops: [partialRatio, partialRatio],
+            colors: [
+              Colors.green,
+              baseBgColor,
+            ],
+          ),
+        );
+        // Ensure text is white if the ratio is very high and it's over the green part
+        if (partialRatio > 0.5 && !isDark) textColor = Colors.white;
+    }
 
     return GestureDetector(
       onTap: isBooked ? null : onTap,
       child: Container(
         alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected 
-                ? AppColors.primaryOrange 
-                : (isBooked ? Colors.transparent : (isDark ? Colors.white10 : Colors.grey.shade200)),
-          ),
-          boxShadow: isSelected ? [BoxShadow(color: AppColors.primaryOrange.withValues(alpha: 0.3), blurRadius: 8)] : null,
-        ),
+        decoration: decoration,
         child: Text(
           number,
           style: TextStyle(
