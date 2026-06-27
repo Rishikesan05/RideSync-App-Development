@@ -198,12 +198,78 @@ class BookingProvider extends ChangeNotifier {
       
       await FirebaseFirestore.instance.runTransaction((transaction) async {
         // 1. Check all selected seats are still available
+        final stops = currentRouteStops.map((s) => s.toLowerCase()).toList();
+        String normalize(String val) => val.split(',')[0].trim().toLowerCase();
+        
+        int findStopIndex(String? stopName) {
+            if (stopName == null || stopName.isEmpty) return -1;
+            final normalized = normalize(stopName);
+            int idx = stops.indexOf(normalized);
+            if (idx != -1) return idx;
+            for (int i = 0; i < stops.length; i++) {
+                if (stops[i].contains(normalized) || normalized.contains(stops[i])) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        final userOrigin = selectedBoardingPoint ?? origin?.name ?? '';
+        final userDest = selectedDropoffPoint ?? destination?.name ?? '';
+        int uOIdx = findStopIndex(userOrigin);
+        int uDIdx = findStopIndex(userDest);
+        if (uOIdx != -1 && uDIdx != -1 && uOIdx > uDIdx) {
+            final temp = uOIdx;
+            uOIdx = uDIdx;
+            uDIdx = temp;
+        }
+
+        final Map<String, DocumentSnapshot> seatSnaps = {};
+
         for (final seatNum in selectedSeatNumbers) {
           final seatRef = scheduleRef.collection('seats').doc(seatNum);
           final seatSnap = await transaction.get(seatRef);
+          seatSnaps[seatNum] = seatSnap;
           
-          if (seatSnap.exists && seatSnap.data()?['status'] != 'available') {
-            throw Exception('Seat $seatNum is no longer available');
+          if (seatSnap.exists) {
+            final data = seatSnap.data() as Map<String, dynamic>? ?? {};
+            if (data['status'] != 'available') {
+              if (['sold', 'occupied', 'blocked', 'reserved'].contains(data['status'])) {
+                 List<dynamic> segments = data['segments'] ?? [];
+                 if (segments.isEmpty && data['origin'] != null && data['destination'] != null) {
+                     segments.add({'origin': data['origin'], 'destination': data['destination']});
+                 }
+                 
+                 bool hasOverlap = false;
+                 if (segments.isEmpty) hasOverlap = true;
+
+                 for (var seg in segments) {
+                     int oIdx = findStopIndex(seg['origin']);
+                     int dIdx = findStopIndex(seg['destination']);
+                     if (oIdx != -1 && dIdx != -1) {
+                         if (oIdx > dIdx) {
+                             final temp = oIdx;
+                             oIdx = dIdx;
+                             dIdx = temp;
+                         }
+                         if (uOIdx != -1 && uDIdx != -1) {
+                             if (uOIdx < dIdx && uDIdx > oIdx) {
+                                 hasOverlap = true;
+                             }
+                         } else {
+                             hasOverlap = true;
+                         }
+                     } else {
+                         hasOverlap = true;
+                     }
+                 }
+                 if (hasOverlap) {
+                     throw Exception('Seat $seatNum is no longer available for your selected route');
+                 }
+              } else {
+                 throw Exception('Seat $seatNum is no longer available');
+              }
+            }
           }
         }
 
@@ -214,14 +280,33 @@ class BookingProvider extends ChangeNotifier {
         // 2. Perform updates
         for (final seatNum in selectedSeatNumbers) {
           final seatRef = scheduleRef.collection('seats').doc(seatNum);
+          final seatSnap = seatSnaps[seatNum];
+          
+          List<dynamic> segments = [];
+          if (seatSnap != null && seatSnap.exists) {
+              final data = seatSnap.data() as Map<String, dynamic>? ?? {};
+              segments = data['segments'] ?? [];
+              if (segments.isEmpty && data['origin'] != null && data['destination'] != null) {
+                  segments.add({'origin': data['origin'], 'destination': data['destination'], 'passengerId': data['passengerId']});
+              }
+          }
+          
+          segments.add({
+              'origin': selectedBoardingPoint ?? origin?.name ?? '',
+              'destination': selectedDropoffPoint ?? destination?.name ?? '',
+              'passengerId': passengerId,
+              'ticketCode': ticketCode,
+          });
+
           transaction.set(seatRef, {
             'seatNumber': seatNum,
             'status': 'sold',
+            'segments': segments,
             'passengerId': passengerId,
             'ticketCode': ticketCode,
             'updatedAt': FieldValue.serverTimestamp(),
-            'origin': selectedBoardingPoint ?? origin?.name ?? '',
-            'destination': selectedDropoffPoint ?? destination?.name ?? '',
+            'origin': segments.first['origin'],
+            'destination': segments.last['destination'],
           }, SetOptions(merge: true));
         }
 

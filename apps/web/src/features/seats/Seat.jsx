@@ -15,16 +15,16 @@ const SeatContainer = styled(motion.div)(({ status, type, partialRatio }) => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  cursor: type === 'driver' || status === 'booked' ? 'default' : 'pointer',
+  cursor: type === 'driver' ? 'default' : 'pointer',
   border: '1.5px solid',
   transition: 'all 0.2s ease',
   
   // Dynamic Backgrounds based on status
   background: 
     status === 'selected' ? '#22C55E' : 
-    status === 'booked' ? '#22C55E' :
+    ['booked', 'sold'].includes(status) ? '#22C55E' :
     status === 'partial' ? `linear-gradient(to top, #22C55E ${(partialRatio || 0) * 100}%, #FFFFFF ${(partialRatio || 0) * 100}%)` :
-    ['reserved', 'occupied', 'sold'].includes(status) ? '#94A3B8' : 
+    ['reserved', 'occupied'].includes(status) ? '#94A3B8' : 
     '#FFFFFF',
     
   // Dynamic Borders
@@ -72,7 +72,7 @@ const Seat = ({ seat, onSelect, isSelected }) => {
         type={seat.type}
         partialRatio={seat.partialRatio}
         whileTap={{ scale: 0.95 }}
-        onClick={() => seat.type !== 'driver' && seat.status !== 'booked' && onSelect(seat)}
+        onClick={() => seat.type !== 'driver' && onSelect(seat)}
       >
         <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.68rem' }}>
           {seat.seatNumber}
