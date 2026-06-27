@@ -8,7 +8,7 @@ import { getBusGridTemplate, generateBusLayout } from './SeatLayouts';
  * Main Bus Seat Map Component
  * Renders the dynamic grid based on layout type
  */
-const BusSeatMap = ({ rideId, layoutType, selectedSeats, onSeatSelect }) => {
+const BusSeatMap = ({ rideId, layoutType, selectedSeats, onSeatSelect, routeStops }) => {
   const { seats, loading, error } = useSeatMap(rideId);
 
   if (loading) return (
@@ -34,7 +34,41 @@ const BusSeatMap = ({ rideId, layoutType, selectedSeats, onSeatSelect }) => {
     
     // If it's a seat, find the live status from Firestore
     const liveData = seats.find(s => String(s.seatNumber) === String(blueprintSeat.seatNumber));
-    return { ...blueprintSeat, ...liveData };
+    
+    let partialRatio = 0;
+    let computedStatus = liveData ? liveData.status : 'available';
+    let isFullySold = false;
+    
+    if (liveData && ['reserved', 'booked', 'occupied', 'sold'].includes(liveData.status)) {
+        const origin = liveData.origin || liveData.pickup;
+        const destination = liveData.destination || liveData.dropoff;
+        
+        if (origin && destination && routeStops && routeStops.length > 1) {
+            const oIdx = routeStops.indexOf(origin);
+            const dIdx = routeStops.indexOf(destination);
+            
+            if (oIdx !== -1 && dIdx !== -1) {
+                const bookedSegments = Math.abs(dIdx - oIdx);
+                const totalSegments = routeStops.length - 1;
+                partialRatio = bookedSegments / totalSegments;
+                
+                if (partialRatio >= 1 || computedStatus === 'sold') {
+                    isFullySold = true;
+                    computedStatus = 'booked';
+                } else {
+                    computedStatus = 'partial';
+                }
+            } else if (computedStatus === 'sold') {
+                isFullySold = true;
+                computedStatus = 'booked';
+            }
+        } else if (computedStatus === 'sold' || computedStatus === 'booked') {
+            isFullySold = true;
+            computedStatus = 'booked';
+        }
+    }
+
+    return { ...blueprintSeat, ...liveData, partialRatio, status: computedStatus, isFullySold };
   });
 
   return (

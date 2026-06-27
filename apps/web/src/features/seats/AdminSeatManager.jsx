@@ -176,6 +176,7 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
                layoutType={layoutType} 
                selectedSeats={relocatingSeat ? [relocatingSeat.seatNumber] : (selectedSeat ? [selectedSeat.seatNumber] : [])}
                onSeatSelect={handleSeatClick}
+               routeStops={routeStops}
              />
           </Box>
 

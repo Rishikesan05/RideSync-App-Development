@@ -151,54 +151,69 @@ class SeatSelectionScreen extends StatelessWidget {
               bool hasOverlap = false;
 
               if (liveData.isNotEmpty && ['occupied', 'sold', 'blocked', 'reserved'].contains(liveData['status'])) {
-                  final String seatOrigin = liveData['origin'] ?? '';
-                  final String seatDest = liveData['destination'] ?? '';
                   final stops = provider.currentRouteStops;
                   
-                  if (seatOrigin.isNotEmpty && seatDest.isNotEmpty && stops.length > 1) {
-                      int oIdx = stops.indexOf(seatOrigin);
-                      int dIdx = stops.indexOf(seatDest);
-                      if (oIdx != -1 && dIdx != -1) {
-                          if (oIdx > dIdx) {
-                              final temp = oIdx;
-                              oIdx = dIdx;
-                              dIdx = temp;
-                          }
-                          partialRatio = (dIdx - oIdx) / (stops.length - 1);
-                          if (partialRatio >= 1.0) {
-                              isFullySold = true;
-                              partialRatio = 1.0;
-                          }
+                  final userOrigin = provider.selectedBoardingPoint ?? provider.origin?.name ?? '';
+                  final userDest = provider.selectedDropoffPoint ?? provider.destination?.name ?? '';
+                  int uOIdx = stops.indexOf(userOrigin);
+                  int uDIdx = stops.indexOf(userDest);
+                  
+                  if (uOIdx != -1 && uDIdx != -1 && uOIdx > uDIdx) {
+                      final temp = uOIdx;
+                      uOIdx = uDIdx;
+                      uDIdx = temp;
+                  }
 
-                          final userOrigin = provider.selectedBoardingPoint ?? provider.origin?.name ?? '';
-                          final userDest = provider.selectedDropoffPoint ?? provider.destination?.name ?? '';
-                          int uOIdx = stops.indexOf(userOrigin);
-                          int uDIdx = stops.indexOf(userDest);
+                  List<dynamic> segments = liveData['segments'] ?? [];
+                  if (segments.isEmpty) {
+                      final o = liveData['origin'];
+                      final d = liveData['destination'];
+                      if (o != null && d != null && o.toString().isNotEmpty && d.toString().isNotEmpty) {
+                          segments.add({'origin': o, 'destination': d});
+                      }
+                  }
+
+                  if (segments.isNotEmpty && stops.length > 1) {
+                      int totalSegments = stops.length - 1;
+                      int coveredSegments = 0;
+                      List<bool> covered = List.filled(totalSegments, false);
+
+                      for (var seg in segments) {
+                          int oIdx = stops.indexOf(seg['origin'] ?? '');
+                          int dIdx = stops.indexOf(seg['destination'] ?? '');
                           
-                          if (uOIdx != -1 && uDIdx != -1) {
-                              if (uOIdx > uDIdx) {
-                                  final temp = uOIdx;
-                                  uOIdx = uDIdx;
-                                  uDIdx = temp;
+                          if (oIdx != -1 && dIdx != -1) {
+                              if (oIdx > dIdx) {
+                                  final temp = oIdx;
+                                  oIdx = dIdx;
+                                  dIdx = temp;
                               }
-                              // Overlap happens if segments intersect
-                              if (uOIdx < dIdx && uDIdx > oIdx) {
+                              for (int i = oIdx; i < dIdx; i++) {
+                                  covered[i] = true;
+                              }
+                              
+                              if (uOIdx != -1 && uDIdx != -1) {
+                                  if (uOIdx < dIdx && uDIdx > oIdx) {
+                                      hasOverlap = true;
+                                  }
+                              } else {
                                   hasOverlap = true;
                               }
                           } else {
-                              hasOverlap = true; // Safe fallback
+                              isFullySold = true;
+                              hasOverlap = true;
                           }
-                      } else {
+                      }
+                      
+                      coveredSegments = covered.where((c) => c).length;
+                      partialRatio = coveredSegments / totalSegments;
+                      if (partialRatio >= 1.0) {
                           isFullySold = true;
-                          hasOverlap = true;
                       }
                   } else {
                       isFullySold = true;
                       hasOverlap = true;
                   }
-              } else if (liveData['status'] == 'sold') {
-                  isFullySold = true;
-                  hasOverlap = true;
               }
 
               bool isSelected = provider.selectedSeatNumbers.contains(bp.seatNumber);
