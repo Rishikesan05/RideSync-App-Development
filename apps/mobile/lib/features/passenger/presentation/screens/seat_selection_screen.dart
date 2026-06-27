@@ -151,12 +151,14 @@ class SeatSelectionScreen extends StatelessWidget {
               bool hasOverlap = false;
 
               if (liveData.isNotEmpty && ['occupied', 'sold', 'blocked', 'reserved'].contains(liveData['status'])) {
-                  final stops = provider.currentRouteStops;
+                  final stops = provider.currentRouteStops.map((s) => s.toLowerCase()).toList();
                   
+                  String normalize(String val) => val.split(',')[0].trim().toLowerCase();
+
                   final userOrigin = provider.selectedBoardingPoint ?? provider.origin?.name ?? '';
                   final userDest = provider.selectedDropoffPoint ?? provider.destination?.name ?? '';
-                  int uOIdx = stops.indexOf(userOrigin);
-                  int uDIdx = stops.indexOf(userDest);
+                  int uOIdx = stops.indexOf(normalize(userOrigin));
+                  int uDIdx = stops.indexOf(normalize(userDest));
                   
                   if (uOIdx != -1 && uDIdx != -1 && uOIdx > uDIdx) {
                       final temp = uOIdx;
@@ -179,8 +181,8 @@ class SeatSelectionScreen extends StatelessWidget {
                       List<bool> covered = List.filled(totalSegments, false);
 
                       for (var seg in segments) {
-                          int oIdx = stops.indexOf(seg['origin'] ?? '');
-                          int dIdx = stops.indexOf(seg['destination'] ?? '');
+                          int oIdx = stops.indexOf(normalize(seg['origin'] ?? ''));
+                          int dIdx = stops.indexOf(normalize(seg['destination'] ?? ''));
                           
                           if (oIdx != -1 && dIdx != -1) {
                               if (oIdx > dIdx) {

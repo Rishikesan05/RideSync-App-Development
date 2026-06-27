@@ -198,10 +198,13 @@ class BookingProvider extends ChangeNotifier {
       
       await FirebaseFirestore.instance.runTransaction((transaction) async {
         // 1. Check all selected seats are still available
+        final stops = currentRouteStops.map((s) => s.toLowerCase()).toList();
+        String normalize(String val) => val.split(',')[0].trim().toLowerCase();
+
         final userOrigin = selectedBoardingPoint ?? origin?.name ?? '';
         final userDest = selectedDropoffPoint ?? destination?.name ?? '';
-        int uOIdx = currentRouteStops.indexOf(userOrigin);
-        int uDIdx = currentRouteStops.indexOf(userDest);
+        int uOIdx = stops.indexOf(normalize(userOrigin));
+        int uDIdx = stops.indexOf(normalize(userDest));
         if (uOIdx != -1 && uDIdx != -1 && uOIdx > uDIdx) {
             final temp = uOIdx;
             uOIdx = uDIdx;
@@ -228,8 +231,8 @@ class BookingProvider extends ChangeNotifier {
                  if (segments.isEmpty) hasOverlap = true;
 
                  for (var seg in segments) {
-                     int oIdx = currentRouteStops.indexOf(seg['origin'] ?? '');
-                     int dIdx = currentRouteStops.indexOf(seg['destination'] ?? '');
+                     int oIdx = stops.indexOf(normalize(seg['origin'] ?? ''));
+                     int dIdx = stops.indexOf(normalize(seg['destination'] ?? ''));
                      if (oIdx != -1 && dIdx != -1) {
                          if (oIdx > dIdx) {
                              final temp = oIdx;
