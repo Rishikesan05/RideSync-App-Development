@@ -154,11 +154,24 @@ class SeatSelectionScreen extends StatelessWidget {
                   final stops = provider.currentRouteStops.map((s) => s.toLowerCase()).toList();
                   
                   String normalize(String val) => val.split(',')[0].trim().toLowerCase();
+                  
+                  int findStopIndex(String? stopName) {
+                      if (stopName == null || stopName.isEmpty) return -1;
+                      final normalized = normalize(stopName);
+                      int idx = stops.indexOf(normalized);
+                      if (idx != -1) return idx;
+                      for (int i = 0; i < stops.length; i++) {
+                          if (stops[i].contains(normalized) || normalized.contains(stops[i])) {
+                              return i;
+                          }
+                      }
+                      return -1;
+                  }
 
                   final userOrigin = provider.selectedBoardingPoint ?? provider.origin?.name ?? '';
                   final userDest = provider.selectedDropoffPoint ?? provider.destination?.name ?? '';
-                  int uOIdx = stops.indexOf(normalize(userOrigin));
-                  int uDIdx = stops.indexOf(normalize(userDest));
+                  int uOIdx = findStopIndex(userOrigin);
+                  int uDIdx = findStopIndex(userDest);
                   
                   if (uOIdx != -1 && uDIdx != -1 && uOIdx > uDIdx) {
                       final temp = uOIdx;
@@ -181,8 +194,8 @@ class SeatSelectionScreen extends StatelessWidget {
                       List<bool> covered = List.filled(totalSegments, false);
 
                       for (var seg in segments) {
-                          int oIdx = stops.indexOf(normalize(seg['origin'] ?? ''));
-                          int dIdx = stops.indexOf(normalize(seg['destination'] ?? ''));
+                          int oIdx = findStopIndex(seg['origin']);
+                          int dIdx = findStopIndex(seg['destination']);
                           
                           if (oIdx != -1 && dIdx != -1) {
                               if (oIdx > dIdx) {
@@ -273,11 +286,9 @@ class SeatSelectionScreen extends StatelessWidget {
   }
 
   Widget _buildFooter(BookingProvider booking, AuthProvider auth, BuildContext context) {
-    if (booking.selectedSeatNumbers.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20)],
@@ -355,29 +366,21 @@ class SeatSelectionScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    if (booking.currentRouteStops.isNotEmpty) {
-                      if (booking.selectedBoardingPoint == null || booking.selectedDropoffPoint == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Please select both boarding and drop-off points'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
+                  ElevatedButton(
+                    onPressed: booking.selectedSeatNumbers.isEmpty ? null : () {
+                      if (booking.currentRouteStops.isNotEmpty) {
+                        if (booking.selectedBoardingPoint == null || booking.selectedDropoffPoint == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please select both boarding and drop-off points'), backgroundColor: Colors.red),
+                          );
+                          return;
+                        }
                       }
-                    }
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PaymentScreen(),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryOrange,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentScreen()));
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: booking.selectedSeatNumbers.isEmpty ? Colors.grey : AppColors.primaryOrange,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                   child: const Text('Proceed to Pay', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),

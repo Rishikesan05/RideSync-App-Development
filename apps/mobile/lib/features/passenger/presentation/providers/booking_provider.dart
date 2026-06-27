@@ -200,11 +200,24 @@ class BookingProvider extends ChangeNotifier {
         // 1. Check all selected seats are still available
         final stops = currentRouteStops.map((s) => s.toLowerCase()).toList();
         String normalize(String val) => val.split(',')[0].trim().toLowerCase();
+        
+        int findStopIndex(String? stopName) {
+            if (stopName == null || stopName.isEmpty) return -1;
+            final normalized = normalize(stopName);
+            int idx = stops.indexOf(normalized);
+            if (idx != -1) return idx;
+            for (int i = 0; i < stops.length; i++) {
+                if (stops[i].contains(normalized) || normalized.contains(stops[i])) {
+                    return i;
+                }
+            }
+            return -1;
+        }
 
         final userOrigin = selectedBoardingPoint ?? origin?.name ?? '';
         final userDest = selectedDropoffPoint ?? destination?.name ?? '';
-        int uOIdx = stops.indexOf(normalize(userOrigin));
-        int uDIdx = stops.indexOf(normalize(userDest));
+        int uOIdx = findStopIndex(userOrigin);
+        int uDIdx = findStopIndex(userDest);
         if (uOIdx != -1 && uDIdx != -1 && uOIdx > uDIdx) {
             final temp = uOIdx;
             uOIdx = uDIdx;
@@ -231,8 +244,8 @@ class BookingProvider extends ChangeNotifier {
                  if (segments.isEmpty) hasOverlap = true;
 
                  for (var seg in segments) {
-                     int oIdx = stops.indexOf(normalize(seg['origin'] ?? ''));
-                     int dIdx = stops.indexOf(normalize(seg['destination'] ?? ''));
+                     int oIdx = findStopIndex(seg['origin']);
+                     int dIdx = findStopIndex(seg['destination']);
                      if (oIdx != -1 && dIdx != -1) {
                          if (oIdx > dIdx) {
                              final temp = oIdx;
