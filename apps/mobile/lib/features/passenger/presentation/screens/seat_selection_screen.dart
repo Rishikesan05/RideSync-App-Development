@@ -45,13 +45,30 @@ class SeatSelectionScreen extends StatelessWidget {
           
           return Column(
             children: [
-              _buildLegend(),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                  child: _buildBusGrid(blueprint, liveSeats, booking, isDark),
+              if (booking.currentRouteStops.isNotEmpty)
+                _buildLocationSelectors(booking, isDark),
+              if (!booking.currentRouteStops.isNotEmpty || (booking.selectedBoardingPoint != null && booking.selectedDropoffPoint != null)) ...[
+                _buildLegend(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    child: _buildBusGrid(blueprint, liveSeats, booking, isDark),
+                  ),
                 ),
-              ),
+              ] else ...[
+                Expanded(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Text(
+                        'Please select boarding and drop-off points to view seats.',
+                        style: TextStyle(color: isDark ? Colors.white70 : AppColors.textDark, fontSize: 16),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
               _buildFooter(booking, auth, context),
             ],
           );
@@ -285,6 +302,68 @@ class SeatSelectionScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildLocationSelectors(BookingProvider booking, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 10, 24, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    labelText: 'Boarding Point',
+                    labelStyle: const TextStyle(fontSize: 12),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  isExpanded: true,
+                  value: booking.selectedBoardingPoint != null && booking.currentRouteStops.contains(booking.selectedBoardingPoint)
+                      ? booking.selectedBoardingPoint
+                      : null,
+                  items: booking.currentRouteStops.map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) {
+                    booking.setBoardingPoint(newValue);
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    labelText: 'Drop-off Point',
+                    labelStyle: const TextStyle(fontSize: 12),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  isExpanded: true,
+                  value: booking.selectedDropoffPoint != null && booking.currentRouteStops.contains(booking.selectedDropoffPoint)
+                      ? booking.selectedDropoffPoint
+                      : null,
+                  items: booking.currentRouteStops.map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) {
+                    booking.setDropoffPoint(newValue);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFooter(BookingProvider booking, AuthProvider auth, BuildContext context) {
       return Container(
         padding: const EdgeInsets.all(24),
@@ -298,58 +377,6 @@ class SeatSelectionScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (booking.currentRouteStops.isNotEmpty) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
-                        labelText: 'Boarding Point',
-                        labelStyle: const TextStyle(fontSize: 12),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      value: booking.selectedBoardingPoint != null && booking.currentRouteStops.contains(booking.selectedBoardingPoint)
-                          ? booking.selectedBoardingPoint
-                          : null,
-                      items: booking.currentRouteStops.map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
-                        );
-                      }).toList(),
-                      onChanged: (newValue) {
-                        booking.setBoardingPoint(newValue);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
-                        labelText: 'Drop-off Point',
-                        labelStyle: const TextStyle(fontSize: 12),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      value: booking.selectedDropoffPoint != null && booking.currentRouteStops.contains(booking.selectedDropoffPoint)
-                          ? booking.selectedDropoffPoint
-                          : null,
-                      items: booking.currentRouteStops.map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
-                        );
-                      }).toList(),
-                      onChanged: (newValue) {
-                        booking.setDropoffPoint(newValue);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
