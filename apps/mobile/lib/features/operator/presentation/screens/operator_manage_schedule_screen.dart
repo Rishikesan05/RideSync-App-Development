@@ -326,12 +326,22 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
 
             bool isHighlighted = false;
             bool isDimmed = false;
+
+            // Detect fare-breakdown: seat has more than one segment
+            final List<dynamic> segments = liveData['segments'] is List
+                ? List<dynamic>.from(liveData['segments'] as List)
+                : <dynamic>[];
+            final bool isFareBreakdown = segments.length > 1;
             
             if (isBooked || isBoarded || isReserved) {
               if (_searchQuery.isNotEmpty) {
                 final name = (liveData['passengerName'] ?? '').toString().toLowerCase();
                 final ticket = (liveData['ticketCode'] ?? '').toString().toLowerCase();
-                if (name.contains(_searchQuery) || ticket.contains(_searchQuery)) {
+                // Also search across all segment passenger IDs / ticket codes
+                final segText = segments
+                    .map((s) => '${s['passengerId'] ?? ''} ${s['ticketCode'] ?? ''}'.toLowerCase())
+                    .join(' ');
+                if (name.contains(_searchQuery) || ticket.contains(_searchQuery) || segText.contains(_searchQuery)) {
                   isHighlighted = true;
                 }
               }
@@ -339,15 +349,18 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
               if (_selectedStopFilter != null) {
                 final pickup = liveData['pickup']?.toString();
                 final dropoff = liveData['dropoff']?.toString();
-                if (pickup != _selectedStopFilter && dropoff != _selectedStopFilter) {
+                // Also check if any segment touches the stop filter
+                final segMatchesStop = segments.any((s) =>
+                    s['origin']?.toString() == _selectedStopFilter ||
+                    s['destination']?.toString() == _selectedStopFilter);
+                if (pickup != _selectedStopFilter && dropoff != _selectedStopFilter && !segMatchesStop) {
                   isDimmed = true;
-                  isHighlighted = false; // Overrule highlight if it doesn't match the stop
+                  isHighlighted = false;
                 } else if (_searchQuery.isEmpty) {
-                  isHighlighted = true; // Highlight if it matches stop filter and no search query is typed
+                  isHighlighted = true;
                 }
               }
             } else if (_selectedStopFilter != null || _searchQuery.isNotEmpty) {
-               // Dim empty seats when a filter is active
                isDimmed = true;
             }
 
@@ -360,6 +373,7 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
               isHighlighted: isHighlighted,
               isDimmed: isDimmed,
               isDark: isDark,
+              isFareBreakdown: isFareBreakdown,
               onTap: () {
                 if (isBooked || isReserved || isBoarded) {
                   _showBookingDetails(context, bp.seatNumber, liveData, isDark);
@@ -586,104 +600,420 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
   }
 
   void _showBookingDetails(BuildContext context, String seatNumber, Map<String, dynamic> bookingData, bool isDark) {
+    // Extract segments array — fare-breakdown seats have more than one entry
+    final List<dynamic> rawSegments = bookingData['segments'] is List
+        ? List<dynamic>.from(bookingData['segments'] as List)
+        : <dynamic>[];
+    final bool isFareBreakdown = rawSegments.length > 1;
+
+    // Normalise segments: if none stored, synthesise one from the top-level fields
+    final List<Map<String, dynamic>> segments = rawSegments.isNotEmpty
+        ? rawSegments.map((s) => Map<String, dynamic>.from(s as Map)).toList()
+        : [
+            {
+              'origin': bookingData['origin'] ?? bookingData['pickup'] ?? 'Unknown',
+              'destination': bookingData['destination'] ?? bookingData['dropoff'] ?? 'Unknown',
+              'passengerId': bookingData['passengerId'] ?? 'Unknown',
+              'ticketCode': bookingData['ticketCode'],
+            }
+          ];
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Seat $seatNumber Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: isFareBreakdown ? 0.75 : 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.92,
+        builder: (_, scrollCtrl) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── drag handle ──────────────────────────────────────────────
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 8),
+                  width: 40,
+                  height: 4,
                   decoration: BoxDecoration(
-                    color: bookingData['status'] == 'boarded' 
-                        ? Colors.green.withValues(alpha: 0.2)
-                        : (bookingData['status'] == 'reserved' ? AppColors.primaryOrange.withValues(alpha: 0.2) : Colors.blue.withValues(alpha: 0.2)),
-                    borderRadius: BorderRadius.circular(8),
+                    color: isDark ? Colors.white24 : Colors.black12,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  child: Text(
-                    (bookingData['status'] ?? 'Unknown').toString().toUpperCase(),
-                    style: TextStyle(
-                      color: bookingData['status'] == 'boarded' 
-                          ? Colors.green
-                          : (bookingData['status'] == 'reserved' ? AppColors.primaryOrange : Colors.blue),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                ),
+              ),
+
+              // ── header ───────────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Seat number badge
+                    Container(
+                      width: 52,
+                      height: 52,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isFareBreakdown
+                              ? [const Color(0xFF6366F1), const Color(0xFF8B5CF6)]
+                              : [AppColors.primaryOrange, const Color(0xFFC9731A)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (isFareBreakdown ? const Color(0xFF6366F1) : AppColors.primaryOrange).withValues(alpha: 0.35),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        seatNumber,
+                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
+                      ),
                     ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Seat $seatNumber',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : AppColors.textDark,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              // Booking type badge
+                              _bookingTypeBadge(isFareBreakdown),
+                              const SizedBox(width: 8),
+                              // Status badge
+                              _statusBadge(bookingData['status']?.toString() ?? 'unknown'),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              if (isFareBreakdown) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 14, color: const Color(0xFF6366F1).withValues(alpha: 0.8)),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${segments.length} journeys share this seat',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.white54 : Colors.grey.shade600,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 8),
+              Divider(height: 1, color: isDark ? Colors.white10 : Colors.grey.shade200),
+
+              // ── scrollable body ──────────────────────────────────────────
+              Expanded(
+                child: ListView(
+                  controller: scrollCtrl,
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+                  children: [
+                    // Journey cards
+                    ...segments.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final seg = entry.value;
+                      return _journeyCard(
+                        context: context,
+                        index: idx,
+                        totalSegments: segments.length,
+                        segment: seg,
+                        isFareBreakdown: isFareBreakdown,
+                        isDark: isDark,
+                      );
+                    }),
+
+                    const SizedBox(height: 8),
+
+                    // Booked At (top-level)
+                    if (bookingData['updatedAt'] != null || bookingData['bookedAt'] != null) ...[
+                      _detailRow(
+                        Icons.access_time,
+                        'Last Updated',
+                        _formatTimestamp(bookingData['updatedAt'] ?? bookingData['bookedAt']),
+                        isDark,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Drop-off action for boarded seats
+                    if (bookingData['status'] == 'boarded') ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.logout, size: 18),
+                          label: const Text('Drop Off Passenger', style: TextStyle(fontWeight: FontWeight.bold)),
+                          onPressed: () async {
+                            Navigator.pop(context);
+                            final scheduleId = widget.routeData['id'] ?? 'dummy_schedule_id';
+                            await FirebaseFirestore.instance
+                                .collection('schedules')
+                                .doc(scheduleId)
+                                .collection('seats')
+                                .doc(seatNumber)
+                                .delete();
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Passenger at seat $seatNumber has been dropped off.')),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade600,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryNavy,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Close', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Builds a card for a single journey segment.
+  Widget _journeyCard({
+    required BuildContext context,
+    required int index,
+    required int totalSegments,
+    required Map<String, dynamic> segment,
+    required bool isFareBreakdown,
+    required bool isDark,
+  }) {
+    final Color accentColor = isFareBreakdown
+        ? const Color(0xFF6366F1)
+        : AppColors.primaryOrange;
+    final String passengerId = segment['passengerId']?.toString() ?? 'Unknown';
+    final String ticketCode = segment['ticketCode']?.toString() ?? 'N/A';
+    final String origin = segment['origin']?.toString() ?? 'Unknown';
+    final String destination = segment['destination']?.toString() ?? 'Unknown';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: accentColor.withValues(alpha: isFareBreakdown ? 0.4 : 0.25),
+          width: 1.5,
+        ),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: accentColor.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Card header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.08),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isFareBreakdown ? Icons.call_split : Icons.confirmation_number_outlined,
+                  color: accentColor,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  isFareBreakdown
+                      ? 'Journey ${index + 1} of $totalSegments'
+                      : 'Booking Details',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: accentColor,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            if (bookingData['ticketCode'] != null) ...[
-              _detailRow(Icons.confirmation_number, 'Ticket Code', bookingData['ticketCode'], isDark),
-              const SizedBox(height: 16),
-            ],
-            if (bookingData['updatedAt'] != null || bookingData['bookedAt'] != null) ...[
-              _detailRow(Icons.access_time, 'Booked At', _formatTimestamp(bookingData['updatedAt'] ?? bookingData['bookedAt']), isDark),
-              const SizedBox(height: 16),
-            ],
-            _detailRow(Icons.person, 'Passenger', _formatPassenger(bookingData), isDark),
-            const SizedBox(height: 16),
-            _detailRow(Icons.trip_origin, 'Boarding', bookingData['origin'] ?? bookingData['pickup'] ?? 'Unknown', isDark),
-            const SizedBox(height: 16),
-            _detailRow(Icons.location_on, 'Drop-off', bookingData['destination'] ?? bookingData['dropoff'] ?? 'Unknown', isDark),
-            const SizedBox(height: 32),
-            if (bookingData['status'] == 'boarded') ...[
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    final scheduleId = widget.routeData['id'] ?? 'dummy_schedule_id';
-                    await FirebaseFirestore.instance
-                        .collection('schedules')
-                        .doc(scheduleId)
-                        .collection('seats')
-                        .doc(seatNumber)
-                        .delete();
-                    
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Passenger at seat $seatNumber has been dropped off.')),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade600,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Drop Off Passenger', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+          // Card body
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _detailRow(Icons.person_outline, 'Passenger', passengerId, isDark),
+                const SizedBox(height: 12),
+                _detailRow(Icons.confirmation_number, 'Ticket Code', ticketCode, isDark),
+                const SizedBox(height: 12),
+                // Journey route row
+                Row(
+                  children: [
+                    Icon(Icons.trip_origin, color: accentColor, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Route', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey.shade600)),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  origin,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.white : AppColors.textDark,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                child: Icon(Icons.arrow_forward, size: 14, color: accentColor),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  destination,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.white : AppColors.textDark,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 12),
-            ],
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryNavy,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text('Close', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
+              ],
             ),
-            const SizedBox(height: 16),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Badge indicating whether a booking is Fare Breakdown or Normal.
+  Widget _bookingTypeBadge(bool isFareBreakdown) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: isFareBreakdown
+            ? const Color(0xFF6366F1).withValues(alpha: 0.15)
+            : Colors.teal.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: isFareBreakdown
+              ? const Color(0xFF6366F1).withValues(alpha: 0.4)
+              : Colors.teal.withValues(alpha: 0.3),
+          width: 1,
         ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isFareBreakdown ? Icons.call_split : Icons.check_circle_outline,
+            size: 11,
+            color: isFareBreakdown ? const Color(0xFF6366F1) : Colors.teal,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            isFareBreakdown ? 'FARE BREAKDOWN' : 'NORMAL BOOKING',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: isFareBreakdown ? const Color(0xFF6366F1) : Colors.teal,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Badge showing seat occupancy status.
+  Widget _statusBadge(String status) {
+    Color color;
+    if (status == 'boarded') {
+      color = Colors.green;
+    } else if (status == 'reserved') {
+      color = AppColors.primaryOrange;
+    } else {
+      color = Colors.blue.shade400;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.35), width: 1),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: color, letterSpacing: 0.3),
       ),
     );
   }
@@ -738,6 +1068,8 @@ class _OperatorSeatWidget extends StatelessWidget {
   final bool isHighlighted;
   final bool isDimmed;
   final bool isDark;
+  /// True when this seat is shared by multiple passengers (fare-breakdown booking).
+  final bool isFareBreakdown;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
 
@@ -750,6 +1082,7 @@ class _OperatorSeatWidget extends StatelessWidget {
     this.isHighlighted = false,
     this.isDimmed = false,
     required this.isDark,
+    this.isFareBreakdown = false,
     required this.onTap,
     this.onLongPress,
   });
@@ -781,34 +1114,65 @@ class _OperatorSeatWidget extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         onLongPress: onLongPress,
-        child: Container(
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(8),
-            border: isHighlighted
-                ? Border.all(color: Colors.yellowAccent, width: 3)
-                : Border.all(
-                    color: isReserved 
-                        ? AppColors.primaryOrange 
-                        : ((isBooked || isBoarded || isBlocked) ? Colors.transparent : (isDark ? Colors.white10 : Colors.grey.shade200)),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isFareBreakdown && !isBlocked && !isBoarded
+                    ? const Color(0xFF6366F1).withValues(alpha: 0.55)
+                    : bgColor,
+                borderRadius: BorderRadius.circular(8),
+                border: isHighlighted
+                    ? Border.all(color: Colors.yellowAccent, width: 3)
+                    : isFareBreakdown && !isBlocked && !isBoarded
+                        ? Border.all(color: const Color(0xFF6366F1), width: 1.5)
+                        : Border.all(
+                            color: isReserved
+                                ? AppColors.primaryOrange
+                                : ((isBooked || isBoarded || isBlocked)
+                                    ? Colors.transparent
+                                    : (isDark ? Colors.white10 : Colors.grey.shade200)),
+                          ),
+                boxShadow: isHighlighted
+                    ? [BoxShadow(color: Colors.yellowAccent.withValues(alpha: 0.6), blurRadius: 12, spreadRadius: 2)]
+                    : isFareBreakdown && !isBlocked && !isBoarded
+                        ? [BoxShadow(color: const Color(0xFF6366F1).withValues(alpha: 0.35), blurRadius: 8)]
+                        : (isReserved
+                            ? [BoxShadow(color: AppColors.primaryOrange.withValues(alpha: 0.3), blurRadius: 8)]
+                            : null),
+              ),
+              child: isBlocked
+                  ? const Icon(Icons.close, color: Colors.white, size: 16)
+                  : (isBoarded
+                      ? const Icon(Icons.check, color: Colors.white, size: 16)
+                      : Text(
+                          number,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: (isBooked || isReserved || isFareBreakdown) ? FontWeight.bold : FontWeight.w500,
+                            color: isFareBreakdown && !isBlocked && !isBoarded ? Colors.white : textColor,
+                          ),
+                        )),
+            ),
+            // Small fare-breakdown indicator badge in the top-right corner
+            if (isFareBreakdown && !isBlocked)
+              Positioned(
+                top: -4,
+                right: -4,
+                child: Container(
+                  width: 13,
+                  height: 13,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
                   ),
-            boxShadow: isHighlighted 
-                ? [BoxShadow(color: Colors.yellowAccent.withValues(alpha: 0.6), blurRadius: 12, spreadRadius: 2)]
-                : (isReserved ? [BoxShadow(color: AppColors.primaryOrange.withValues(alpha: 0.3), blurRadius: 8)] : null),
-          ),
-          child: isBlocked
-              ? const Icon(Icons.close, color: Colors.white, size: 16)
-              : (isBoarded
-                  ? const Icon(Icons.check, color: Colors.white, size: 16)
-                  : Text(
-                      number,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: (isBooked || isReserved) ? FontWeight.bold : FontWeight.w500,
-                        color: textColor,
-                      ),
-                    )),
+                  child: const Icon(Icons.call_split, size: 7, color: Colors.white),
+                ),
+              ),
+          ],
         ),
       ),
     );
