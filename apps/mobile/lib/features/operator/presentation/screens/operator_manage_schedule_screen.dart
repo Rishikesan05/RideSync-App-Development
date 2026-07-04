@@ -659,6 +659,36 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
             }
           ];
 
+    // Helper: extract origin from a segment map using all known field names
+    String segOrigin(Map<String, dynamic> s) =>
+        s['origin']?.toString().isNotEmpty == true
+            ? s['origin'].toString()
+            : s['pickup']?.toString().isNotEmpty == true
+                ? s['pickup'].toString()
+                : s['boardingPoint']?.toString().isNotEmpty == true
+                    ? s['boardingPoint'].toString()
+                    : s['from']?.toString().isNotEmpty == true
+                        ? s['from'].toString()
+                        : 'Unknown';
+
+    String segDest(Map<String, dynamic> s) =>
+        s['destination']?.toString().isNotEmpty == true
+            ? s['destination'].toString()
+            : s['dropoff']?.toString().isNotEmpty == true
+                ? s['dropoff'].toString()
+                : s['alightingPoint']?.toString().isNotEmpty == true
+                    ? s['alightingPoint'].toString()
+                    : s['to']?.toString().isNotEmpty == true
+                        ? s['to'].toString()
+                        : 'Unknown';
+
+    // Rebuild segments with normalised fields
+    final List<Map<String, dynamic>> normSegments = segments.map((s) => {
+      'passengerId': s['passengerId']?.toString() ?? s['userId']?.toString() ?? 'Unknown',
+      'ticketCode': s['ticketCode']?.toString(),
+      'origin': segOrigin(s),
+      'destination': segDest(s),
+    }).toList();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -780,14 +810,14 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
                   controller: scrollCtrl,
                   padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
                   children: [
-                    // Journey cards
-                    ...segments.asMap().entries.map((entry) {
+                    // Journey cards — one per segment
+                    ...normSegments.asMap().entries.map((entry) {
                       final idx = entry.key;
                       final seg = entry.value;
                       return _journeyCard(
                         context: context,
                         index: idx,
-                        totalSegments: segments.length,
+                        totalSegments: normSegments.length,
                         segment: seg,
                         isFareBreakdown: isFareBreakdown,
                         isDark: isDark,
@@ -877,7 +907,7 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
         ? const Color(0xFF6366F1)
         : AppColors.primaryOrange;
     final String passengerId = segment['passengerId']?.toString() ?? 'Unknown';
-    final String ticketCode = segment['ticketCode']?.toString() ?? 'N/A';
+    final String? ticketCode = segment['ticketCode']?.toString();
     final String origin = segment['origin']?.toString() ?? 'Unknown';
     final String destination = segment['destination']?.toString() ?? 'Unknown';
 
@@ -938,54 +968,101 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
               children: [
                 _detailRow(Icons.person_outline, 'Passenger', passengerId, isDark),
                 const SizedBox(height: 12),
-                _detailRow(Icons.confirmation_number, 'Ticket Code', ticketCode, isDark),
-                const SizedBox(height: 12),
-                // Journey route row
-                Row(
-                  children: [
-                    Icon(Icons.trip_origin, color: accentColor, size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Route', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey.shade600)),
-                          const SizedBox(height: 2),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  origin,
+                if (ticketCode != null) ...[
+                  _detailRow(Icons.confirmation_number, 'Ticket Code', ticketCode, isDark),
+                  const SizedBox(height: 12),
+                ],
+                // Boarding → Drop-off route card
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: accentColor.withValues(alpha: 0.18)),
+                  ),
+                  child: Row(
+                    children: [
+                      // Boarding
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.trip_origin, size: 11, color: accentColor),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Boarding',
                                   style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark ? Colors.white : AppColors.textDark,
+                                    fontSize: 10,
+                                    color: isDark ? Colors.white54 : Colors.grey.shade600,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              origin,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: isDark ? Colors.white : AppColors.textDark,
                               ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                child: Icon(Icons.arrow_forward, size: 14, color: accentColor),
-                              ),
-                              Expanded(
-                                child: Text(
-                                  destination,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark ? Colors.white : AppColors.textDark,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                      // Arrow
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: accentColor.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.arrow_forward, size: 13, color: accentColor),
+                        ),
+                      ),
+                      // Drop-off
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Drop-off',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: isDark ? Colors.white54 : Colors.grey.shade600,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(Icons.location_on, size: 11, color: accentColor),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              destination,
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: isDark ? Colors.white : AppColors.textDark,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                   ],
                 ),
               ],

@@ -13,7 +13,7 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
 } from '@mui/material';
 import {
   CallSplit as CallSplitIcon,
@@ -21,7 +21,9 @@ import {
   ConfirmationNumber as ConfirmationNumberIcon,
   Person as PersonIcon,
   TripOrigin as TripOriginIcon,
+  LocationOn as LocationOnIcon,
   ArrowForward as ArrowForwardIcon,
+  AccessTime as AccessTimeIcon,
 } from '@mui/icons-material';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../api/firebase';
@@ -33,7 +35,10 @@ import { format, isValid } from 'date-fns';
 /**
  * Admin Seat Management Panel
  * Allows blocking seats, marking VIPs, and viewing passenger info.
- * Supports fare-breakdown seats: seats shared by multiple passengers on different journey legs.
+ *
+ * Fare-breakdown seats (shared by multiple passengers on different journey legs)
+ * display stacked journey cards — one card per segment — with NO dropdowns.
+ * Normal single-booking seats show one card plus admin stop-override dropdowns.
  */
 const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
   const { seats, loading } = useSeatMap(rideId);
@@ -42,7 +47,7 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
 
   // Relocation Mode States
   const [relocatingSeat, setRelocatingSeat] = useState(null);
-  const [relocatingStatus, setRelocatingStatus] = useState('idle'); // idle | error
+  const [relocatingStatus, setRelocatingStatus] = useState('idle');
   const [relocationErrorMsg, setRelocationErrorMsg] = useState('');
   const [routeStops, setRouteStops] = useState([]);
 
@@ -62,28 +67,25 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
               let stops = [];
               if (routeData.origin) stops.push(routeData.origin.split(',')[0].trim());
               else if (routeData.startPoint) stops.push(routeData.startPoint.split(',')[0].trim());
-              
               if (routeData.stops && Array.isArray(routeData.stops)) {
                 routeData.stops.forEach(s => {
-                  if(s.name) stops.push(s.name.split(',')[0].trim());
+                  if (s.name) stops.push(s.name.split(',')[0].trim());
                 });
               }
-              
               if (routeData.destination) stops.push(routeData.destination.split(',')[0].trim());
               else if (routeData.endPoint) stops.push(routeData.endPoint.split(',')[0].trim());
-              
               setRouteStops([...new Set(stops)]);
             }
           }
         }
-      } catch(e) {
-        console.error("Failed to fetch route stops", e);
+      } catch (e) {
+        console.error('Failed to fetch route stops', e);
       }
     };
     fetchRouteStops();
   }, [rideId]);
 
-  // Automatically initialize seats if they don't exist
+  // Auto-init seats when none exist
   useEffect(() => {
     if (open && !loading && seats.length === 0 && !initializing) {
       const init = async () => {
@@ -91,7 +93,7 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
         try {
           await initializeRideSeats(rideId, layoutType);
         } catch (err) {
-          console.error("Failed to auto-init seats:", err);
+          console.error('Failed to auto-init seats:', err);
         } finally {
           setInitializing(false);
         }
@@ -104,7 +106,7 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
     if (relocatingSeat) {
       if (seat.status !== 'available' || seat.type === 'driver') {
         setRelocatingStatus('error');
-        setRelocationErrorMsg(`Seat ${seat.seatNumber} is not available. Please choose an available seat.`);
+        setRelocationErrorMsg(`Seat ${seat.seatNumber} is not available. Choose an available seat.`);
         return;
       }
       try {
@@ -152,12 +154,23 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
   };
 
   const isBlocked = selectedSeat && selectedSeat.status === 'booked' && selectedSeat.type === 'blocked';
-  const isBooked = selectedSeat && ['reserved', 'booked', 'occupied', 'sold'].includes(selectedSeat.status) && selectedSeat.type !== 'blocked';
+  const isBooked =
+    selectedSeat &&
+    ['reserved', 'booked', 'occupied', 'sold'].includes(selectedSeat.status) &&
+    selectedSeat.type !== 'blocked';
 
-  // Detect fare-breakdown: seat stored with multiple segments
+  // ── Fare-breakdown detection ───────────────────────────────────────────────
   const rawSegments = selectedSeat?.segments;
-  const segments = Array.isArray(rawSegments) && rawSegments.length > 0
-    ? rawSegments
+  const isFareBreakdown = Array.isArray(rawSegments) && rawSegments.length > 1;
+
+  // Build normalised segment list
+  const segments = isFareBreakdown
+    ? rawSegments.map(s => ({
+        origin: s.origin || s.pickup || 'Unknown',
+        destination: s.destination || s.dropoff || 'Unknown',
+        passengerId: s.passengerId || 'Unknown',
+        ticketCode: s.ticketCode || null,
+      }))
     : selectedSeat
       ? [{
           origin: selectedSeat.origin || selectedSeat.pickup || 'Unknown',
@@ -166,268 +179,244 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
           ticketCode: selectedSeat.ticketCode || null,
         }]
       : [];
-  const isFareBreakdown = Array.isArray(rawSegments) && rawSegments.length > 1;
+
+  const accentColor = isFareBreakdown ? '#6366F1' : '#E68D33';
+  const accentAlpha = a => isFareBreakdown ? `rgba(99,102,241,${a})` : `rgba(230,141,51,${a})`;
 
   const formatDateTime = (dateValue) => {
     if (!dateValue) return 'N/A';
     try {
       let date;
-      if (dateValue._seconds) {
-        date = new Date(dateValue._seconds * 1000);
-      } else if (dateValue.seconds) {
-        date = new Date(dateValue.seconds * 1000);
-      } else {
-        date = new Date(dateValue);
-      }
+      if (dateValue._seconds) date = new Date(dateValue._seconds * 1000);
+      else if (dateValue.seconds) date = new Date(dateValue.seconds * 1000);
+      else date = new Date(dateValue);
       return isValid(date) ? format(date, 'MMM dd, yyyy - hh:mm a') : 'Invalid Time';
     } catch {
       return 'N/A';
     }
   };
 
-  // Accent colours for fare-breakdown vs normal
-  const accentColor = isFareBreakdown ? '#6366F1' : '#E68D33';
-  const accentAlpha = (a) => isFareBreakdown ? `rgba(99,102,241,${a})` : `rgba(230,141,51,${a})`;
-
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle sx={{ fontWeight: 800 }}>
-        Admin: Seat Management
-      </DialogTitle>
+      <DialogTitle sx={{ fontWeight: 800 }}>Admin: Seat Management</DialogTitle>
+
       <DialogContent dividers>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4 }}>
-          {/* Left: Live Map */}
+
+          {/* ── Left: Live Seat Map ── */}
           <Box sx={{ flex: 1 }}>
-             <BusSeatMap 
-               rideId={rideId} 
-               layoutType={layoutType} 
-               selectedSeats={relocatingSeat ? [relocatingSeat.seatNumber] : (selectedSeat ? [selectedSeat.seatNumber] : [])}
-               onSeatSelect={handleSeatClick}
-               routeStops={routeStops}
-             />
+            <BusSeatMap
+              rideId={rideId}
+              layoutType={layoutType}
+              selectedSeats={
+                relocatingSeat
+                  ? [relocatingSeat.seatNumber]
+                  : selectedSeat
+                    ? [selectedSeat.seatNumber]
+                    : []
+              }
+              onSeatSelect={handleSeatClick}
+              routeStops={routeStops}
+            />
           </Box>
 
-          {/* Right: Actions */}
-          <Box sx={{ flex: 1, p: 2 }}>
+          {/* ── Right: Seat Detail Panel ── */}
+          <Box sx={{ flex: 1, p: 2, overflowY: 'auto', maxHeight: 520 }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Seat Actions</Typography>
-            
+
+            {/* ── Relocation mode ── */}
             {relocatingSeat ? (
-              // Relocation mode UI
               <Stack spacing={2}>
                 <Box sx={(theme) => ({
                   p: 2.5,
                   borderRadius: '12px',
-                  border: '1.5px solid rgba(230, 141, 51, 0.45)',
+                  border: '1.5px solid rgba(230,141,51,0.45)',
                   borderLeft: '4px solid #E68D33',
-                  background: theme.palette.mode === 'dark' ? 'rgba(30, 41, 59, 0.4)' : 'rgba(230, 141, 51, 0.06)',
-                  position: 'relative',
+                  background: theme.palette.mode === 'dark'
+                    ? 'rgba(30,41,59,0.4)'
+                    : 'rgba(230,141,51,0.06)',
                 })}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#E68D33' }}>
                     Relocating Mode Active
                   </Typography>
                   <Typography variant="body2" sx={{ mt: 1 }}>
-                    Moving booking from **Seat {relocatingSeat.seatNumber}**.
+                    Moving booking from Seat {relocatingSeat.seatNumber}.
                   </Typography>
                   <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-                    Please click on any available seat on the map to place the booking there.
+                    Click on any available seat on the map.
                   </Typography>
                 </Box>
-                
+
                 {relocatingStatus === 'error' && (
-                  <Box sx={{ p: 2, bgcolor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 2 }}>
+                  <Box sx={{ p: 2, bgcolor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 2 }}>
                     <Typography variant="caption" color="error">{relocationErrorMsg}</Typography>
                   </Box>
                 )}
 
-                <Button 
-                  fullWidth 
-                  variant="outlined" 
-                  onClick={() => {
-                    setRelocatingSeat(null);
-                    setRelocatingStatus('idle');
-                    setRelocationErrorMsg('');
-                  }}
-                >
+                <Button fullWidth variant="outlined" onClick={() => {
+                  setRelocatingSeat(null);
+                  setRelocatingStatus('idle');
+                  setRelocationErrorMsg('');
+                }}>
                   Cancel Move
                 </Button>
               </Stack>
+
             ) : selectedSeat ? (
-              // Regular seat actions UI
               <Stack spacing={2}>
-                {/* ── Seat header card ── */}
+
+                {/* ── Seat header ── */}
                 <Box sx={(theme) => ({
                   p: 2,
-                  borderRadius: '12px',
-                  border: `1.5px solid ${accentAlpha(0.25)}`,
+                  borderRadius: '14px',
+                  border: `1.5px solid ${accentAlpha(0.3)}`,
                   borderLeft: `4px solid ${accentColor}`,
-                  background: theme.palette.mode === 'dark' ? 'rgba(30, 41, 59, 0.4)' : 'rgba(255, 255, 255, 0.5)',
-                  position: 'relative',
-                  overflow: 'visible'
+                  background: theme.palette.mode === 'dark'
+                    ? 'rgba(30,41,59,0.5)'
+                    : `rgba(${isFareBreakdown ? '99,102,241' : '230,141,51'},0.04)`,
                 })}>
-                  {/* Top: Seat Number & booking type */}
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                        Selected Seat: {selectedSeat.seatNumber}
-                      </Typography>
-                      {/* Booking type chip */}
-                      <Chip
-                        icon={isFareBreakdown
-                          ? <CallSplitIcon sx={{ fontSize: '13px !important' }} />
-                          : <CheckCircleOutlineIcon sx={{ fontSize: '13px !important' }} />}
-                        label={isFareBreakdown ? 'FARE BREAKDOWN' : 'NORMAL BOOKING'}
-                        size="small"
-                        sx={{
-                          fontWeight: 800,
-                          fontSize: '0.65rem',
-                          letterSpacing: 0.3,
-                          bgcolor: isFareBreakdown ? 'rgba(99,102,241,0.12)' : 'rgba(20,184,166,0.12)',
-                          color: isFareBreakdown ? '#6366F1' : '#0d9488',
-                          border: `1px solid ${isFareBreakdown ? 'rgba(99,102,241,0.35)' : 'rgba(20,184,166,0.35)'}`,
-                          '& .MuiChip-icon': { color: 'inherit' },
-                        }}
-                      />
-                    </Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Current Status: {selectedSeat.status}
+                  {/* Seat number + booking type chip */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, fontSize: '1.05rem' }}>
+                      Seat {selectedSeat.seatNumber}
                     </Typography>
-
-                    {isFareBreakdown && (
-                      <Typography variant="caption" display="block" sx={{ mt: 0.5, fontStyle: 'italic', color: '#6366F1' }}>
-                        {segments.length} journeys share this seat
-                      </Typography>
-                    )}
+                    <Chip
+                      icon={isFareBreakdown
+                        ? <CallSplitIcon sx={{ fontSize: '13px !important' }} />
+                        : <CheckCircleOutlineIcon sx={{ fontSize: '13px !important' }} />}
+                      label={isFareBreakdown ? 'FARE BREAKDOWN' : 'NORMAL BOOKING'}
+                      size="small"
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: '0.62rem',
+                        letterSpacing: 0.4,
+                        bgcolor: isFareBreakdown ? 'rgba(99,102,241,0.12)' : 'rgba(20,184,166,0.12)',
+                        color: isFareBreakdown ? '#6366F1' : '#0d9488',
+                        border: `1px solid ${isFareBreakdown ? 'rgba(99,102,241,0.4)' : 'rgba(20,184,166,0.35)'}`,
+                        '& .MuiChip-icon': { color: 'inherit' },
+                      }}
+                    />
+                    {/* Status chip */}
+                    <Chip
+                      label={(selectedSeat.status || 'unknown').toUpperCase()}
+                      size="small"
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: '0.62rem',
+                        bgcolor:
+                          selectedSeat.status === 'boarded' ? 'rgba(34,197,94,0.12)'
+                          : selectedSeat.status === 'reserved' ? 'rgba(230,141,51,0.12)'
+                          : 'rgba(99,102,241,0.08)',
+                        color:
+                          selectedSeat.status === 'boarded' ? '#16a34a'
+                          : selectedSeat.status === 'reserved' ? '#E68D33'
+                          : '#64748b',
+                      }}
+                    />
                   </Box>
 
-                  {isBooked && (
-                    <Box sx={{ mt: 1.5 }}>
-                      {/* ── Journey segment cards ── */}
-                      {segments.map((seg, idx) => (
-                        <JourneySegmentCard
-                          key={idx}
-                          index={idx}
-                          total={segments.length}
-                          segment={seg}
-                          isFareBreakdown={isFareBreakdown}
-                          accentColor={accentColor}
-                          accentAlpha={accentAlpha}
-                        />
-                      ))}
-
-                      {/* Last booked timestamp */}
-                      <Typography variant="caption" display="block" sx={{ mt: 1, mb: 1.5, color: 'text.secondary' }}>
-                        <strong>Last Updated:</strong> {formatDateTime(selectedSeat.updatedAt || selectedSeat.bookedAt)}
-                      </Typography>
-
-                      {/* Stop pickers (admin override) */}
-                      <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
-                        <InputLabel sx={{ fontSize: '0.8rem' }}>Boarding Point</InputLabel>
-                        <Select
-                          value={selectedSeat.origin || selectedSeat.pickup || ''}
-                          label="Boarding Point"
-                          onChange={(e) => handleStopChange('origin', e.target.value)}
-                          sx={{ fontSize: '0.8rem' }}
-                        >
-                          <MenuItem value=""><em>Unknown</em></MenuItem>
-                          {routeStops.map((stop, idx) => (
-                            <MenuItem key={`orig-${idx}`} value={stop}>{stop}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-
-                      <FormControl fullWidth size="small">
-                        <InputLabel sx={{ fontSize: '0.8rem' }}>Drop-off Point</InputLabel>
-                        <Select
-                          value={selectedSeat.destination || selectedSeat.dropoff || ''}
-                          label="Drop-off Point"
-                          onChange={(e) => handleStopChange('destination', e.target.value)}
-                          sx={{ fontSize: '0.8rem' }}
-                        >
-                          <MenuItem value=""><em>Unknown</em></MenuItem>
-                          {routeStops.map((stop, idx) => (
-                            <MenuItem key={`dest-${idx}`} value={stop}>{stop}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Box>
+                  {/* Subtitle for fare-breakdown */}
+                  {isFareBreakdown && (
+                    <Typography variant="caption" sx={{ color: '#6366F1', fontStyle: 'italic', display: 'block', mb: 0.5 }}>
+                      {segments.length} passengers share this seat across different journey legs
+                    </Typography>
                   )}
-                  
-                  {/* Ticket Divider & Cutout Notches */}
-                  <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between', 
-                    mx: -2, 
-                    my: 1.5,
-                    height: '16px',
-                    position: 'relative'
-                  }}>
-                    {/* Left Notch */}
-                    <Box 
-                      className="ticket-notch"
-                      sx={(theme) => ({
-                        position: 'absolute',
-                        left: '-8px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        width: '16px',
-                        height: '16px',
-                        borderRadius: '50%',
-                        backgroundColor: theme.palette.background.paper,
-                        border: `1.5px solid ${accentAlpha(0.25)}`,
-                        borderLeftColor: 'transparent',
-                        borderTopColor: 'transparent',
-                        borderBottomColor: 'transparent',
-                        zIndex: 2,
-                      })} 
-                    />
-                    
-                    {/* Perforation Line */}
-                    <Box sx={(theme) => ({ 
-                      flex: 1, 
-                      borderTop: `1px dashed ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'}`, 
-                      height: '1px', 
-                      mx: 1 
-                    })} />
-                    
-                    {/* Right Notch */}
-                    <Box 
-                      className="ticket-notch"
-                      sx={(theme) => ({
-                        position: 'absolute',
-                        right: '-8px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        width: '16px',
-                        height: '16px',
-                        borderRadius: '50%',
-                        backgroundColor: theme.palette.background.paper,
-                        border: `1.5px solid ${accentAlpha(0.25)}`,
-                        borderRightColor: 'transparent',
-                        borderTopColor: 'transparent',
-                        borderBottomColor: 'transparent',
-                        zIndex: 2,
-                      })} 
-                    />
-                  </Box>
 
-                  {/* Bottom: Seat Type Tag */}
-                  <Box>
-                    <Chip 
-                      label={(selectedSeat.type || 'Standard').toUpperCase()} 
-                      size="small" 
-                      sx={{ 
-                        fontWeight: 600, 
-                        fontSize: '0.7rem',
-                        bgcolor: accentAlpha(0.12), 
-                        color: accentColor, 
-                        border: `1px solid ${accentAlpha(0.25)}` 
-                      }} 
-                    />
-                  </Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Last updated: {formatDateTime(selectedSeat.updatedAt || selectedSeat.bookedAt)}
+                  </Typography>
                 </Box>
 
-                {/* Conditional Actions depending on Seat State */}
+                {/* ── Journey cards (one per segment) ── */}
+                {isBooked && (
+                  <Box>
+                    {segments.map((seg, idx) => (
+                      <JourneyCard
+                        key={idx}
+                        index={idx}
+                        total={segments.length}
+                        segment={seg}
+                        isFareBreakdown={isFareBreakdown}
+                        accentColor={accentColor}
+                        accentAlpha={accentAlpha}
+                      />
+                    ))}
+
+                    {/* ── Admin override dropdowns — ONLY for normal (single) bookings ── */}
+                    {!isFareBreakdown && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', mb: 1, display: 'block' }}>
+                          Admin Override — Stop Correction
+                        </Typography>
+                        <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
+                          <InputLabel sx={{ fontSize: '0.8rem' }}>Boarding Point</InputLabel>
+                          <Select
+                            value={selectedSeat.origin || selectedSeat.pickup || ''}
+                            label="Boarding Point"
+                            onChange={(e) => handleStopChange('origin', e.target.value)}
+                            sx={{ fontSize: '0.8rem' }}
+                          >
+                            <MenuItem value=""><em>Unknown</em></MenuItem>
+                            {routeStops.map((stop, i) => (
+                              <MenuItem key={`orig-${i}`} value={stop}>{stop}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <FormControl fullWidth size="small">
+                          <InputLabel sx={{ fontSize: '0.8rem' }}>Drop-off Point</InputLabel>
+                          <Select
+                            value={selectedSeat.destination || selectedSeat.dropoff || ''}
+                            label="Drop-off Point"
+                            onChange={(e) => handleStopChange('destination', e.target.value)}
+                            sx={{ fontSize: '0.8rem' }}
+                          >
+                            <MenuItem value=""><em>Unknown</em></MenuItem>
+                            {routeStops.map((stop, i) => (
+                              <MenuItem key={`dest-${i}`} value={stop}>{stop}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Box>
+                    )}
+                  </Box>
+                )}
+
+                {/* ── Ticket perforated divider ── */}
+                <Box sx={{ display: 'flex', alignItems: 'center', mx: -2, height: '16px', position: 'relative' }}>
+                  <Box sx={(theme) => ({
+                    position: 'absolute', left: '-8px', top: '50%', transform: 'translateY(-50%)',
+                    width: 16, height: 16, borderRadius: '50%',
+                    backgroundColor: theme.palette.background.paper,
+                    border: `1.5px solid ${accentAlpha(0.25)}`,
+                    borderLeftColor: 'transparent', borderTopColor: 'transparent', borderBottomColor: 'transparent',
+                    zIndex: 2,
+                  })} />
+                  <Box sx={(theme) => ({
+                    flex: 1, height: '1px', mx: 1,
+                    borderTop: `1px dashed ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'}`,
+                  })} />
+                  <Box sx={(theme) => ({
+                    position: 'absolute', right: '-8px', top: '50%', transform: 'translateY(-50%)',
+                    width: 16, height: 16, borderRadius: '50%',
+                    backgroundColor: theme.palette.background.paper,
+                    border: `1.5px solid ${accentAlpha(0.25)}`,
+                    borderRightColor: 'transparent', borderTopColor: 'transparent', borderBottomColor: 'transparent',
+                    zIndex: 2,
+                  })} />
+                </Box>
+
+                {/* Seat type chip */}
+                <Chip
+                  label={(selectedSeat.type || 'Standard').toUpperCase()}
+                  size="small"
+                  sx={{
+                    fontWeight: 600, fontSize: '0.7rem', alignSelf: 'flex-start',
+                    bgcolor: accentAlpha(0.12), color: accentColor,
+                    border: `1px solid ${accentAlpha(0.25)}`,
+                  }}
+                />
+
+                {/* ── Seat action buttons ── */}
                 {isBlocked && (
                   <Button fullWidth variant="contained" color="success" onClick={handleUnblockSeat}>
                     Undo Block (Make Available)
@@ -436,17 +425,16 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
 
                 {isBooked && (
                   <>
-                    <Button 
-                      fullWidth 
-                      variant="contained" 
-                      color="primary"
+                    <Button
+                      fullWidth
+                      variant="contained"
                       onClick={() => setRelocatingSeat(selectedSeat)}
-                      sx={{ 
+                      sx={{
                         background: `linear-gradient(135deg, ${accentColor}, ${isFareBreakdown ? '#4f46e5' : '#c9731a'})`,
-                        color: '#ffffff',
+                        color: '#fff',
                         '&:hover': {
                           background: `linear-gradient(135deg, ${isFareBreakdown ? '#818cf8' : '#f09e48'}, ${accentColor})`,
-                        }
+                        },
                       }}
                     >
                       Change Booked Seat (Move)
@@ -458,34 +446,33 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
                 )}
 
                 {!isBlocked && !isBooked && (
-                  <>
-                    <Button fullWidth variant="contained" color="error" onClick={handleBlockSeat}>
-                      Block Seat (Maintenance)
-                    </Button>
-                  </>
+                  <Button fullWidth variant="contained" color="error" onClick={handleBlockSeat}>
+                    Block Seat (Maintenance)
+                  </Button>
                 )}
+
               </Stack>
+
             ) : (
               <Box sx={{ p: 4, textAlign: 'center', border: '2px dashed #E2E8F0', borderRadius: 2 }}>
-                 <Typography color="text.secondary">Select a seat on the map to manage</Typography>
+                <Typography color="text.secondary">Select a seat on the map to manage</Typography>
               </Box>
             )}
 
             <Divider sx={{ my: 3 }} />
-            
+
             <Typography variant="subtitle2" sx={{ mb: 1 }}>Bus Info</Typography>
             <Stack spacing={2}>
               <Stack direction="row" spacing={1}>
-                 <Chip label={`Layout: ${layoutType}`} />
-                 <Chip label={`Ride ID: ${rideId.substring(0, 8)}...`} />
+                <Chip label={`Layout: ${layoutType}`} />
+                <Chip label={`Ride ID: ${rideId.substring(0, 8)}...`} />
               </Stack>
-              
-              <Button 
-                variant="outlined" 
-                color="secondary" 
+              <Button
+                variant="outlined"
+                color="secondary"
                 size="small"
                 onClick={async () => {
-                  if(window.confirm("Reset entire layout to standard? All bookings for this ride will be lost!")) {
+                  if (window.confirm('Reset entire layout to standard? All bookings for this ride will be lost!')) {
                     await initializeRideSeats(rideId, layoutType);
                   }
                 }}
@@ -496,6 +483,7 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
           </Box>
         </Box>
       </DialogContent>
+
       <DialogActions>
         <Button onClick={onClose}>Close Manager</Button>
       </DialogActions>
@@ -503,72 +491,124 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
   );
 };
 
-/**
- * A single journey segment card shown inside the seat detail panel.
- * For fare-breakdown seats, multiple of these are stacked vertically.
- */
-const JourneySegmentCard = ({ index, total, segment, isFareBreakdown, accentColor, accentAlpha }) => {
-  const origin = segment.origin || segment.pickup || 'Unknown';
-  const destination = segment.destination || segment.dropoff || 'Unknown';
+/* ─────────────────────────────────────────────────────────────────────────────
+ * JourneyCard
+ * Displays the detail of a single journey segment.
+ * For fare-breakdown seats this is rendered once per segment, stacked.
+ * ──────────────────────────────────────────────────────────────────────────── */
+const JourneyCard = ({ index, total, segment, isFareBreakdown, accentColor, accentAlpha }) => {
+  const origin = segment.origin || 'Unknown';
+  const destination = segment.destination || 'Unknown';
   const passengerId = segment.passengerId || 'Unknown';
-  const ticketCode = segment.ticketCode || null;
+  const ticketCode = segment.ticketCode;
 
   return (
     <Box
       sx={(theme) => ({
         mb: 1.5,
-        borderRadius: '10px',
-        border: `1.5px solid ${accentAlpha(isFareBreakdown ? 0.4 : 0.2)}`,
+        borderRadius: '12px',
+        border: `1.5px solid ${accentAlpha(isFareBreakdown ? 0.4 : 0.22)}`,
         overflow: 'hidden',
-        background: theme.palette.mode === 'dark' ? 'rgba(15,23,42,0.5)' : '#fff',
+        background: theme.palette.mode === 'dark' ? 'rgba(15,23,42,0.55)' : '#fff',
+        boxShadow: `0 2px 10px ${accentAlpha(0.07)}`,
       })}
     >
-      {/* Card header */}
+      {/* Card header bar */}
       <Box
         sx={{
-          px: 1.5,
-          py: 0.8,
+          px: 2,
+          py: 1,
           display: 'flex',
           alignItems: 'center',
-          gap: 0.8,
-          bgcolor: accentAlpha(0.08),
+          gap: 1,
+          bgcolor: accentAlpha(0.09),
           borderBottom: `1px solid ${accentAlpha(0.15)}`,
         }}
       >
         {isFareBreakdown
-          ? <CallSplitIcon sx={{ fontSize: 14, color: accentColor }} />
-          : <ConfirmationNumberIcon sx={{ fontSize: 14, color: accentColor }} />}
-        <Typography variant="caption" sx={{ fontWeight: 700, color: accentColor }}>
-          {isFareBreakdown ? `Journey ${index + 1} of ${total}` : 'Booking Details'}
+          ? <CallSplitIcon sx={{ fontSize: 15, color: accentColor }} />
+          : <ConfirmationNumberIcon sx={{ fontSize: 15, color: accentColor }} />}
+        <Typography variant="caption" sx={{ fontWeight: 800, color: accentColor, letterSpacing: 0.3 }}>
+          {isFareBreakdown
+            ? `Journey ${index + 1} of ${total}`
+            : 'Booking Details'}
         </Typography>
       </Box>
 
       {/* Card body */}
-      <Box sx={{ px: 1.5, py: 1.2 }}>
-        {/* Passenger */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
-          <PersonIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 64 }}>Passenger</Typography>
-          <Typography variant="caption" sx={{ fontWeight: 600, wordBreak: 'break-all' }}>{passengerId}</Typography>
+      <Box sx={{ px: 2, py: 1.5 }}>
+        {/* Passenger row */}
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.2, mb: 1.1 }}>
+          <PersonIcon sx={{ fontSize: 16, color: 'text.secondary', mt: 0.15 }} />
+          <Box>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ lineHeight: 1.2 }}>
+              Passenger
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600, wordBreak: 'break-all', fontSize: '0.82rem' }}>
+              {passengerId}
+            </Typography>
+          </Box>
         </Box>
 
-        {/* Ticket */}
+        {/* Ticket row */}
         {ticketCode && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.8 }}>
-            <ConfirmationNumberIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 64 }}>Ticket</Typography>
-            <Typography variant="caption" sx={{ fontWeight: 700, color: accentColor, letterSpacing: 0.5 }}>{ticketCode}</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.2, mb: 1.1 }}>
+            <ConfirmationNumberIcon sx={{ fontSize: 16, color: accentColor, mt: 0.15 }} />
+            <Box>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ lineHeight: 1.2 }}>
+                Ticket Code
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 800, color: accentColor, fontSize: '0.82rem', letterSpacing: 0.4 }}>
+                {ticketCode}
+              </Typography>
+            </Box>
           </Box>
         )}
 
-        {/* Route */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-          <TripOriginIcon sx={{ fontSize: 14, color: accentColor }} />
-          <Typography variant="caption" color="text.secondary" sx={{ minWidth: 64 }}>Route</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: 1, minWidth: 0 }}>
-            <Typography variant="caption" sx={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{origin}</Typography>
-            <ArrowForwardIcon sx={{ fontSize: 12, color: accentColor, flexShrink: 0 }} />
-            <Typography variant="caption" sx={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{destination}</Typography>
+        {/* Route row — Boarding → Drop-off */}
+        <Box
+          sx={{
+            mt: 1.2,
+            p: 1.2,
+            borderRadius: '8px',
+            bgcolor: accentAlpha(0.06),
+            border: `1px solid ${accentAlpha(0.15)}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.8,
+          }}
+        >
+          {/* Origin */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.2 }}>
+              <TripOriginIcon sx={{ fontSize: 12, color: accentColor }} />
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.67rem' }}>Boarding</Typography>
+            </Box>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 700, fontSize: '0.82rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            >
+              {origin}
+            </Typography>
+          </Box>
+
+          {/* Arrow */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+            <ArrowForwardIcon sx={{ fontSize: 16, color: accentColor }} />
+          </Box>
+
+          {/* Destination */}
+          <Box sx={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5, mb: 0.2 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.67rem' }}>Drop-off</Typography>
+              <LocationOnIcon sx={{ fontSize: 12, color: accentColor }} />
+            </Box>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 700, fontSize: '0.82rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            >
+              {destination}
+            </Typography>
           </Box>
         </Box>
       </Box>
