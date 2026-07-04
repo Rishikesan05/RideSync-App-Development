@@ -221,40 +221,81 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
 
   Widget _buildLegend() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _legendItem('Available', Colors.white, border: Colors.grey.shade300),
-          const SizedBox(width: 16),
-          _legendItem('Booked', Colors.grey.shade400),
-          const SizedBox(width: 16),
-          Row(
-            children: [
-              Container(
-                width: 14,
-                height: 14,
-                decoration: BoxDecoration(color: Colors.green.shade400, borderRadius: BorderRadius.circular(3)),
-                child: const Icon(Icons.check, size: 10, color: Colors.white),
-              ),
-              const SizedBox(width: 6),
-              const Text('Boarded', style: TextStyle(fontSize: 12, color: AppColors.textLight, fontWeight: FontWeight.w600)),
-            ],
-          ),
-          const SizedBox(width: 16),
-          Row(
-            children: [
-              Container(
-                width: 14,
-                height: 14,
-                decoration: BoxDecoration(color: Colors.red.shade600, borderRadius: BorderRadius.circular(3)),
-                child: const Icon(Icons.close, size: 10, color: Colors.white),
-              ),
-              const SizedBox(width: 6),
-              const Text('Blocked', style: TextStyle(fontSize: 12, color: AppColors.textLight, fontWeight: FontWeight.w600)),
-            ],
-          ),
-        ],
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(
+          children: [
+            _legendItem('Available', Colors.white, border: Colors.grey.shade300),
+            const SizedBox(width: 14),
+            _legendItem('Booked', Colors.grey.shade400),
+            const SizedBox(width: 14),
+            // Boarded
+            Row(
+              children: [
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(color: Colors.green.shade400, borderRadius: BorderRadius.circular(3)),
+                  child: const Icon(Icons.check, size: 10, color: Colors.white),
+                ),
+                const SizedBox(width: 6),
+                const Text('Boarded', style: TextStyle(fontSize: 12, color: AppColors.textLight, fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(width: 14),
+            // Blocked
+            Row(
+              children: [
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(color: Colors.red.shade600, borderRadius: BorderRadius.circular(3)),
+                  child: const Icon(Icons.close, size: 10, color: Colors.white),
+                ),
+                const SizedBox(width: 6),
+                const Text('Blocked', style: TextStyle(fontSize: 12, color: AppColors.textLight, fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(width: 14),
+            // Fare Breakdown
+            Row(
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6366F1).withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(3),
+                        border: Border.all(color: const Color(0xFF6366F1), width: 1),
+                      ),
+                    ),
+                    Positioned(
+                      top: -3,
+                      right: -3,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1),
+                        ),
+                        child: const Icon(Icons.call_split, size: 5, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 6),
+                const Text('Fare Breakdown', style: TextStyle(fontSize: 12, color: AppColors.textLight, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
