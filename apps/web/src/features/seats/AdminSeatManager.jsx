@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import {
   CallSplit as CallSplitIcon,
-  CheckCircleOutline as CheckCircleOutlineIcon,
+  CheckCircleOutlined as CheckCircleOutlineIcon,
   ConfirmationNumber as ConfirmationNumberIcon,
   Person as PersonIcon,
   TripOrigin as TripOriginIcon,

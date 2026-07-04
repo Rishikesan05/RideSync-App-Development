@@ -648,47 +648,41 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
     final bool isFareBreakdown = rawSegments.length > 1;
 
     // Normalise segments: if none stored, synthesise one from the top-level fields
-    final List<Map<String, dynamic>> segments = rawSegments.isNotEmpty
+    final List<Map<String, dynamic>> rawMaps = rawSegments.isNotEmpty
         ? rawSegments.map((s) => Map<String, dynamic>.from(s as Map)).toList()
         : [
             {
-              'origin': bookingData['origin'] ?? bookingData['pickup'] ?? 'Unknown',
-              'destination': bookingData['destination'] ?? bookingData['dropoff'] ?? 'Unknown',
+              'origin': bookingData['origin'] ?? bookingData['pickup'] ?? bookingData['boardingPoint'] ?? '',
+              'destination': bookingData['destination'] ?? bookingData['dropoff'] ?? bookingData['alightingPoint'] ?? '',
               'passengerId': bookingData['passengerId'] ?? 'Unknown',
               'ticketCode': bookingData['ticketCode'],
             }
           ];
 
-    // Helper: extract origin from a segment map using all known field names
-    String segOrigin(Map<String, dynamic> s) =>
-        s['origin']?.toString().isNotEmpty == true
-            ? s['origin'].toString()
-            : s['pickup']?.toString().isNotEmpty == true
-                ? s['pickup'].toString()
-                : s['boardingPoint']?.toString().isNotEmpty == true
-                    ? s['boardingPoint'].toString()
-                    : s['from']?.toString().isNotEmpty == true
-                        ? s['from'].toString()
-                        : 'Unknown';
-
-    String segDest(Map<String, dynamic> s) =>
-        s['destination']?.toString().isNotEmpty == true
-            ? s['destination'].toString()
-            : s['dropoff']?.toString().isNotEmpty == true
-                ? s['dropoff'].toString()
-                : s['alightingPoint']?.toString().isNotEmpty == true
-                    ? s['alightingPoint'].toString()
-                    : s['to']?.toString().isNotEmpty == true
-                        ? s['to'].toString()
-                        : 'Unknown';
-
-    // Rebuild segments with normalised fields
-    final List<Map<String, dynamic>> normSegments = segments.map((s) => {
-      'passengerId': s['passengerId']?.toString() ?? s['userId']?.toString() ?? 'Unknown',
-      'ticketCode': s['ticketCode']?.toString(),
-      'origin': segOrigin(s),
-      'destination': segDest(s),
+    // Resolve all field-name aliases so cards always show the right stop names
+    final List<Map<String, dynamic>> segments = rawMaps.map((s) {
+      String resolveOrigin() {
+        for (final k in ['origin', 'pickup', 'boardingPoint', 'from']) {
+          final v = s[k]?.toString() ?? '';
+          if (v.isNotEmpty) return v;
+        }
+        return 'Unknown';
+      }
+      String resolveDest() {
+        for (final k in ['destination', 'dropoff', 'alightingPoint', 'to']) {
+          final v = s[k]?.toString() ?? '';
+          if (v.isNotEmpty) return v;
+        }
+        return 'Unknown';
+      }
+      return <String, dynamic>{
+        'passengerId': (s['passengerId'] ?? s['userId'] ?? 'Unknown').toString(),
+        'ticketCode': s['ticketCode'],
+        'origin': resolveOrigin(),
+        'destination': resolveDest(),
+      };
     }).toList();
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -810,14 +804,14 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
                   controller: scrollCtrl,
                   padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
                   children: [
-                    // Journey cards — one per segment
-                    ...normSegments.asMap().entries.map((entry) {
+                    // Journey cards
+                    ...segments.asMap().entries.map((entry) {
                       final idx = entry.key;
                       final seg = entry.value;
                       return _journeyCard(
                         context: context,
                         index: idx,
-                        totalSegments: normSegments.length,
+                        totalSegments: segments.length,
                         segment: seg,
                         isFareBreakdown: isFareBreakdown,
                         isDark: isDark,
@@ -972,7 +966,7 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
                   _detailRow(Icons.confirmation_number, 'Ticket Code', ticketCode, isDark),
                   const SizedBox(height: 12),
                 ],
-                // Boarding → Drop-off route card
+                // Boarding → Drop-off card
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -982,88 +976,44 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
                   ),
                   child: Row(
                     children: [
-                      // Boarding
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Icon(Icons.trip_origin, size: 11, color: accentColor),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Boarding',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: isDark ? Colors.white54 : Colors.grey.shade600,
-                                  ),
-                                ),
-                              ],
-                            ),
+                            Row(children: [
+                              Icon(Icons.trip_origin, size: 11, color: accentColor),
+                              const SizedBox(width: 4),
+                              Text('Boarding', style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : Colors.grey.shade600)),
+                            ]),
                             const SizedBox(height: 3),
-                            Text(
-                              origin,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: isDark ? Colors.white : AppColors.textDark,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            Text(origin, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.textDark), maxLines: 2, overflow: TextOverflow.ellipsis),
                           ],
                         ),
                       ),
-                      // Arrow
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 10),
                         child: Container(
                           padding: const EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                            color: accentColor.withValues(alpha: 0.15),
-                            shape: BoxShape.circle,
-                          ),
+                          decoration: BoxDecoration(color: accentColor.withValues(alpha: 0.15), shape: BoxShape.circle),
                           child: Icon(Icons.arrow_forward, size: 13, color: accentColor),
                         ),
                       ),
-                      // Drop-off
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Text(
-                                  'Drop-off',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: isDark ? Colors.white54 : Colors.grey.shade600,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Icon(Icons.location_on, size: 11, color: accentColor),
-                              ],
-                            ),
+                            Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                              Text('Drop-off', style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : Colors.grey.shade600)),
+                              const SizedBox(width: 4),
+                              Icon(Icons.location_on, size: 11, color: accentColor),
+                            ]),
                             const SizedBox(height: 3),
-                            Text(
-                              destination,
-                              textAlign: TextAlign.right,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: isDark ? Colors.white : AppColors.textDark,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            Text(destination, textAlign: TextAlign.right, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.textDark), maxLines: 2, overflow: TextOverflow.ellipsis),
                           ],
                         ),
                       ),
                     ],
                   ),
-                ),
-                  ],
                 ),
               ],
             ),
