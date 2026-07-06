@@ -50,6 +50,8 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
   const [relocatingStatus, setRelocatingStatus] = useState('idle');
   const [relocationErrorMsg, setRelocationErrorMsg] = useState('');
   const [routeStops, setRouteStops] = useState([]);
+  // Each entry: { name: string, price: number } – populated from route doc.
+  const [routeStopEntries, setRouteStopEntries] = useState([]);
 
   useEffect(() => {
     if (!rideId) return;
@@ -64,17 +66,35 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
             const routeSnap = await getDoc(routeRef);
             if (routeSnap.exists()) {
               const routeData = routeSnap.data();
-              let stops = [];
-              if (routeData.origin) stops.push(routeData.origin.split(',')[0].trim());
-              else if (routeData.startPoint) stops.push(routeData.startPoint.split(',')[0].trim());
+              const entries = [];
+
+              // Origin (price = 0, it is the start of the route)
+              const originName = (routeData.origin || routeData.startPoint || '').split(',')[0].trim();
+              if (originName) entries.push({ name: originName, price: 0 });
+
+              // Intermediate stops with individual prices
               if (routeData.stops && Array.isArray(routeData.stops)) {
                 routeData.stops.forEach(s => {
-                  if (s.name) stops.push(s.name.split(',')[0].trim());
+                  const n = (s.name || '').split(',')[0].trim();
+                  if (n) entries.push({ name: n, price: Number(s.price || 0) });
                 });
               }
-              if (routeData.destination) stops.push(routeData.destination.split(',')[0].trim());
-              else if (routeData.endPoint) stops.push(routeData.endPoint.split(',')[0].trim());
-              setRouteStops([...new Set(stops)]);
+
+              // Destination (price = endPrice = full route fare)
+              const destName = (routeData.destination || routeData.endPoint || '').split(',')[0].trim();
+              const endPrice = Number(routeData.endPrice || routeData.price || 0);
+              if (destName) entries.push({ name: destName, price: endPrice });
+
+              // Deduplicate by name
+              const seen = new Set();
+              const unique = entries.filter(e => {
+                if (seen.has(e.name)) return false;
+                seen.add(e.name);
+                return true;
+              });
+
+              setRouteStopEntries(unique);
+              setRouteStops(unique.map(e => e.name));
             }
           }
         }
@@ -170,6 +190,8 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
         destination: s.destination || s.dropoff || 'Unknown',
         passengerId: s.passengerId || 'Unknown',
         ticketCode: s.ticketCode || null,
+        stopPrice: s.stopPrice ?? null,
+        endPrice: s.endPrice ?? null,
       }))
     : selectedSeat
       ? [{
@@ -177,6 +199,8 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
           destination: selectedSeat.destination || selectedSeat.dropoff || 'Unknown',
           passengerId: selectedSeat.passengerId || 'Unknown',
           ticketCode: selectedSeat.ticketCode || null,
+          stopPrice: selectedSeat.stopPrice ?? null,
+          endPrice: selectedSeat.endPrice ?? null,
         }]
       : [];
 
@@ -339,6 +363,8 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
                         isFareBreakdown={isFareBreakdown}
                         accentColor={accentColor}
                         accentAlpha={accentAlpha}
+                        selectedSeat={selectedSeat}
+                        routeStopEntries={routeStopEntries}
                       />
                     ))}
 
@@ -496,11 +522,40 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
  * Displays the detail of a single journey segment.
  * For fare-breakdown seats this is rendered once per segment, stacked.
  * ──────────────────────────────────────────────────────────────────────────── */
-const JourneyCard = ({ index, total, segment, isFareBreakdown, accentColor, accentAlpha }) => {
+const JourneyCard = ({ index, total, segment, isFareBreakdown, accentColor, accentAlpha, selectedSeat, routeStopEntries = [] }) => {
   const origin = segment.origin || 'Unknown';
   const destination = segment.destination || 'Unknown';
   const passengerId = segment.passengerId || 'Unknown';
   const ticketCode = segment.ticketCode;
+
+  // ── Fare resolution ──────────────────────────────────────────────────────
+  // Priority 1: price stored directly in the segment (new bookings)
+  // Priority 2: price stored at the top-level seat document (single-leg bookings)
+  // Priority 3: calculate from route stop entries (legacy bookings without stored price)
+  const normalise = (s) => (s || '').split(',')[0].trim().toLowerCase();
+  const findEntry = (name) => {
+    const q = normalise(name);
+    return routeStopEntries.find(e => {
+      const n = normalise(e.name);
+      return n === q || n.includes(q) || q.includes(n);
+    });
+  };
+
+  // Stored values (preferred)
+  let stopPrice = segment.stopPrice ?? selectedSeat?.stopPrice ?? null;
+  const endPrice = segment.endPrice ?? selectedSeat?.endPrice ?? null;
+
+  // Fallback: calculate from route stop entries for legacy bookings
+  if (stopPrice === null && routeStopEntries.length > 0) {
+    const boardingEntry = findEntry(origin);
+    const dropoffEntry  = findEntry(destination);
+    if (dropoffEntry && dropoffEntry.price > 0) {
+      const boardingPrice = boardingEntry?.price ?? 0;
+      stopPrice = Math.abs(dropoffEntry.price - boardingPrice);
+    }
+  }
+
+  const hasPrice = stopPrice !== null;
 
   return (
     <Box
@@ -611,6 +666,64 @@ const JourneyCard = ({ index, total, segment, isFareBreakdown, accentColor, acce
             </Typography>
           </Box>
         </Box>
+
+        {/* ── Journey Price section ── */}
+        {hasPrice && (
+          <Box
+            sx={{
+              mt: 1.4,
+              p: 1.4,
+              borderRadius: '10px',
+              background: `linear-gradient(135deg, ${accentAlpha(0.13)}, ${accentAlpha(0.06)})`,
+              border: `1.5px solid ${accentAlpha(0.3)}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 1,
+            }}
+          >
+            {/* Left — label */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+              <Box
+                sx={{
+                  width: 28, height: 28, borderRadius: '50%',
+                  bgcolor: accentAlpha(0.15),
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <ConfirmationNumberIcon sx={{ fontSize: 14, color: accentColor }} />
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ lineHeight: 1.1, fontSize: '0.65rem', fontWeight: 600, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                  Journey Price
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.67rem' }}>
+                  {origin} → {destination}
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Right — price */}
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography
+                sx={{
+                  fontWeight: 900,
+                  fontSize: '1.05rem',
+                  color: accentColor,
+                  letterSpacing: 0.2,
+                  lineHeight: 1.1,
+                }}
+              >
+                LKR {Number(stopPrice).toLocaleString()}
+              </Typography>
+              {endPrice !== null && Number(endPrice) !== Number(stopPrice) && (
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.67rem' }}>
+                  Full fare: LKR {Number(endPrice).toLocaleString()}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+        )}
       </Box>
     </Box>
   );

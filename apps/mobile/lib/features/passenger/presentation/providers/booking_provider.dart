@@ -6,6 +6,27 @@ import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+/// A stop entry fetched from the Firestore route document.
+class RouteStopEntry {
+  final String name;
+  final double distFromStartKm;
+  final double price;
+
+  const RouteStopEntry({
+    required this.name,
+    required this.distFromStartKm,
+    required this.price,
+  });
+
+  factory RouteStopEntry.fromMap(Map<String, dynamic> m) {
+    return RouteStopEntry(
+      name: (m['name'] ?? '').toString().split(',')[0].trim(),
+      distFromStartKm: (m['distFromStartKm'] ?? 0).toDouble(),
+      price: (m['price'] ?? 0).toDouble(),
+    );
+  }
+}
+
 class ScheduleModel {
   final String id;
   final String routeId;
@@ -15,6 +36,10 @@ class ScheduleModel {
   final int capacity;
   final String? routeName;
   final String? plateNumber;
+  /// The full-route end price read from the route document during schedule search.
+  /// Displayed on booking cards BEFORE a seat is selected, so the passenger
+  /// sees the real route fare (e.g. LKR 1200) instead of a distance calculation.
+  final double routeEndPrice;
 
   ScheduleModel({
     required this.id,
@@ -25,7 +50,21 @@ class ScheduleModel {
     required this.capacity,
     this.routeName,
     this.plateNumber,
+    this.routeEndPrice = 0.0,
   });
+
+  /// Returns a copy of this model with [routeEndPrice] set.
+  ScheduleModel copyWithEndPrice(double price) => ScheduleModel(
+        id: id,
+        routeId: routeId,
+        busId: busId,
+        departureTime: departureTime,
+        status: status,
+        capacity: capacity,
+        routeName: routeName,
+        plateNumber: plateNumber,
+        routeEndPrice: price,
+      );
 
   factory ScheduleModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -73,87 +112,182 @@ class BookingProvider extends ChangeNotifier {
   String? selectedBoardingPoint;
   String? selectedDropoffPoint;
 
-  // --- Fare Calculation ---
-  static const double _farePerKm = 15.0;
-  static const double _minimumFare = 50.0;
+  // --- Route-based Fare Data (loaded from Firestore on schedule selection) ---
+  /// All stops (including origin and destination) with their prices from the route document.
+  List<RouteStopEntry> _routeStopEntries = [];
 
-  /// Calculate straight-line distance in km using the Haversine formula
-  double get distanceKm {
-    if (origin == null || destination == null) return 0;
-    const earthRadiusKm = 6371.0;
-    final dLat = _toRadians(destination!.position.latitude - origin!.position.latitude);
-    final dLng = _toRadians(destination!.position.longitude - origin!.position.longitude);
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(_toRadians(origin!.position.latitude)) *
-            math.cos(_toRadians(destination!.position.latitude)) *
-            math.sin(dLng / 2) *
-            math.sin(dLng / 2);
-    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-    // Multiply by 1.3 to approximate road distance from straight-line
-    return (earthRadiusKm * c * 1.3);
-  }
+  /// Full-route end price (origin → final destination). This is what the passenger
+  /// sees as the face-value "ticket price" on their boarding pass.
+  double _endPrice = 0.0;
 
-  double _toRadians(double deg) => deg * (math.pi / 180);
+  /// The price specifically for the passenger's chosen boarding→drop-off leg.
+  /// Shown to admin and operator on the booked-seat detail panel.
+  double _resolvedStopPrice = 0.0;
 
-  /// Calculated fare for a single seat based on distance
-  double get farePerSeat {
-    final calculated = distanceKm * _farePerKm;
-    return calculated < _minimumFare ? _minimumFare : calculated;
-  }
+  // ── Fare getters ────────────────────────────────────────────────────────────
 
-  /// Total fare for all selected seats
+  /// Full route price (Jaffna → Colombo, e.g. LKR 1 200).
+  /// Displayed to the passenger as the ticket face value.
+  double get endPrice => _endPrice;
+
+  /// The price for the passenger's actual leg (e.g. Jaffna → Kilinochchi = LKR 100).
+  /// Shown to admin / operator when they open a booked seat.
+  double get stopPrice => _resolvedStopPrice;
+
+  /// Fare per seat used for payment calculations.
+  /// We always charge the passenger the full end price so that the ticket value
+  /// matches what is printed on the boarding pass.
+  double get farePerSeat => _endPrice > 0 ? _endPrice : _resolvedStopPrice;
+
+  /// Total fare for all selected seats (full ticket price × seats).
   double get totalFare => farePerSeat * selectedSeatNumbers.length;
 
-  /// Reservation fee to be paid upfront (500 LKR per seat, or full fare if fare is less than 500)
+  /// Reservation fee to be paid upfront (500 LKR per seat, or full fare if < 500).
   double get reservationFeePerSeat => farePerSeat < 500.0 ? farePerSeat : 500.0;
 
-  /// Total reservation fee to pay now
+  /// Total reservation fee to pay now.
   double get totalReservationFee => reservationFeePerSeat * selectedSeatNumbers.length;
 
-  /// Balance amount to be paid later
+  /// Balance amount to be paid on the bus.
   double get balanceDue => totalFare - totalReservationFee;
 
-  /// Formatted fare string for display
+  /// Formatted fare string for display.
   String get formattedFarePerSeat => 'LKR ${farePerSeat.toStringAsFixed(0)}';
+
+  // ── Internal helpers ────────────────────────────────────────────────────────
+
+  /// Normalise a stop name for fuzzy matching (lowercase, first part before comma).
+  String _normaliseStop(String val) => val.split(',')[0].trim().toLowerCase();
+
+  /// Find the [RouteStopEntry] whose name best matches [query].
+  RouteStopEntry? _findEntry(String query) {
+    final q = _normaliseStop(query);
+    // Exact match first
+    for (final e in _routeStopEntries) {
+      if (_normaliseStop(e.name) == q) return e;
+    }
+    // Partial / contains match
+    for (final e in _routeStopEntries) {
+      final n = _normaliseStop(e.name);
+      if (n.contains(q) || q.contains(n)) return e;
+    }
+    return null;
+  }
+
+  /// Re-resolve the stop price whenever the boarding / drop-off selection changes.
+  void _resolveStopFare() {
+    if (_routeStopEntries.isEmpty) {
+      _resolvedStopPrice = 0.0;
+      notifyListeners();
+      return;
+    }
+
+    final boardingName = selectedBoardingPoint ?? origin?.name ?? '';
+    final dropoffName  = selectedDropoffPoint  ?? destination?.name ?? '';
+
+    if (boardingName.isEmpty || dropoffName.isEmpty) {
+      _resolvedStopPrice = 0.0;
+      notifyListeners();
+      return;
+    }
+
+    final boardingEntry = _findEntry(boardingName);
+    final dropoffEntry  = _findEntry(dropoffName);
+
+    if (dropoffEntry != null && dropoffEntry.price > 0) {
+      // The stop price is what the *dropoff* stop costs from the route origin.
+      // Subtract boarding stop price so partial legs are priced correctly.
+      final boardingPrice = boardingEntry?.price ?? 0.0;
+      _resolvedStopPrice = (dropoffEntry.price - boardingPrice).abs();
+    } else if (boardingEntry != null) {
+      _resolvedStopPrice = boardingEntry.price;
+    } else {
+      _resolvedStopPrice = 0.0;
+    }
+
+    notifyListeners();
+  }
 
   Future<void> selectSchedule(ScheduleModel schedule) async {
     selectedSchedule = schedule;
     selectedSeatNumbers.clear();
     currentRouteStops.clear();
+    _routeStopEntries.clear();
+    _resolvedStopPrice = 0.0;
+    _endPrice = 0.0;
     selectedBoardingPoint = origin?.name;
     selectedDropoffPoint = destination?.name;
     notifyListeners();
 
     try {
-      final routeSnap = await FirebaseFirestore.instance.collection('routes').doc(schedule.routeId).get();
+      final routeSnap = await FirebaseFirestore.instance
+          .collection('routes')
+          .doc(schedule.routeId)
+          .get();
+
       if (routeSnap.exists) {
         final data = routeSnap.data()!;
-        final stops = <String>[];
-        if (data['origin'] != null) {
-          stops.add(data['origin'].toString().split(',')[0].trim());
-        } else if (data['startPoint'] != null) {
-          stops.add(data['startPoint'].toString().split(',')[0].trim());
+        final stopNames = <String>[];
+        final entries  = <RouteStopEntry>[];
+
+        // ── Origin stop ──
+        final originName = (data['origin'] ?? data['startPoint'] ?? '')
+            .toString()
+            .split(',')
+            .first
+            .trim();
+        if (originName.isNotEmpty) {
+          stopNames.add(originName);
+          // Origin always costs 0 (it's the starting point of the route)
+          entries.add(RouteStopEntry(
+            name: originName,
+            distFromStartKm: 0,
+            price: 0,
+          ));
         }
-        
+
+        // ── Intermediate stops ──
         if (data['stops'] is List) {
-          for (var stop in data['stops']) {
+          for (final stop in (data['stops'] as List)) {
             if (stop['name'] != null) {
-              stops.add(stop['name'].toString().split(',')[0].trim());
+              final entry = RouteStopEntry.fromMap(
+                Map<String, dynamic>.from(stop as Map),
+              );
+              if (entry.name.isNotEmpty) {
+                stopNames.add(entry.name);
+                entries.add(entry);
+              }
             }
           }
         }
-        
-        if (data['destination'] != null) {
-          stops.add(data['destination'].toString().split(',')[0].trim());
-        } else if (data['endPoint'] != null) {
-          stops.add(data['endPoint'].toString().split(',')[0].trim());
+
+        // ── Destination stop (end price) ──
+        final destName = (data['destination'] ?? data['endPoint'] ?? '')
+            .toString()
+            .split(',')
+            .first
+            .trim();
+        final rawEndPrice =
+            (data['endPrice'] ?? data['price'] ?? 0).toDouble();
+        if (destName.isNotEmpty) {
+          stopNames.add(destName);
+          entries.add(RouteStopEntry(
+            name: destName,
+            distFromStartKm:
+                (data['totalDistanceKm'] ?? 0).toDouble(),
+            price: rawEndPrice,
+          ));
         }
-        
-        currentRouteStops = stops.toSet().toList();
-        notifyListeners();
+
+        _routeStopEntries = entries;
+        _endPrice = rawEndPrice;
+        currentRouteStops = stopNames.toSet().toList();
+
+        // Resolve fare immediately with pre-selected boarding/dropoff
+        _resolveStopFare();
       }
     } catch (e) {
-      debugPrint("Failed to fetch route stops: $e");
+      debugPrint('Failed to fetch route stops: $e');
     }
   }
 
@@ -171,12 +305,12 @@ class BookingProvider extends ChangeNotifier {
 
   void setBoardingPoint(String? point) {
     selectedBoardingPoint = point;
-    notifyListeners();
+    _resolveStopFare();
   }
 
   void setDropoffPoint(String? point) {
     selectedDropoffPoint = point;
-    notifyListeners();
+    _resolveStopFare();
   }
 
   Stream<List<Map<String, dynamic>>> streamSeats(String scheduleId) {
@@ -304,6 +438,9 @@ class BookingProvider extends ChangeNotifier {
               'destination': selectedDropoffPoint ?? destination?.name ?? '',
               'passengerId': passengerId,
               'ticketCode': ticketCode,
+              // Leg-specific fare fields for admin / operator display
+              'stopPrice': _resolvedStopPrice.roundToDouble(),
+              'endPrice': _endPrice.roundToDouble(),
           });
 
           transaction.set(seatRef, {
@@ -328,11 +465,20 @@ class BookingProvider extends ChangeNotifier {
           'seats': selectedSeatNumbers.toList(),
           'origin': selectedBoardingPoint ?? origin?.name ?? '',
           'destination': selectedDropoffPoint ?? destination?.name ?? '',
-          'distanceKm': distanceKm.toStringAsFixed(1),
+          // ── Fare fields (route-stop based) ──────────────────────────────
+          // stopPrice: the price for the passenger's actual boarding→drop-off leg.
+          //   Displayed to admin / operator on the booked-seat detail panel.
+          'stopPrice': stopPrice.roundToDouble(),
+          // endPrice: the full route face value shown to the passenger on their ticket.
+          'endPrice': endPrice.roundToDouble(),
+          // farePerSeat / totalFare are always the full ticket (endPrice) values.
           'farePerSeat': farePerSeat.roundToDouble(),
           'totalFare': totalFare.roundToDouble(),
           'reservationPaid': totalReservationFee.roundToDouble(),
           'balanceDue': balanceDue.roundToDouble(),
+          // fareSource distinguishes route-stop fares from old distance-based ones.
+          'fareSource': 'route_stops',
+          // ────────────────────────────────────────────────────────────────
           'departureTime': selectedSchedule!.departureTime,
           'routeName': selectedSchedule!.routeName ?? '',
           'plateNumber': selectedSchedule!.plateNumber ?? '',
@@ -492,6 +638,17 @@ class BookingProvider extends ChangeNotifier {
       // To handle both, we fetch ALL schedules for matching routes and filter in-memory by date.
       final limitedRouteIds = matchingRouteIds.take(10).toList();
 
+      // Build a routeId → endPrice lookup from the already-fetched routes snapshot.
+      // This avoids any extra Firestore reads — we already have the data in memory.
+      final Map<String, double> routeEndPriceMap = {};
+      for (final doc in routesSnapshot.docs) {
+        if (limitedRouteIds.contains(doc.id)) {
+          final d = doc.data();
+          routeEndPriceMap[doc.id] =
+              (d['endPrice'] ?? d['price'] ?? 0).toDouble();
+        }
+      }
+
       final schedulesSnapshot = await FirebaseFirestore.instance
           .collection('schedules')
           .where('routeId', whereIn: limitedRouteIds)
@@ -506,7 +663,10 @@ class BookingProvider extends ChangeNotifier {
       availableSchedules = schedulesSnapshot.docs
           .map((doc) {
             try {
-              return ScheduleModel.fromFirestore(doc);
+              final model = ScheduleModel.fromFirestore(doc);
+              // Attach the route end price so the card can show it immediately.
+              final price = routeEndPriceMap[model.routeId] ?? 0.0;
+              return price > 0 ? model.copyWithEndPrice(price) : model;
             } catch (e) {
               debugPrint('Skipping malformed schedule ${doc.id}: $e');
               return null;

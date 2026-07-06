@@ -1,0 +1,9 @@
+[RIDESYNC] 2026-07-06 | Feat: Replace km-based fare algorithm with Firestore stop-level prices in BookingProvider
+
+[RIDESYNC] 2026-07-06 | Feat: Resolve passenger stop fare from route stops array and endPrice in Firestore
+
+[RIDESYNC] 2026-07-06 | UI: Show full route endPrice as ticket price to passenger on seat selection and confirmation screens
+
+[RIDESYNC] 2026-07-06 | Feat: Display actual boarded-stop segment fare to admin and operator on booked seat detail panel
+
+[RIDESYNC] 2026-07-06 | Chore: Persist fareSource, stopPrice, and endPrice fields in booking Firestore document for role-based fare display
