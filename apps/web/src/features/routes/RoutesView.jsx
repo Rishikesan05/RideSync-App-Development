@@ -501,7 +501,7 @@ export const RoutesView = () => {
                         border: '1px solid rgba(255,255,255,0.06)',
                       }}
                     >
-                      {route.stops.map((stop, idx) => {
+                      {[...route.stops].sort((a, b) => Number(a.distFromStartKm || 0) - Number(b.distFromStartKm || 0)).map((stop, idx) => {
                         const isFirst = idx === 0;
                         const isLast  = idx === route.stops.length - 1;
                         const dotColor = isFirst
