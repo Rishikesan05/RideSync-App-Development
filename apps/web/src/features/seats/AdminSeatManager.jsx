@@ -170,6 +170,8 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
         destination: s.destination || s.dropoff || 'Unknown',
         passengerId: s.passengerId || 'Unknown',
         ticketCode: s.ticketCode || null,
+        stopPrice: s.stopPrice ?? null,
+        endPrice: s.endPrice ?? null,
       }))
     : selectedSeat
       ? [{
@@ -177,6 +179,8 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
           destination: selectedSeat.destination || selectedSeat.dropoff || 'Unknown',
           passengerId: selectedSeat.passengerId || 'Unknown',
           ticketCode: selectedSeat.ticketCode || null,
+          stopPrice: selectedSeat.stopPrice ?? null,
+          endPrice: selectedSeat.endPrice ?? null,
         }]
       : [];
 
@@ -339,6 +343,7 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
                         isFareBreakdown={isFareBreakdown}
                         accentColor={accentColor}
                         accentAlpha={accentAlpha}
+                        selectedSeat={selectedSeat}
                       />
                     ))}
 
@@ -496,11 +501,15 @@ const AdminSeatManager = ({ rideId, layoutType, open, onClose }) => {
  * Displays the detail of a single journey segment.
  * For fare-breakdown seats this is rendered once per segment, stacked.
  * ──────────────────────────────────────────────────────────────────────────── */
-const JourneyCard = ({ index, total, segment, isFareBreakdown, accentColor, accentAlpha }) => {
+const JourneyCard = ({ index, total, segment, isFareBreakdown, accentColor, accentAlpha, selectedSeat }) => {
   const origin = segment.origin || 'Unknown';
   const destination = segment.destination || 'Unknown';
   const passengerId = segment.passengerId || 'Unknown';
   const ticketCode = segment.ticketCode;
+  // Fare fields: prefer segment-level, fall back to top-level seat document
+  const stopPrice = segment.stopPrice ?? selectedSeat?.stopPrice ?? null;
+  const endPrice = segment.endPrice ?? selectedSeat?.endPrice ?? null;
+  const hasFare = stopPrice !== null || endPrice !== null;
 
   return (
     <Box
@@ -611,6 +620,40 @@ const JourneyCard = ({ index, total, segment, isFareBreakdown, accentColor, acce
             </Typography>
           </Box>
         </Box>
+
+        {/* ── Fare row (admin/operator view) ── */}
+        {hasFare && (
+          <Box
+            sx={{
+              mt: 1.2,
+              p: 1.2,
+              borderRadius: '8px',
+              bgcolor: accentAlpha(0.04),
+              border: `1px solid ${accentAlpha(0.12)}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              gap: 1,
+            }}
+          >
+            <Box>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ lineHeight: 1.2 }}>
+                Leg Fare (this stop)
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.85rem', color: accentColor }}>
+                {stopPrice !== null ? `LKR ${Number(stopPrice).toLocaleString()}` : '—'}
+              </Typography>
+            </Box>
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ lineHeight: 1.2 }}>
+                Ticket Face Value
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.85rem', color: 'text.primary' }}>
+                {endPrice !== null ? `LKR ${Number(endPrice).toLocaleString()}` : '—'}
+              </Typography>
+            </Box>
+          </Box>
+        )}
       </Box>
     </Box>
   );
