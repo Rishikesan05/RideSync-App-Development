@@ -364,7 +364,9 @@ class _BookingScreenState extends State<BookingScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  booking.formattedFarePerSeat,
+                  schedule.routeEndPrice > 0
+                      ? 'LKR ${schedule.routeEndPrice.toStringAsFixed(0)}'
+                      : 'LKR —',
                   style: const TextStyle(color: AppColors.primaryOrange, fontWeight: FontWeight.bold, fontSize: 14),
                 ),
               ),
@@ -382,30 +384,6 @@ class _BookingScreenState extends State<BookingScreen> {
               Text('${schedule.capacity} Seats', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.green)),
             ],
           ),
-          if (booking.endPrice > 0)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.route, size: 16, color: AppColors.textLight),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Ticket: LKR ${booking.endPrice.toStringAsFixed(0)}',
-                    style: const TextStyle(fontSize: 12, color: AppColors.textLight),
-                  ),
-                  const SizedBox(width: 12),
-                  if (booking.stopPrice > 0)
-                    ...[
-                      const Icon(Icons.pin_drop_outlined, size: 16, color: AppColors.textLight),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Leg: LKR ${booking.stopPrice.toStringAsFixed(0)}',
-                        style: const TextStyle(fontSize: 12, color: AppColors.textLight),
-                      ),
-                    ],
-                ],
-              ),
-            ),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {

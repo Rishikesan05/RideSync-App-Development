@@ -36,6 +36,10 @@ class ScheduleModel {
   final int capacity;
   final String? routeName;
   final String? plateNumber;
+  /// The full-route end price read from the route document during schedule search.
+  /// Displayed on booking cards BEFORE a seat is selected, so the passenger
+  /// sees the real route fare (e.g. LKR 1200) instead of a distance calculation.
+  final double routeEndPrice;
 
   ScheduleModel({
     required this.id,
@@ -46,7 +50,21 @@ class ScheduleModel {
     required this.capacity,
     this.routeName,
     this.plateNumber,
+    this.routeEndPrice = 0.0,
   });
+
+  /// Returns a copy of this model with [routeEndPrice] set.
+  ScheduleModel copyWithEndPrice(double price) => ScheduleModel(
+        id: id,
+        routeId: routeId,
+        busId: busId,
+        departureTime: departureTime,
+        status: status,
+        capacity: capacity,
+        routeName: routeName,
+        plateNumber: plateNumber,
+        routeEndPrice: price,
+      );
 
   factory ScheduleModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -617,6 +635,17 @@ class BookingProvider extends ChangeNotifier {
       // To handle both, we fetch ALL schedules for matching routes and filter in-memory by date.
       final limitedRouteIds = matchingRouteIds.take(10).toList();
 
+      // Build a routeId → endPrice lookup from the already-fetched routes snapshot.
+      // This avoids any extra Firestore reads — we already have the data in memory.
+      final Map<String, double> routeEndPriceMap = {};
+      for (final doc in routesSnapshot.docs) {
+        if (limitedRouteIds.contains(doc.id)) {
+          final d = doc.data();
+          routeEndPriceMap[doc.id] =
+              (d['endPrice'] ?? d['price'] ?? 0).toDouble();
+        }
+      }
+
       final schedulesSnapshot = await FirebaseFirestore.instance
           .collection('schedules')
           .where('routeId', whereIn: limitedRouteIds)
@@ -631,7 +660,10 @@ class BookingProvider extends ChangeNotifier {
       availableSchedules = schedulesSnapshot.docs
           .map((doc) {
             try {
-              return ScheduleModel.fromFirestore(doc);
+              final model = ScheduleModel.fromFirestore(doc);
+              // Attach the route end price so the card can show it immediately.
+              final price = routeEndPriceMap[model.routeId] ?? 0.0;
+              return price > 0 ? model.copyWithEndPrice(price) : model;
             } catch (e) {
               debugPrint('Skipping malformed schedule ${doc.id}: $e');
               return null;
