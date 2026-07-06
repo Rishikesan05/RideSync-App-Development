@@ -382,18 +382,27 @@ class _BookingScreenState extends State<BookingScreen> {
               Text('${schedule.capacity} Seats', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.green)),
             ],
           ),
-          if (booking.distanceKm > 0)
+          if (booking.endPrice > 0)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Row(
                 children: [
-                  const Icon(Icons.straighten, size: 16, color: AppColors.textLight),
+                  const Icon(Icons.route, size: 16, color: AppColors.textLight),
                   const SizedBox(width: 8),
-                  Text('${booking.distanceKm.toStringAsFixed(1)} km', style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
+                  Text(
+                    'Ticket: LKR ${booking.endPrice.toStringAsFixed(0)}',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textLight),
+                  ),
                   const SizedBox(width: 12),
-                  const Icon(Icons.calculate_outlined, size: 16, color: AppColors.textLight),
-                  const SizedBox(width: 4),
-                  Text('LKR 15/km', style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
+                  if (booking.stopPrice > 0)
+                    ...[
+                      const Icon(Icons.pin_drop_outlined, size: 16, color: AppColors.textLight),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Leg: LKR ${booking.stopPrice.toStringAsFixed(0)}',
+                        style: const TextStyle(fontSize: 12, color: AppColors.textLight),
+                      ),
+                    ],
                 ],
               ),
             ),
