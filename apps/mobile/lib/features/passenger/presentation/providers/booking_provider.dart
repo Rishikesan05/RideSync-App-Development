@@ -438,6 +438,9 @@ class BookingProvider extends ChangeNotifier {
               'destination': selectedDropoffPoint ?? destination?.name ?? '',
               'passengerId': passengerId,
               'ticketCode': ticketCode,
+              // Leg-specific fare fields for admin / operator display
+              'stopPrice': _resolvedStopPrice.roundToDouble(),
+              'endPrice': _endPrice.roundToDouble(),
           });
 
           transaction.set(seatRef, {
