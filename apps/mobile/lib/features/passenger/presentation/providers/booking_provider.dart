@@ -129,17 +129,25 @@ class BookingProvider extends ChangeNotifier {
       if (routeSnap.exists) {
         final data = routeSnap.data()!;
         final stops = <String>[];
-        if (data['origin'] != null) stops.add(data['origin'].toString().split(',')[0].trim());
-        else if (data['startPoint'] != null) stops.add(data['startPoint'].toString().split(',')[0].trim());
+        if (data['origin'] != null) {
+          stops.add(data['origin'].toString().split(',')[0].trim());
+        } else if (data['startPoint'] != null) {
+          stops.add(data['startPoint'].toString().split(',')[0].trim());
+        }
         
         if (data['stops'] is List) {
           for (var stop in data['stops']) {
-            if (stop['name'] != null) stops.add(stop['name'].toString().split(',')[0].trim());
+            if (stop['name'] != null) {
+              stops.add(stop['name'].toString().split(',')[0].trim());
+            }
           }
         }
         
-        if (data['destination'] != null) stops.add(data['destination'].toString().split(',')[0].trim());
-        else if (data['endPoint'] != null) stops.add(data['endPoint'].toString().split(',')[0].trim());
+        if (data['destination'] != null) {
+          stops.add(data['destination'].toString().split(',')[0].trim());
+        } else if (data['endPoint'] != null) {
+          stops.add(data['endPoint'].toString().split(',')[0].trim());
+        }
         
         currentRouteStops = stops.toSet().toList();
         notifyListeners();
@@ -232,7 +240,7 @@ class BookingProvider extends ChangeNotifier {
           seatSnaps[seatNum] = seatSnap;
           
           if (seatSnap.exists) {
-            final data = seatSnap.data() as Map<String, dynamic>? ?? {};
+            final data = seatSnap.data() ?? {};
             if (data['status'] != 'available') {
               if (['sold', 'occupied', 'blocked', 'reserved'].contains(data['status'])) {
                  List<dynamic> segments = data['segments'] ?? [];

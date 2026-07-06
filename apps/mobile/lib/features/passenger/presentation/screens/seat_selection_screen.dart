@@ -319,7 +319,7 @@ class SeatSelectionScreen extends StatelessWidget {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   isExpanded: true,
-                  value: booking.selectedBoardingPoint != null && booking.currentRouteStops.contains(booking.selectedBoardingPoint)
+                  initialValue: booking.selectedBoardingPoint != null && booking.currentRouteStops.contains(booking.selectedBoardingPoint)
                       ? booking.selectedBoardingPoint
                       : null,
                   items: booking.currentRouteStops.map((String value) {
@@ -343,7 +343,7 @@ class SeatSelectionScreen extends StatelessWidget {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   isExpanded: true,
-                  value: booking.selectedDropoffPoint != null && booking.currentRouteStops.contains(booking.selectedDropoffPoint)
+                  initialValue: booking.selectedDropoffPoint != null && booking.currentRouteStops.contains(booking.selectedDropoffPoint)
                       ? booking.selectedDropoffPoint
                       : null,
                   items: booking.currentRouteStops.map((String value) {

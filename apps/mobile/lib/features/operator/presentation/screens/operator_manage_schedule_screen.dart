@@ -1117,14 +1117,6 @@ class _OperatorManageScheduleScreenState extends State<OperatorManageScheduleScr
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
-  String _formatPassenger(Map<String, dynamic> data) {
-    String name = data['passengerName'] ?? '';
-    String id = data['passengerId'] ?? 'Unknown';
-    if (name.isNotEmpty && name != id) {
-      return '$name ($id)';
-    }
-    return id;
-  }
 }
 
 class _OperatorSeatWidget extends StatelessWidget {

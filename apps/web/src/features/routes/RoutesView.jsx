@@ -444,9 +444,9 @@ export const RoutesView = () => {
                    <Typography variant="body2" color="text.secondary">
                      Total Distance:{' '}
                      <strong>
-                       {route.totalDistanceKm
-                         ?? route.stops?.[route.stops.length - 1]?.distFromStartKm
-                         ?? 0} km
+                       {route.stops?.length > 0
+                         ? Math.max(...route.stops.map(s => Number(s.distFromStartKm || 0)))
+                         : (route.totalDistanceKm ?? 0)} km
                      </strong>
                    </Typography>
                    {(route.endPrice !== undefined && route.endPrice !== null) && (
@@ -501,7 +501,7 @@ export const RoutesView = () => {
                         border: '1px solid rgba(255,255,255,0.06)',
                       }}
                     >
-                      {route.stops.map((stop, idx) => {
+                      {[...route.stops].sort((a, b) => Number(a.distFromStartKm || 0) - Number(b.distFromStartKm || 0)).map((stop, idx) => {
                         const isFirst = idx === 0;
                         const isLast  = idx === route.stops.length - 1;
                         const dotColor = isFirst
