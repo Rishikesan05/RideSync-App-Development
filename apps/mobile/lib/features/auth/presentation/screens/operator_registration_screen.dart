@@ -11,7 +11,7 @@ class OperatorRegistrationScreen extends StatefulWidget {
 }
 
 class _OperatorRegistrationScreenState extends State<OperatorRegistrationScreen> {
-  final _formKey = GlobalKey<FormState>();
+
   final _nameC = TextEditingController();
   final _emailC = TextEditingController();
   final _phoneC = TextEditingController(text: '+94');
