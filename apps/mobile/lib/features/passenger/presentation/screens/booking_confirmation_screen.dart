@@ -8,9 +8,13 @@ class BookingConfirmationScreen extends StatelessWidget {
   final String seatNumbers;
   final String origin;
   final String destination;
-  final double farePerSeat;
+  /// Full route face value (e.g. Jaffna → Colombo = LKR 1 200).
+  /// This is what the passenger sees on their ticket.
+  final double endPrice;
+  /// Price for the passenger's actual boarding→drop-off leg.
+  /// Shown in the fare breakdown for transparency.
+  final double stopPrice;
   final double totalFare;
-  final double distanceKm;
   final int seatCount;
   final String plateNumber;
   final String ticketCode;
@@ -23,9 +27,9 @@ class BookingConfirmationScreen extends StatelessWidget {
     required this.seatNumbers,
     required this.origin,
     required this.destination,
-    required this.farePerSeat,
+    required this.endPrice,
+    required this.stopPrice,
     required this.totalFare,
-    required this.distanceKm,
     required this.seatCount,
     required this.plateNumber,
     required this.ticketCode,
@@ -253,15 +257,15 @@ class BookingConfirmationScreen extends StatelessWidget {
                   children: [
                     const Text('RIDE SUMMARY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textLight, letterSpacing: 1)),
                     const SizedBox(height: 4),
-                    const Text('Initial Route Price', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                    const Text('Ticket Face Value', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                     Text(
-                      'Rs. ${(farePerSeat * seatCount).toStringAsFixed(0)}',
+                      'Rs. ${(endPrice * seatCount).toStringAsFixed(0)}',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.primaryOrange),
                     ),
 
                     const SizedBox(height: 16),
 
-                    // Distance info
+                    // Route-stop fare info box
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -270,15 +274,15 @@ class BookingConfirmationScreen extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.info_outline, size: 18, color: AppColors.primaryOrange),
+                          Icon(Icons.route, size: 18, color: AppColors.primaryOrange),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Distance-Based Calculation', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                                const Text('Route-Stop Pricing', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                                 Text(
-                                  '${distanceKm.toStringAsFixed(1)} km × LKR 15/km × $seatCount seat${seatCount > 1 ? 's' : ''}',
+                                  'Your leg fare: LKR ${stopPrice.toStringAsFixed(0)} × $seatCount seat${seatCount > 1 ? 's' : ''}',
                                   style: const TextStyle(fontSize: 11, color: AppColors.textLight),
                                 ),
                               ],
@@ -291,7 +295,8 @@ class BookingConfirmationScreen extends StatelessWidget {
                     const SizedBox(height: 16),
 
                     // Fare breakdown
-                    _fareRow('Base Fare', 'Rs. ${farePerSeat.toStringAsFixed(0)}'),
+                    _fareRow('Your Leg Fare', 'Rs. ${stopPrice.toStringAsFixed(0)}'),
+                    _fareRow('Full Ticket Price', 'Rs. ${endPrice.toStringAsFixed(0)}'),
                     if (seatCount > 1) _fareRow('Seats', '× $seatCount'),
                     const Divider(height: 24),
                     Row(
