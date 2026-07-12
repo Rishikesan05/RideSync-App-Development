@@ -752,18 +752,27 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
 
   Future<void> _startJourney(String scheduleId, String coOpName, String coOpId) async {
     try {
-      // 1. Get GPS Location
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          throw Exception('Location permissions are denied');
-        }
+      // 1. Start live GPS broadcasting FIRST so a Firestore error never
+      //    silently prevents the operator's location from being shared.
+      if (!mounted) return;
+      final busId = _activeTrip?['busId'] as String? ?? scheduleId;
+      final gpsProvider = Provider.of<GpsBroadcastProvider>(context, listen: false);
+      final started = await gpsProvider.startBroadcasting(busId);
+      if (!started && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(gpsProvider.errorMessage ?? 'GPS broadcast failed — check location permissions.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
-      
-      final position = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
 
-      // 2. Update Firestore
+      // 2. Get the GPS position that was just acquired by the provider
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+
+      // 3. Update Firestore schedule status
       final updateData = <String, dynamic>{
         'status': 'in-transit',
         'actualStartTime': FieldValue.serverTimestamp(),
@@ -778,24 +787,9 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
 
       await FirebaseFirestore.instance.collection('schedules').doc(scheduleId).update(updateData);
 
-      // 3. Start live GPS broadcasting via GpsBroadcastProvider
-      // busId is stored on the schedule document; fall back to scheduleId for demo.
-      if (!mounted) return;
-      final busId = _activeTrip?['busId'] as String? ?? scheduleId;
-      final gpsProvider = Provider.of<GpsBroadcastProvider>(context, listen: false);
-      final started = await gpsProvider.startBroadcasting(busId);
-      if (!started && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(gpsProvider.errorMessage ?? 'GPS broadcast failed'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-
       // 4. Refresh Screen
       await _fetchOperatorData();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Journey started! GPS is broadcasting.')));
         Future.delayed(const Duration(milliseconds: 500), () {
