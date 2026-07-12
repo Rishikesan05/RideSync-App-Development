@@ -94,8 +94,11 @@ service cloud.firestore {
     match /schedules/{scheduleId} {
       allow read: if true;
       allow create, delete: if hasRole('admin');
-      allow update: if hasRole('admin') 
-                    || (hasRole('operator') && request.auth.token.busId == resource.data.busId);
+      // Allow operator to update their own schedule via operatorId field comparison.
+      // The busId custom-claim check is intentionally removed because the claim is
+      // not reliably populated in the operator's Firebase Auth token at runtime.
+      allow update: if hasRole('admin')
+                    || (hasRole('operator') && request.auth.uid == resource.data.operatorId);
 
       match /seats/{seatId} {
         allow read: if true;
