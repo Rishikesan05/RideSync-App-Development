@@ -8,17 +8,29 @@ import 'package:geolocator/geolocator.dart';
 ///
 /// This class is pure Dart — it has no widget or BuildContext dependencies,
 /// making it easy to unit-test and safe to call from a background isolate.
+///
+/// ## Fix (2026-07-12) — live-gps-error-fix branch
+/// The previous implementation used a manual one-shot [Timer] chain:
+///   `Timer → _writeLocation() → _scheduleNext() → Timer → …`
+/// This meant that if [_writeLocation] threw (even though caught), the chain
+/// continued, but any blocking await inside [_writeLocation] could delay the
+/// next tick unpredictably. More critically, the timer was never restarted if
+/// [startBroadcasting] was called while the RTDB write was still in flight.
+///
+/// The fix replaces the timer chain with [Geolocator.getPositionStream], which
+/// delivers position events at the OS level. Application-level RTDB write
+/// errors are now handled inside [_onPosition] and **never** interrupt the
+/// stream, guaranteeing continuous location sharing for the full journey.
 class GpsService {
   GpsService._();
   static final GpsService instance = GpsService._();
 
-  // ── Adaptive intervals ──────────────────────────────────────────────────────
-  static const int _fastIntervalSec = 3;  // When bus is moving  (≥ 5 km/h)
-  static const int _slowIntervalSec = 10; // When bus is idle     (< 5 km/h)
+  // ── Adaptive thresholds ──────────────────────────────────────────────────────
+  static const int _fastIntervalMs = 3000;  // When bus is moving (≥ 5 km/h)
+  static const int _slowIntervalMs = 10000; // When bus is idle   (< 5 km/h)
   static const double _movingThresholdMps = 1.39; // 5 km/h in m/s
 
-  Timer? _locationTimer;
-  int _currentInterval = _fastIntervalSec;
+  StreamSubscription<Position>? _positionSub;
   String? _activeBusId;
   bool _isBroadcasting = false;
   void Function(double speedKmh)? _onSpeedUpdate;
@@ -52,25 +64,52 @@ class GpsService {
         permission == LocationPermission.whileInUse;
   }
 
-  /// Starts the adaptive GPS broadcasting loop. The [busId] is the Firestore
-  /// document ID of the bus assigned to this operator.
+  /// Starts continuous GPS broadcasting via [Geolocator.getPositionStream].
+  /// The [busId] is the Firestore document ID of the bus assigned to this
+  /// operator.
   ///
-  /// Calling this while already broadcasting stops the old loop first.
+  /// Calling this while already broadcasting stops the old stream first.
   void startBroadcasting(String busId, {void Function(double speedKmh)? onSpeedUpdate}) {
+    // Cancel any existing stream before opening a new one
     stopBroadcasting();
+
     _activeBusId = busId;
     _isBroadcasting = true;
-    _currentInterval = _fastIntervalSec;
     _onSpeedUpdate = onSpeedUpdate;
     debugPrint('[GpsService] Broadcasting started for bus: $busId');
-    _scheduleNext();
+
+    // Use getPositionStream for true continuous updates — the OS delivers
+    // position events independently of any application-level await or error.
+    final locationSettings = AndroidSettings(
+      accuracy: LocationAccuracy.high,
+      // Minimum distance (metres) the device must move before an update fires.
+      // Set to 0 so we always get time-based ticks even when stationary.
+      distanceFilter: 0,
+      intervalDuration: const Duration(milliseconds: _fastIntervalMs),
+      foregroundNotificationConfig: const ForegroundNotificationConfig(
+        notificationText: 'RideSync is broadcasting your bus location.',
+        notificationTitle: 'Bus GPS Active',
+        enableWakeLock: true,
+      ),
+    );
+
+    _positionSub = Geolocator.getPositionStream(locationSettings: locationSettings)
+        .listen(
+          _onPosition,
+          onError: (Object e) {
+            debugPrint('[GpsService] Position stream error: $e');
+            // Stream errors are non-fatal — the subscription stays alive and
+            // will recover on the next OS-level position update.
+          },
+          cancelOnError: false, // ← CRITICAL: keep stream alive despite errors
+        );
   }
 
   /// Stops GPS broadcasting and removes the stale node from RTDB so passengers
   /// see a clean "signal lost" state rather than frozen coordinates.
   Future<void> stopBroadcasting() async {
-    _locationTimer?.cancel();
-    _locationTimer = null;
+    await _positionSub?.cancel();
+    _positionSub = null;
     _isBroadcasting = false;
     _onSpeedUpdate = null;
 
@@ -89,56 +128,37 @@ class GpsService {
 
   // ── Private helpers ──────────────────────────────────────────────────────────
 
-  void _scheduleNext() {
-    if (!_isBroadcasting) return;
+  /// Called on every position update from [Geolocator.getPositionStream].
+  /// RTDB write errors are caught and logged — they never cancel the stream.
+  void _onPosition(Position pos) {
+    if (!_isBroadcasting || _activeBusId == null) return;
 
-    _locationTimer = Timer(Duration(seconds: _currentInterval), () async {
-      if (!_isBroadcasting) return;
-      await _writeLocation();
-      _scheduleNext();
-    });
-  }
+    final double speedKmh = pos.speed * 3.6; // m/s → km/h
+    final bool isMoving = pos.speed >= _movingThresholdMps;
 
-  Future<void> _writeLocation() async {
-    try {
-      final Position pos = await Geolocator.getCurrentPosition(
-        locationSettings: AndroidSettings(
-          accuracy: LocationAccuracy.high,
-          // Android-specific: keep the GPS hardware awake even when idle
-          foregroundNotificationConfig: const ForegroundNotificationConfig(
-            notificationText: 'RideSync is broadcasting your bus location.',
-            notificationTitle: 'Bus GPS Active',
-            enableWakeLock: true,
-          ),
-        ),
-      );
+    debugPrint(
+      '[GpsService] Position update | '
+      'speed: ${speedKmh.toStringAsFixed(1)} km/h | '
+      'moving: $isMoving',
+    );
 
-      final double speedKmh = pos.speed * 3.6; // m/s → km/h
-      final bool isMoving = pos.speed >= _movingThresholdMps;
+    // Notify speed to provider callback
+    _onSpeedUpdate?.call(speedKmh);
 
-      // Adapt interval on the fly
-      final int nextInterval = isMoving ? _fastIntervalSec : _slowIntervalSec;
-      if (nextInterval != _currentInterval) {
-        _currentInterval = nextInterval;
-        debugPrint('[GpsService] Adaptive interval: ${_currentInterval}s (speed: ${speedKmh.toStringAsFixed(1)} km/h)');
-      }
-
-      // Notify speed to provider callback
-      _onSpeedUpdate?.call(speedKmh);
-
-      // Write to RTDB
-      await FirebaseDatabase.instance
-          .ref('busLocations/$_activeBusId')
-          .set({
-        'lat': pos.latitude,
-        'lng': pos.longitude,
-        'speed': double.parse(speedKmh.toStringAsFixed(1)),
-        'heading': pos.heading,
-        'timestamp': ServerValue.timestamp,
-      });
-    } catch (e) {
-      debugPrint('[GpsService] GPS write error: $e');
-      // Non-fatal — keep the loop alive; next tick may recover
-    }
+    // Write to RTDB — fire-and-forget; errors are logged but never rethrown
+    FirebaseDatabase.instance
+        .ref('busLocations/$_activeBusId')
+        .set({
+          'lat': pos.latitude,
+          'lng': pos.longitude,
+          'speed': double.parse(speedKmh.toStringAsFixed(1)),
+          'heading': pos.heading,
+          'isMoving': isMoving,
+          'timestamp': ServerValue.timestamp,
+        })
+        .catchError((Object e) {
+          debugPrint('[GpsService] RTDB write error: $e');
+          // Non-fatal — stream continues; next position update will retry
+        });
   }
 }

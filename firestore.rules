@@ -94,8 +94,13 @@ service cloud.firestore {
     match /schedules/{scheduleId} {
       allow read: if true;
       allow create, delete: if hasRole('admin');
-      allow update: if hasRole('admin') 
-                    || (hasRole('operator') && request.auth.token.busId == resource.data.busId);
+      // The schedule stores operatorId as a custom string (e.g. RSOP26-001), NOT the
+      // Firebase Auth UID. We resolve the operator's profile by uid and compare the
+      // operatorId field stored there against the one on the schedule document.
+      allow update: if hasRole('admin')
+                    || (hasRole('operator') &&
+                        get(/databases/$(database)/documents/operators/$(request.auth.uid))
+                          .data.get('operatorId', '') == resource.data.operatorId);
 
       match /seats/{seatId} {
         allow read: if true;
