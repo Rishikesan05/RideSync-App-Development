@@ -9,6 +9,7 @@ import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/core/widgets/ridesync_ui.dart';
 import 'package:ridesync/core/widgets/notification_tab.dart';
 import 'package:ridesync/features/operator/presentation/providers/gps_broadcast_provider.dart';
+import 'package:ridesync/features/operator/presentation/screens/operator_navigation_screen.dart';
 
 class OperatorHomeScreen extends StatefulWidget {
   const OperatorHomeScreen({super.key});
@@ -324,41 +325,142 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
   }
 
   Widget _buildLiveTrackingMap(bool isDark) {
-    final status = _activeTrip?['status'];
-    final isTransit = status == 'active' || status == 'in-transit';
-    final screenHeight = MediaQuery.of(context).size.height;
-    final mapHeight = isTransit ? screenHeight * 0.75 : 300.0;
+    final gps = context.watch<GpsBroadcastProvider>();
 
-    return Container(
-      height: mapHeight,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade200),
-        boxShadow: [
-          if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: const GoogleMap(
-          initialCameraPosition: CameraPosition(
-            target: LatLng(6.9271, 79.8612), // Colombo default
-            zoom: 12,
+    return GestureDetector(
+      onTap: () {
+        if (_activeTrip != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => OperatorNavigationScreen(trip: _activeTrip!),
+            ),
+          );
+        }
+      },
+      child: Container(
+        height: 280,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: isDark ? Colors.white12 : Colors.grey.shade200),
+          boxShadow: [
+            if (!isDark)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              const GoogleMap(
+                initialCameraPosition: CameraPosition(
+                  target: LatLng(6.9271, 79.8612),
+                  zoom: 15,
+                ),
+                mapToolbarEnabled: false,
+                zoomControlsEnabled: false,
+                myLocationEnabled: true,
+                myLocationButtonEnabled: false,
+              ),
+              // GPS status pill matching Image 1
+              Positioned(
+                top: 12,
+                left: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444), // Red 'GPS OFF' pill matching image 1
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        gps.isBroadcasting ? 'GPS LIVE' : 'GPS OFF',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Top-right My Location Target button matching Image 1
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black12, blurRadius: 4),
+                    ],
+                  ),
+                  child: const Icon(Icons.my_location, color: Colors.black87, size: 20),
+                ),
+              ),
+              // Bottom tap invitation bar
+              Positioned(
+                bottom: 12,
+                left: 16,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.75),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.navigation, color: Color(0xFF2DD4BF), size: 16),
+                      SizedBox(width: 8),
+                      Text(
+                        'Tap to open Full Screen Navigation',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          mapToolbarEnabled: false,
-          zoomControlsEnabled: false,
-          myLocationEnabled: true,
         ),
       ),
     );
   }
 
   Widget _buildActiveTripCard(Map<String, dynamic> trip, bool isDark) {
-    final routeName = trip['routeName'] ?? 'Unknown Route';
+    final routeName = trip['routeName'] ?? 'Jaffna - Colombo';
     final plateNumber = trip['plateNumber'] ?? '';
     final capacity = trip['capacity'] ?? 40;
     final status = trip['status'] ?? 'scheduled';
     final isTransit = status == 'in-transit' || status == 'active';
+    final gps = context.watch<GpsBroadcastProvider>();
+    final currentSpeed = gps.currentSpeed;
     
     DateTime? departure;
     final depTime = trip['departureTime'];
@@ -371,183 +473,355 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : AppColors.primaryNavy,
+        color: const Color(0xFF0D1527), // Dark navy matching Image 1
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: isDark ? Colors.white12 : AppColors.primaryNavy),
-        boxShadow: [
+        border: Border.all(color: Colors.white12),
+        boxShadow: const [
           BoxShadow(
-            color: AppColors.primaryNavy.withValues(alpha: 0.2),
+            color: Colors.black38,
             blurRadius: 15,
-            offset: const Offset(0, 8),
+            offset: Offset(0, 8),
           ),
         ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Row 1: Status Pill Badge & 3-dots Menu Icon (Matching Image 1)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isTransit ? Colors.green.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: isTransit ? Colors.green.withValues(alpha: 0.3) : Colors.orange.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (isTransit) ...[
-                            FadeTransition(
-                              opacity: _radarAnimController,
-                              child: Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: Colors.greenAccent,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text('BROADCASTING GPS', style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.bold)),
-                          ] else ...[
-                            const Text('NEXT UP', style: TextStyle(color: Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.bold)),
-                          ]
-                        ]
-                      ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isTransit ? const Color(0xFF052E16) : Colors.orange.withOpacity(0.2), // Dark green pill background
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isTransit ? const Color(0xFF15803D) : Colors.orange.withOpacity(0.4),
                     ),
-                    const Icon(Icons.more_vert, color: Colors.white70),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  plateNumber,
-                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  routeName,
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Occupancy', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                              if (isTransit) Row(
-                                children: [
-                                  GestureDetector(onTap: () => _updateWalkInCount(trip['id'], -1), child: Container(padding: const EdgeInsets.all(2), decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(4)), child: const Icon(Icons.remove, size: 14, color: Colors.white))),
-                                  const SizedBox(width: 6),
-                                  Text('${24 + (trip['walkInCount'] ?? 0)} / $capacity', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                                  const SizedBox(width: 6),
-                                  GestureDetector(onTap: () => _updateWalkInCount(trip['id'], 1), child: Container(padding: const EdgeInsets.all(2), decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(4)), child: const Icon(Icons.add, size: 14, color: Colors.white))),
-                                ],
-                              ) else
-                                Text('24 / $capacity', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: LinearProgressIndicator(
-                              value: (24 + (trip['walkInCount'] ?? 0)) / capacity,
-                              backgroundColor: Colors.white.withValues(alpha: 0.1),
-                              valueColor: AlwaysStoppedAnimation<Color>(isTransit ? Colors.greenAccent : AppColors.primaryOrange),
-                              minHeight: 6,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isTransit) ...[
+                        FadeTransition(
+                          opacity: _radarAnimController,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF22C55E), // Bright glowing green
+                              shape: BoxShape.circle,
                             ),
                           ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'BROADCASTING GPS',
+                          style: TextStyle(
+                            color: Color(0xFF22C55E),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ] else ...[
+                        const Text(
+                          'NEXT UP',
+                          style: TextStyle(
+                            color: Colors.orangeAccent,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ]
+                    ],
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.white70),
+                  color: const Color(0xFF1E293B),
+                  onSelected: (val) {
+                    if (val == 'nav') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => OperatorNavigationScreen(trip: trip),
+                        ),
+                      );
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(
+                      value: 'nav',
+                      child: Row(
+                        children: [
+                          Icon(Icons.navigation, color: Color(0xFF2DD4BF), size: 18),
+                          SizedBox(width: 8),
+                          Text('Open Turn-by-Turn Nav', style: TextStyle(color: Colors.white, fontSize: 13)),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 24),
-                     _tripMetric(isTransit ? Icons.speed : Icons.timer_outlined, isTransit ? '${context.watch<GpsBroadcastProvider>().currentSpeed.toStringAsFixed(0)} km/h' : formattedTime, isTransit ? 'Current Speed' : 'Departure'),
                   ],
                 ),
-                if (isTransit) ...[
-                  const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.location_on, color: AppColors.primaryOrange, size: 20),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Next Stop: ${trip['currentStop'] ?? 'Town Hall'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                              const Text('3 Boarding • 1 Alighting', style: TextStyle(color: Colors.white70, fontSize: 11)),
-                            ],
-                          ),
-                        ),
-                        ElevatedButton(
-                          onPressed: () => _advanceStop(trip['id']),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryOrange,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(60, 32),
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: const Text('Arrive', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildMiniManifest(),
-                  const SizedBox(height: 20),
-                  Row(
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Route Name Title (Matching Image 1)
+            Text(
+              routeName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (plateNumber.isNotEmpty)
+              Text(
+                plateNumber,
+                style: const TextStyle(color: Colors.white54, fontSize: 13),
+              ),
+            const SizedBox(height: 20),
+
+            // Occupancy Stepper & Speed Metric Row (Matching Image 1)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => _showDelayReportModal(trip, isDark),
-                          icon: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 18),
-                          label: const Text('Delay', style: TextStyle(color: Colors.white, fontSize: 13)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange.withValues(alpha: 0.3),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.orange.withValues(alpha: 0.5))),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Occupancy',
+                            style: TextStyle(color: Colors.white70, fontSize: 12),
                           ),
-                        ),
+                          if (isTransit)
+                            Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: () => _updateWalkInCount(trip['id'], -1),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white24,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Icon(Icons.remove, size: 14, color: Colors.white),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${24 + (trip['walkInCount'] ?? 0)} / $capacity',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                GestureDetector(
+                                  onTap: () => _updateWalkInCount(trip['id'], 1),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white24,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Icon(Icons.add, size: 14, color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            Text(
+                              '24 / $capacity',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => _endJourney(trip['id']),
-                          icon: const Icon(Icons.stop_circle_outlined, color: Colors.white, size: 18),
-                          label: const Text('End Trip', style: TextStyle(color: Colors.white, fontSize: 13)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.withValues(alpha: 0.8),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
+                      const SizedBox(height: 8),
+                      // Green Progress Indicator (Matching Image 1)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: LinearProgressIndicator(
+                          value: (24 + (trip['walkInCount'] ?? 0)) / capacity,
+                          backgroundColor: Colors.white.withOpacity(0.1),
+                          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF22C55E)), // Bright green
+                          minHeight: 6,
                         ),
                       ),
                     ],
                   ),
-                ] else if (status == 'scheduled') ...[
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
+                ),
+                const SizedBox(width: 24),
+                // Speedometer Metric Right Side (Matching Image 1)
+                Row(
+                  children: [
+                    const Icon(Icons.speed, color: Color(0xFFF97316), size: 24),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isTransit ? '${currentSpeed.toStringAsFixed(0)} km/h' : formattedTime,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        Text(
+                          isTransit ? 'Current Speed' : 'Departure',
+                          style: const TextStyle(color: Colors.white54, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            if (isTransit) ...[
+              const SizedBox(height: 20),
+              // Next Stop Container (Dark nested box matching Image 1)
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF172133), // Dark inner card matching Image 1
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withOpacity(0.06)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_on, color: Color(0xFFF97316), size: 24), // Orange pin
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Next Stop: ${trip['currentStop'] ?? 'Vavuniya'}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            '3 Boarding • 1 Alighting',
+                            style: TextStyle(color: Colors.white60, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => _advanceStop(trip['id']),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF97316), // Orange Arrive button matching Image 1
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(64, 34),
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'Arrive',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Passenger manifest status text (Matching Image 1)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'No confirmed passengers yet',
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Bottom Action Buttons: Delay & End Trip (Matching Image 1)
+              Row(
+                children: [
+                  // Delay button (Gold/Orange Outlined button matching Image 1)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showDelayReportModal(trip, isDark),
+                      icon: const Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B), size: 18),
+                      label: const Text(
+                        'Delay',
+                        style: TextStyle(
+                          color: Color(0xFFF59E0B),
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: const Color(0xFF451A03).withOpacity(0.5),
+                        side: const BorderSide(color: Color(0xFFD97706), width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+
+                  // End Trip button (Red filled button matching Image 1)
+                  Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () => _showStartJourneyModal(trip, isDark),
+                      onPressed: () => _endJourney(trip['id']),
+                      icon: const Icon(Icons.stop_circle, color: Colors.white, size: 18),
+                      label: const Text(
+                        'End Trip',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFDC2626), // Red button matching Image 1
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ] else if (status == 'scheduled') ...[
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _showStartJourneyModal(trip, isDark),
+
                       icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
                       label: const Text('Start Journey', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
@@ -759,10 +1033,41 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
       final gpsProvider = Provider.of<GpsBroadcastProvider>(context, listen: false);
       final started = await gpsProvider.startBroadcasting(busId);
       if (!started && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(gpsProvider.errorMessage ?? 'GPS broadcast failed — check location permissions.'),
-            backgroundColor: Colors.orange,
+        // Show a dialog instead of snackbar for GPS failures so the operator
+        // can retry without dismissing the start journey flow.
+        await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.gps_off, color: Colors.orange, size: 24),
+                SizedBox(width: 8),
+                Text('GPS Broadcast Failed'),
+              ],
+            ),
+            content: Text(
+              gpsProvider.errorMessage ?? 'Could not start GPS broadcasting. Please check your location permissions and GPS settings.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  final retryOk = await gpsProvider.startBroadcasting(busId);
+                  if (retryOk && mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('GPS broadcasting started!'), backgroundColor: Colors.green),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange),
+                child: const Text('Retry', style: TextStyle(color: Colors.white)),
+              ),
+            ],
           ),
         );
       }
@@ -787,20 +1092,29 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
 
       await FirebaseFirestore.instance.collection('schedules').doc(scheduleId).update(updateData);
 
-      // 4. Refresh Screen
+      // 4. Refresh Screen & Navigate to Turn-by-Turn Navigation Screen
       await _fetchOperatorData();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Journey started! GPS is broadcasting.')));
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted && _scrollController.hasClients) {
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 800),
-              curve: Curves.easeOutCubic,
-            );
-          }
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Journey started! GPS is broadcasting live.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Automatically open the Turn-by-Turn Navigation screen matching Image 2
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OperatorNavigationScreen(
+              trip: _activeTrip ?? {
+                'id': scheduleId,
+                'status': 'in-transit',
+              },
+            ),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

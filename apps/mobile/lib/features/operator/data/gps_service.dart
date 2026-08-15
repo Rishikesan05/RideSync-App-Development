@@ -26,7 +26,7 @@ class GpsService {
   static final GpsService instance = GpsService._();
 
   // ── Adaptive thresholds ──────────────────────────────────────────────────────
-  static const int _fastIntervalMs = 3000;  // When bus is moving (≥ 5 km/h)
+  static const int _fastIntervalMs = 2000;  // When bus is moving (≥ 5 km/h)
   static const int _slowIntervalMs = 10000; // When bus is idle   (< 5 km/h)
   static const double _movingThresholdMps = 1.39; // 5 km/h in m/s
 
@@ -43,6 +43,20 @@ class GpsService {
   /// Requests location permissions (foreground + background) and returns true
   /// if permission was granted. Call this before [startBroadcasting].
   Future<bool> requestPermissions() async {
+    // Check if location services (GPS) are enabled on the device
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      debugPrint('[GpsService] Location services are disabled.');
+      // Try to open device location settings for the user
+      await Geolocator.openLocationSettings();
+      // Re-check after returning from settings
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        debugPrint('[GpsService] Location services still disabled after settings prompt.');
+        return false;
+      }
+    }
+
     LocationPermission permission = await Geolocator.checkPermission();
 
     if (permission == LocationPermission.denied) {
@@ -83,8 +97,8 @@ class GpsService {
     final locationSettings = AndroidSettings(
       accuracy: LocationAccuracy.high,
       // Minimum distance (metres) the device must move before an update fires.
-      // Set to 0 so we always get time-based ticks even when stationary.
-      distanceFilter: 0,
+      // Set to 5m for smooth updates without too much noise when stationary.
+      distanceFilter: 5,
       intervalDuration: const Duration(milliseconds: _fastIntervalMs),
       foregroundNotificationConfig: const ForegroundNotificationConfig(
         notificationText: 'RideSync is broadcasting your bus location.',

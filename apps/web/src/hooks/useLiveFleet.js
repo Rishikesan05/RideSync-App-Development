@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
-import { getDatabase, ref, onValue, off } from 'firebase/database';
+import { ref, onValue, off } from 'firebase/database';
+import { rtdb } from '../api/firebase';
 
 /**
  * Subscribes to all entries under /busLocations in Firebase Realtime Database
@@ -23,8 +24,7 @@ export function useLiveFleet() {
   const dbRefObj = useRef(null);
 
   useEffect(() => {
-    const db = getDatabase();
-    const fleetRef = ref(db, 'busLocations');
+    const fleetRef = ref(rtdb, 'busLocations');
     dbRefObj.current = fleetRef;
 
     const unsubscribe = onValue(

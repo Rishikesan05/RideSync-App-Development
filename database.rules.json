@@ -7,13 +7,13 @@
         // not populated in the operator token. Any authenticated operator can
         // write to their assigned bus node; the schedules Firestore rule already
         // ensures the schedule belongs to this operator before the journey starts.
-        ".write": "auth != null && auth.token.role == 'operator'"
+        ".write": "auth != null"
       }
     },
     "tripStatus": {
       "$scheduleId": {
         ".read": "auth != null",
-        ".write": "auth != null && (auth.token.role == 'operator' || auth.token.role == 'admin')"
+        ".write": "auth != null"
       }
     }
   }
