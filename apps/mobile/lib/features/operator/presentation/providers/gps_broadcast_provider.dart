@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:ridesync/features/operator/data/gps_service.dart';
 
 /// Provider that exposes GPS broadcast state to the Operator UI.
@@ -36,14 +38,31 @@ class GpsBroadcastProvider extends ChangeNotifier {
   Future<bool> startBroadcasting(String busId) async {
     _errorMessage = null;
 
+    // Force-refresh the Firebase Auth ID token so that the latest custom claims
+    // (set by admin approval) are included in the JWT. Without this, RTDB
+    // security rules that check auth.token.role may reject writes.
+    try {
+      await FirebaseAuth.instance.currentUser?.getIdToken(true);
+      debugPrint('[GpsBroadcastProvider] Firebase token refreshed.');
+    } catch (e) {
+      debugPrint('[GpsBroadcastProvider] Token refresh failed (non-fatal): $e');
+    }
+
     // Request permissions if not yet granted
     if (!_hasPermission) {
       _hasPermission = await _service.requestPermissions();
     }
 
     if (!_hasPermission) {
-      _errorMessage =
-          'Location permission is required to broadcast GPS. Please enable it in Settings.';
+      // Check if it's a location service issue vs permission issue
+      final isServiceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!isServiceEnabled) {
+        _errorMessage =
+            'GPS is turned off on your device. Please enable Location Services in Settings to broadcast.';
+      } else {
+        _errorMessage =
+            'Location permission is required to broadcast GPS. Please enable it in Settings.';
+      }
       notifyListeners();
       return false;
     }
@@ -66,6 +85,7 @@ class GpsBroadcastProvider extends ChangeNotifier {
   /// Call this when the operator taps "End Trip".
   Future<void> stopBroadcasting() async {
     await _service.stopBroadcasting();
+    _currentSpeed = 0.0;
     _errorMessage = null;
     notifyListeners();
   }
