@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -13,7 +13,8 @@ import {
   ListItemText,
   useTheme,
   Divider,
-  Button
+  Button,
+  Alert,
 } from '@mui/material';
 import {
   DirectionsBus,
@@ -22,47 +23,75 @@ import {
   Room,
   Timer,
   Navigation,
-  CompassCalibration
+  CompassCalibration,
+  FiberManualRecord,
+  GpsFixed,
+  GpsOff,
+  Refresh,
 } from '@mui/icons-material';
-import { collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../api/firebase';
+import { useLiveFleet } from '../../hooks/useLiveFleet';
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Returns a human-readable signal status based on the RTDB timestamp age. */
+function getSignalStatus(timestamp) {
+  if (!timestamp) return { label: 'No Signal', color: '#6b7280', dotColor: '#9ca3af', severity: 'offline' };
+  const ageMs = Date.now() - timestamp;
+  if (ageMs < 15_000) return { label: 'Live', color: '#22c55e', dotColor: '#4ade80', severity: 'live' };
+  if (ageMs < 60_000) return { label: 'Delayed', color: '#eab308', dotColor: '#facc15', severity: 'delayed' };
+  return { label: 'Offline', color: '#ef4444', dotColor: '#f87171', severity: 'offline' };
+}
+
+/** Formats heading degrees into compass direction text. */
+function headingToCompass(deg) {
+  if (deg == null) return '—';
+  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  return dirs[Math.round(deg / 45) % 8];
+}
+
+// Dark map styles for Google Maps
+const DARK_MAP_STYLES = [
+  { elementType: 'geometry', stylers: [{ color: '#1e293b' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#1e293b' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1e293b' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#020617' }] },
+];
 
 export const LiveMapView = () => {
   const theme = useTheme();
-  
+
   const [loading, setLoading] = useState(true);
   const [schedules, setSchedules] = useState([]);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [selectedRoute, setSelectedRoute] = useState(null);
-  
-  // Map and simulation state
+
+  // Real-time GPS data from RTDB
+  const { fleet, isLoading: fleetLoading, error: fleetError } = useLiveFleet();
+
+  // Map refs
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const directionsRenderer = useRef(null);
   const directionsService = useRef(null);
-  const busMarker = useRef(null);
-  const [busPosition, setBusPosition] = useState(null);
-  const [busSpeed, setBusSpeed] = useState(60); // km/h
-  const [pathPoints, setPathPoints] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const busMarkerRef = useRef(null);
+  const allBusMarkers = useRef({});
 
   // Fetch active schedules
   useEffect(() => {
     const fetchSchedules = async () => {
       try {
         setLoading(true);
-        // Get active/scheduled schedules
         const snapshot = await getDocs(collection(db, 'schedules'));
-        const list = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        
-        // Filter out completed ones, keep scheduled or active
-        const activeList = list.filter(s => s.status === 'active' || s.status === 'scheduled');
+        const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        const activeList = list.filter(
+          s => s.status === 'active' || s.status === 'in-transit' || s.status === 'scheduled'
+        );
         setSchedules(activeList);
-        
-        if (activeList.length > 0) {
+        if (activeList.length > 0 && !selectedSchedule) {
           setSelectedSchedule(activeList[0]);
         }
       } catch (err) {
@@ -76,17 +105,12 @@ export const LiveMapView = () => {
 
   // Fetch Route data when schedule changes
   useEffect(() => {
-    if (!selectedSchedule || !selectedSchedule.routeId) return;
-    
+    if (!selectedSchedule?.routeId) return;
     const fetchRoute = async () => {
       try {
         const routeDoc = await getDoc(doc(db, 'routes', selectedSchedule.routeId));
         if (routeDoc.exists()) {
           setSelectedRoute(routeDoc.data());
-          // Reset simulation
-          setPathPoints([]);
-          setCurrentIndex(0);
-          setBusPosition(null);
         }
       } catch (err) {
         console.error('Error fetching route:', err);
@@ -95,26 +119,17 @@ export const LiveMapView = () => {
     fetchRoute();
   }, [selectedSchedule]);
 
-  // Initialize Map
+  // Initialize Map & draw route
   useEffect(() => {
     if (!selectedRoute) return;
-
     const initMap = () => {
-      if (window.google && window.google.maps && mapRef.current) {
+      if (window.google?.maps && mapRef.current) {
         if (!mapInstance.current) {
           mapInstance.current = new window.google.maps.Map(mapRef.current, {
-            center: { lat: 7.8731, lng: 80.7718 }, // Center of Sri Lanka
+            center: { lat: 7.8731, lng: 80.7718 },
             zoom: 8,
-            styles: theme.palette.mode === 'dark' ? [
-              { elementType: 'geometry', stylers: [{ color: '#1e293b' }] },
-              { elementType: 'labels.text.stroke', stylers: [{ color: '#1e293b' }] },
-              { elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
-              { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
-              { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1e293b' }] },
-              { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#020617' }] },
-            ] : []
+            styles: theme.palette.mode === 'dark' ? DARK_MAP_STYLES : [],
           });
-
           directionsService.current = new window.google.maps.DirectionsService();
           directionsRenderer.current = new window.google.maps.DirectionsRenderer({
             map: mapInstance.current,
@@ -122,112 +137,133 @@ export const LiveMapView = () => {
             polylineOptions: {
               strokeColor: theme.palette.primary.main,
               strokeWeight: 5,
-              strokeOpacity: 0.8
-            }
+              strokeOpacity: 0.8,
+            },
           });
         }
 
-        // Draw Route & Get coordinates
-        const waypoints = (selectedRoute.stops || [])
-          .map(stop => ({
-            location: `${stop.name}, Sri Lanka`,
-            stopover: true
-          }));
+        // Draw route between start/end with intermediate stops
+        const waypoints = (selectedRoute.stops || []).map(stop => ({
+          location: `${stop.name}, Sri Lanka`,
+          stopover: true,
+        }));
 
-        directionsService.current.route({
-          origin: `${selectedRoute.startPoint}, Sri Lanka`,
-          destination: `${selectedRoute.endPoint}, Sri Lanka`,
-          waypoints: waypoints,
-          travelMode: window.google.maps.TravelMode.DRIVING
-        }, (result, status) => {
-          if (status === 'OK' && result.routes.length > 0) {
-            directionsRenderer.current.setDirections(result);
-            
-            const points = result.routes[0].overview_path;
-            setPathPoints(points);
-            
-            // Auto fit bounds
-            mapInstance.current.fitBounds(result.routes[0].bounds);
+        directionsService.current.route(
+          {
+            origin: `${selectedRoute.startPoint}, Sri Lanka`,
+            destination: `${selectedRoute.endPoint}, Sri Lanka`,
+            waypoints,
+            travelMode: window.google.maps.TravelMode.DRIVING,
+          },
+          (result, status) => {
+            if (status === 'OK' && result.routes.length > 0) {
+              directionsRenderer.current.setDirections(result);
+              mapInstance.current.fitBounds(result.routes[0].bounds);
 
-            // Add custom start and end markers
-            new window.google.maps.Marker({
-              position: points[0],
-              map: mapInstance.current,
-              label: 'A',
-              title: selectedRoute.startPoint
-            });
-
-            new window.google.maps.Marker({
-              position: points[points.length - 1],
-              map: mapInstance.current,
-              label: 'B',
-              title: selectedRoute.endPoint
-            });
+              // Start and end markers
+              const points = result.routes[0].overview_path;
+              new window.google.maps.Marker({
+                position: points[0],
+                map: mapInstance.current,
+                label: 'A',
+                title: selectedRoute.startPoint,
+              });
+              new window.google.maps.Marker({
+                position: points[points.length - 1],
+                map: mapInstance.current,
+                label: 'B',
+                title: selectedRoute.endPoint,
+              });
+            }
           }
-        });
+        );
       }
     };
-
-    const interval = setTimeout(initMap, 500);
-    return () => clearTimeout(interval);
+    const timer = setTimeout(initMap, 500);
+    return () => clearTimeout(timer);
   }, [selectedRoute, theme.palette.mode]);
 
-  // Live Bus Position Simulation
+  // ── Real-time bus marker update from RTDB fleet data ─────────────────────
   useEffect(() => {
-    if (pathPoints.length === 0 || !mapInstance.current) return;
+    if (!mapInstance.current || !selectedSchedule) return;
+    const busId = selectedSchedule.busId;
+    if (!busId) return;
 
-    // Reset previous marker
-    if (busMarker.current) {
-      busMarker.current.setMap(null);
+    const loc = fleet[busId];
+    if (!loc || loc.lat == null || loc.lng == null) {
+      // Remove marker if no data
+      if (busMarkerRef.current) {
+        busMarkerRef.current.setMap(null);
+        busMarkerRef.current = null;
+      }
+      return;
     }
 
-    const startPos = pathPoints[currentIndex];
-    busMarker.current = new window.google.maps.Marker({
-      position: startPos,
-      map: mapInstance.current,
-      icon: {
-        url: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png',
-        scaledSize: new window.google.maps.Size(42, 42),
-        anchor: new window.google.maps.Point(21, 21)
-      },
-      title: selectedSchedule?.plateNumber || 'Bus'
-    });
+    const position = new window.google.maps.LatLng(loc.lat, loc.lng);
 
-    const timer = setInterval(() => {
-      setCurrentIndex((prev) => {
-        const next = (prev + 1) % pathPoints.length;
-        const nextPos = pathPoints[next];
-        
-        if (busMarker.current) {
-          busMarker.current.setPosition(nextPos);
-        }
-        
-        // Randomize speed slightly for realistic look
-        setBusSpeed((prevSpeed) => {
-          const delta = (Math.random() - 0.5) * 10;
-          const newSpeed = prevSpeed + delta;
-          return Math.max(40, Math.min(80, newSpeed));
-        });
-        
-        return next;
+    if (!busMarkerRef.current) {
+      busMarkerRef.current = new window.google.maps.Marker({
+        position,
+        map: mapInstance.current,
+        icon: {
+          url: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png',
+          scaledSize: new window.google.maps.Size(42, 42),
+          anchor: new window.google.maps.Point(21, 21),
+        },
+        title: selectedSchedule.plateNumber || 'Bus',
       });
-    }, 3000);
+    } else {
+      // Smooth animation to new position
+      busMarkerRef.current.setPosition(position);
+    }
 
-    return () => clearInterval(timer);
-  }, [pathPoints]);
+    // Pan map to follow bus
+    mapInstance.current.panTo(position);
+  }, [fleet, selectedSchedule]);
+
+  // ── Derive live telemetry for selected bus ────────────────────────────────
+  const liveBusData = useMemo(() => {
+    if (!selectedSchedule?.busId) return null;
+    return fleet[selectedSchedule.busId] || null;
+  }, [fleet, selectedSchedule]);
+
+  const signalStatus = useMemo(() => getSignalStatus(liveBusData?.timestamp), [liveBusData?.timestamp]);
+
+  // ── Count how many buses are actively broadcasting ────────────────────────
+  const activeBusCount = useMemo(() => {
+    return Object.values(fleet).filter(loc => {
+      const age = Date.now() - (loc.timestamp ?? 0);
+      return age < 60_000;
+    }).length;
+  }, [fleet]);
 
   return (
     <Box sx={{ flexGrow: 1, height: 'calc(100vh - 120px)' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 700 }}>Fleet Live Tracking</Typography>
-        <Chip 
-          icon={<CompassCalibration />}
-          label="REAL-TIME MONITORING" 
-          color="success" 
-          variant="outlined" 
-          sx={{ fontWeight: 'bold', fontSize: '0.8rem' }}
-        />
+        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+          <Chip
+            icon={<GpsFixed />}
+            label={`${activeBusCount} BUS${activeBusCount !== 1 ? 'ES' : ''} LIVE`}
+            color="success"
+            variant="outlined"
+            sx={{ fontWeight: 'bold', fontSize: '0.8rem' }}
+          />
+          <Chip
+            icon={<CompassCalibration />}
+            label="REAL-TIME MONITORING"
+            color="success"
+            variant="outlined"
+            sx={{ fontWeight: 'bold', fontSize: '0.8rem' }}
+          />
+        </Box>
       </Box>
+
+      {fleetError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {fleetError} — Live tracking data may be unavailable.
+        </Alert>
+      )}
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60%' }}>
@@ -245,21 +281,31 @@ export const LiveMapView = () => {
               <List sx={{ p: 0, flex: 1, overflowY: 'auto' }}>
                 {schedules.map((s) => {
                   const isSelected = selectedSchedule?.id === s.id;
+                  const busLoc = fleet[s.busId];
+                  const busSignal = getSignalStatus(busLoc?.timestamp);
+
                   return (
                     <ListItemButton
                       key={s.id}
                       selected={isSelected}
-                      onClick={() => setSelectedSchedule(s)}
+                      onClick={() => {
+                        setSelectedSchedule(s);
+                        // Clear previous marker
+                        if (busMarkerRef.current) {
+                          busMarkerRef.current.setMap(null);
+                          busMarkerRef.current = null;
+                        }
+                      }}
                       sx={{
                         borderBottom: '1px solid rgba(255,255,255,0.03)',
                         '&.Mui-selected': {
                           backgroundColor: 'rgba(245, 158, 11, 0.08)',
                           borderLeft: '4px solid',
                           borderColor: theme.palette.primary.main,
-                        }
+                        },
                       }}
                     >
-                      <ListItemIcon sx={{ color: isSelected ? 'primary.main' : 'text.secondary' }}>
+                      <ListItemIcon sx={{ color: isSelected ? 'primary.main' : 'text.secondary', minWidth: 36 }}>
                         <DirectionsBus />
                       </ListItemIcon>
                       <ListItemText
@@ -268,12 +314,21 @@ export const LiveMapView = () => {
                         primaryTypographyProps={{ fontWeight: 700 }}
                         secondaryTypographyProps={{ noWrap: true, variant: 'caption' }}
                       />
-                      <Chip
-                        label={s.status}
-                        color={s.status === 'active' ? 'success' : 'warning'}
-                        size="small"
-                        sx={{ fontSize: '0.65rem', height: 18 }}
-                      />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
+                        <Chip
+                          label={s.status}
+                          color={s.status === 'in-transit' ? 'success' : s.status === 'active' ? 'success' : 'warning'}
+                          size="small"
+                          sx={{ fontSize: '0.6rem', height: 18 }}
+                        />
+                        {/* Live signal indicator */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                          <FiberManualRecord sx={{ fontSize: 8, color: busSignal.dotColor }} />
+                          <Typography variant="caption" sx={{ fontSize: '0.55rem', color: busSignal.color, fontWeight: 600 }}>
+                            {busSignal.label}
+                          </Typography>
+                        </Box>
+                      </Box>
                     </ListItemButton>
                   );
                 })}
@@ -291,48 +346,116 @@ export const LiveMapView = () => {
             {selectedSchedule ? (
               <Box sx={{ height: '100%', width: '100%', position: 'relative', borderRadius: 3, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <Box ref={mapRef} sx={{ height: '100%', width: '100%', backgroundColor: '#222' }} />
-                
-                {/* Stats overlays */}
+
+                {/* Stats overlay — now with REAL data */}
                 <Box sx={{
                   position: 'absolute',
                   top: 16,
                   left: 16,
-                  backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.05)',
+                  backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255,255,255,0.08)',
                   borderRadius: 2,
                   p: 2,
-                  maxWidth: 320,
-                  zIndex: 10
+                  maxWidth: 340,
+                  zIndex: 10,
                 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                    {selectedSchedule.plateNumber}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                      {selectedSchedule.plateNumber}
+                    </Typography>
+                    {/* Live signal badge */}
+                    <Box sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      px: 1.2,
+                      py: 0.3,
+                      borderRadius: '12px',
+                      backgroundColor: `${signalStatus.color}22`,
+                      border: `1px solid ${signalStatus.color}44`,
+                    }}>
+                      <FiberManualRecord sx={{
+                        fontSize: 10,
+                        color: signalStatus.dotColor,
+                        animation: signalStatus.severity === 'live' ? 'pulse 1.5s infinite' : 'none',
+                        '@keyframes pulse': {
+                          '0%, 100%': { opacity: 1 },
+                          '50%': { opacity: 0.4 },
+                        },
+                      }} />
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: signalStatus.color, fontSize: '0.65rem' }}>
+                        {signalStatus.label}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5, color: 'text.primary' }}>
                     {selectedSchedule.routeName}
                   </Typography>
-                  <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', my: 1 }} />
-                  
-                  <Grid container spacing={2} sx={{ mt: 0.5 }}>
-                    <Grid item xs={6}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <People color="primary" sx={{ fontSize: 18 }} />
-                        <Box>
-                          <Typography variant="caption" color="text.secondary" display="block">Passengers</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>24 / {selectedSchedule.capacity || 40}</Typography>
+
+                  <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', my: 1 }} />
+
+                  {liveBusData ? (
+                    <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                      <Grid item xs={6}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Speed color="primary" sx={{ fontSize: 18 }} />
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" display="block">Speed</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                              {(liveBusData.speed ?? 0).toFixed(0)} km/h
+                            </Typography>
+                          </Box>
                         </Box>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Speed color="primary" sx={{ fontSize: 18 }} />
-                        <Box>
-                          <Typography variant="caption" color="text.secondary" display="block">Speed</Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>{busSpeed.toFixed(0)} km/h</Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Navigation color="primary" sx={{ fontSize: 18 }} />
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" display="block">Heading</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                              {headingToCompass(liveBusData.heading)} {(liveBusData.heading ?? 0).toFixed(0)}°
+                            </Typography>
+                          </Box>
                         </Box>
-                      </Box>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Room color="primary" sx={{ fontSize: 18 }} />
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" display="block">Coordinates</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.72rem' }}>
+                              {(liveBusData.lat ?? 0).toFixed(4)}, {(liveBusData.lng ?? 0).toFixed(4)}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Timer color="primary" sx={{ fontSize: 18 }} />
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" display="block">Last Update</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.72rem' }}>
+                              {liveBusData.timestamp
+                                ? `${Math.round((Date.now() - liveBusData.timestamp) / 1000)}s ago`
+                                : '—'}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Grid>
                     </Grid>
-                  </Grid>
+                  ) : (
+                    <Box sx={{ py: 2, textAlign: 'center' }}>
+                      <GpsOff sx={{ fontSize: 32, color: 'text.disabled', mb: 1 }} />
+                      <Typography variant="body2" color="text.secondary">
+                        No GPS signal from this bus
+                      </Typography>
+                      <Typography variant="caption" color="text.disabled">
+                        The operator has not started broadcasting yet
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               </Box>
             ) : (
