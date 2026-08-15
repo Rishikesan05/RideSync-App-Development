@@ -325,10 +325,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
   }
 
   Widget _buildLiveTrackingMap(bool isDark) {
-    final status = _activeTrip?['status'];
-    final isTransit = status == 'active' || status == 'in-transit';
     final gps = context.watch<GpsBroadcastProvider>();
-    final speed = gps.currentSpeed;
 
     return GestureDetector(
       onTap: () {
@@ -359,8 +356,8 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
           borderRadius: BorderRadius.circular(24),
           child: Stack(
             children: [
-              GoogleMap(
-                initialCameraPosition: const CameraPosition(
+              const GoogleMap(
+                initialCameraPosition: CameraPosition(
                   target: LatLng(6.9271, 79.8612),
                   zoom: 15,
                 ),
@@ -376,7 +373,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: gps.isBroadcasting ? const Color(0xFFEF4444) : const Color(0xFFEF4444), // Red 'GPS OFF' pill matching image 1
+                    color: const Color(0xFFEF4444), // Red 'GPS OFF' pill matching image 1
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -417,7 +414,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                       BoxShadow(color: Colors.black12, blurRadius: 4),
                     ],
                   ),
-                  child: const Icon(Icons.my_location, color: Colors.black80, size: 20),
+                  child: const Icon(Icons.my_location, color: Colors.black87, size: 20),
                 ),
               ),
               // Bottom tap invitation bar
@@ -428,9 +425,10 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.75),
+                    color: Colors.black.withValues(alpha: 0.75),
                     borderRadius: BorderRadius.circular(16),
                   ),
+
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

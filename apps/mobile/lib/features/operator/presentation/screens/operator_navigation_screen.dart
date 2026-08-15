@@ -3,7 +3,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
-import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/operator/presentation/providers/gps_broadcast_provider.dart';
 
 class OperatorNavigationScreen extends StatefulWidget {
@@ -196,7 +195,7 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
                                   ),
                                   Icon(
                                     Icons.turn_right_rounded,
-                                    color: Colors.white.withOpacity(0.9),
+                                    color: Colors.white.withValues(alpha: 0.9),
                                     size: 18,
                                   ),
                                 ],
@@ -281,7 +280,7 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
                 width: 54,
                 height: 54,
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.85),
+                  color: Colors.black.withValues(alpha: 0.85),
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white24, width: 1.5),
                   boxShadow: const [
@@ -319,14 +318,14 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
               bottom: 0,
               child: Container(
                 padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF0B131F), // Dark navy sheet matching Image 2
-                  borderRadius: BorderRadius.only(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0B131F), // Dark navy sheet matching Image 2
+                  borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(24),
                     topRight: Radius.circular(24),
                   ),
                   boxShadow: [
-                    BoxShadow(color: Colors.black80, blurRadius: 20, offset: Offset(0, -4)),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.8), blurRadius: 20, offset: const Offset(0, -4)),
                   ],
                 ),
                 child: Column(
@@ -456,7 +455,7 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.85),
+            color: Colors.black.withValues(alpha: 0.85),
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white24, width: 1),
             boxShadow: const [
