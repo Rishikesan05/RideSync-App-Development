@@ -328,6 +328,8 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
     final isTransit = status == 'active' || status == 'in-transit';
     final screenHeight = MediaQuery.of(context).size.height;
     final mapHeight = isTransit ? screenHeight * 0.75 : 300.0;
+    final gps = context.watch<GpsBroadcastProvider>();
+    final speed = gps.currentSpeed;
 
     return Container(
       height: mapHeight,
@@ -340,14 +342,82 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: const GoogleMap(
-          initialCameraPosition: CameraPosition(
-            target: LatLng(6.9271, 79.8612), // Colombo default
-            zoom: 12,
-          ),
-          mapToolbarEnabled: false,
-          zoomControlsEnabled: false,
-          myLocationEnabled: true,
+        child: Stack(
+          children: [
+            GoogleMap(
+              initialCameraPosition: const CameraPosition(
+                target: LatLng(6.9271, 79.8612),
+                zoom: 15,
+              ),
+              mapToolbarEnabled: false,
+              zoomControlsEnabled: false,
+              myLocationEnabled: true,
+              myLocationButtonEnabled: true,
+            ),
+            // Speed overlay badge (visible when broadcasting)
+            if (isTransit && gps.isBroadcasting)
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.75),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2)),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.speed, color: Colors.greenAccent, size: 18),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${speed.toStringAsFixed(0)} km/h',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            // GPS broadcasting status badge
+            if (isTransit)
+              Positioned(
+                top: 12,
+                left: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: gps.isBroadcasting
+                        ? Colors.green.withValues(alpha: 0.9)
+                        : Colors.red.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2)),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: gps.isBroadcasting ? Colors.greenAccent : Colors.redAccent,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        gps.isBroadcasting ? 'GPS LIVE' : 'GPS OFF',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 0.5),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -759,10 +829,41 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
       final gpsProvider = Provider.of<GpsBroadcastProvider>(context, listen: false);
       final started = await gpsProvider.startBroadcasting(busId);
       if (!started && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(gpsProvider.errorMessage ?? 'GPS broadcast failed — check location permissions.'),
-            backgroundColor: Colors.orange,
+        // Show a dialog instead of snackbar for GPS failures so the operator
+        // can retry without dismissing the start journey flow.
+        await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.gps_off, color: Colors.orange, size: 24),
+                SizedBox(width: 8),
+                Text('GPS Broadcast Failed'),
+              ],
+            ),
+            content: Text(
+              gpsProvider.errorMessage ?? 'Could not start GPS broadcasting. Please check your location permissions and GPS settings.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  final retryOk = await gpsProvider.startBroadcasting(busId);
+                  if (retryOk && mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('GPS broadcasting started!'), backgroundColor: Colors.green),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryOrange),
+                child: const Text('Retry', style: TextStyle(color: Colors.white)),
+              ),
+            ],
           ),
         );
       }
