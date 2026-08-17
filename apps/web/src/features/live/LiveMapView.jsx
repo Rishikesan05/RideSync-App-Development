@@ -28,10 +28,13 @@ import {
   GpsFixed,
   GpsOff,
   Refresh,
+  Schedule,
+  Warning,
 } from '@mui/icons-material';
 import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../api/firebase';
 import { useLiveFleet } from '../../hooks/useLiveFleet';
+import { useTripStatus, formatEta } from '../../hooks/useTripStatus';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -71,6 +74,9 @@ export const LiveMapView = () => {
 
   // Real-time GPS data from RTDB
   const { fleet, isLoading: fleetLoading, error: fleetError } = useLiveFleet();
+
+  // Gap 7: Real-time trip status (ETA, currentStop, delay) for selected schedule
+  const { tripStatus } = useTripStatus(selectedSchedule?.id);
 
   // Map refs
   const mapRef = useRef(null);
@@ -177,49 +183,63 @@ export const LiveMapView = () => {
             }
           }
         );
-      }
-    };
-    const timer = setTimeout(initMap, 500);
-    return () => clearTimeout(timer);
-  }, [selectedRoute, theme.palette.mode]);
-
-  // ── Real-time bus marker update from RTDB fleet data ─────────────────────
+     // ── Gap 7: Render ALL active broadcasting buses on the map simultaneously ──────
   useEffect(() => {
-    if (!mapInstance.current || !selectedSchedule) return;
-    const busId = selectedSchedule.busId;
-    if (!busId) return;
+    if (!mapInstance.current) return;
 
-    const loc = fleet[busId];
-    if (!loc || loc.lat == null || loc.lng == null) {
-      // Remove marker if no data
-      if (busMarkerRef.current) {
-        busMarkerRef.current.setMap(null);
-        busMarkerRef.current = null;
+    // 1. Update or create a marker for every bus currently in the fleet
+    Object.entries(fleet).forEach(([busId, loc]) => {
+      if (!loc || loc.lat == null || loc.lng == null) return;
+      const ageMs = Date.now() - (loc.timestamp ?? 0);
+      const isStale = ageMs > 60_000;
+
+      const position = new window.google.maps.LatLng(loc.lat, loc.lng);
+      const isSelected = selectedSchedule?.busId === busId;
+
+      if (allBusMarkers.current[busId]) {
+        // Smooth move to new position
+        allBusMarkers.current[busId].setPosition(position);
+        allBusMarkers.current[busId].setOpacity(isStale ? 0.4 : 1.0);
+      } else {
+        // Create new marker for this bus
+        allBusMarkers.current[busId] = new window.google.maps.Marker({
+          position,
+          map: mapInstance.current,
+          icon: {
+            url: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png',
+            scaledSize: new window.google.maps.Size(isSelected ? 52 : 38, isSelected ? 52 : 38),
+            anchor: new window.google.maps.Point(isSelected ? 26 : 19, isSelected ? 26 : 19),
+          },
+          title: busId,
+          opacity: isStale ? 0.4 : 1.0,
+        });
+
+        // Click a fleet bus to select its schedule
+        allBusMarkers.current[busId].addListener('click', () => {
+          const matchedSchedule = schedules.find(s => s.busId === busId);
+          if (matchedSchedule) {
+            setSelectedSchedule(matchedSchedule);
+            mapInstance.current.panTo(position);
+            mapInstance.current.setZoom(14);
+          }
+        });
       }
-      return;
+    });
+
+    // 2. Remove markers for buses that have left the fleet
+    Object.keys(allBusMarkers.current).forEach((busId) => {
+      if (!fleet[busId]) {
+        allBusMarkers.current[busId].setMap(null);
+        delete allBusMarkers.current[busId];
+      }
+    });
+
+    // 3. Pan to selected bus if it exists
+    if (selectedSchedule?.busId && fleet[selectedSchedule.busId]) {
+      const loc = fleet[selectedSchedule.busId];
+      mapInstance.current.panTo(new window.google.maps.LatLng(loc.lat, loc.lng));
     }
-
-    const position = new window.google.maps.LatLng(loc.lat, loc.lng);
-
-    if (!busMarkerRef.current) {
-      busMarkerRef.current = new window.google.maps.Marker({
-        position,
-        map: mapInstance.current,
-        icon: {
-          url: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png',
-          scaledSize: new window.google.maps.Size(42, 42),
-          anchor: new window.google.maps.Point(21, 21),
-        },
-        title: selectedSchedule.plateNumber || 'Bus',
-      });
-    } else {
-      // Smooth animation to new position
-      busMarkerRef.current.setPosition(position);
-    }
-
-    // Pan map to follow bus
-    mapInstance.current.panTo(position);
-  }, [fleet, selectedSchedule]);
+  }, [fleet, selectedSchedule, schedules]);
 
   // ── Derive live telemetry for selected bus ────────────────────────────────
   const liveBusData = useMemo(() => {
@@ -444,6 +464,44 @@ export const LiveMapView = () => {
                           </Box>
                         </Box>
                       </Grid>
+
+                      {/* Gap 7 — ETA & trip status from useTripStatus hook */}
+                      {tripStatus && (
+                        <>
+                          <Grid item xs={6}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Schedule color="success" sx={{ fontSize: 18 }} />
+                              <Box>
+                                <Typography variant="caption" color="text.secondary" display="block">ETA</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 700, color: 'success.main' }}>
+                                  {formatEta(tripStatus.eta)}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Room color="warning" sx={{ fontSize: 18 }} />
+                              <Box>
+                                <Typography variant="caption" color="text.secondary" display="block">Current Stop</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', fontSize: '0.72rem' }}>
+                                  {tripStatus.currentStop ?? '—'}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Grid>
+                          {tripStatus.delayMinutes > 0 && (
+                            <Grid item xs={12}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'warning.dark', borderRadius: 1, px: 1.5, py: 0.5 }}>
+                                <Warning sx={{ fontSize: 16, color: 'warning.contrastText' }} />
+                                <Typography variant="caption" sx={{ color: 'warning.contrastText', fontWeight: 700 }}>
+                                  Delayed by {tripStatus.delayMinutes} min
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          )}
+                        </>
+                      )}
                     </Grid>
                   ) : (
                     <Box sx={{ py: 2, textAlign: 'center' }}>
