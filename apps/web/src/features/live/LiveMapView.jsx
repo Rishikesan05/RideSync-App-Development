@@ -183,7 +183,13 @@ export const LiveMapView = () => {
             }
           }
         );
-     // ── Gap 7: Render ALL active broadcasting buses on the map simultaneously ──────
+      }
+    };
+    const timer = setTimeout(initMap, 500);
+    return () => clearTimeout(timer);
+  }, [selectedRoute, theme.palette.mode]);
+
+  // ── Gap 7: Render ALL active broadcasting buses on the map simultaneously ──
   useEffect(() => {
     if (!mapInstance.current) return;
 
