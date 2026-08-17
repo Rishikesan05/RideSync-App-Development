@@ -322,12 +322,35 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
                   builder: (context) {
                     final gps = context.watch<GpsBroadcastProvider>();
                     return GestureDetector(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => OperatorBroadcastScreen(trip: widget.trip),
-                        ),
-                      ),
+                      onTap: () async {
+                        if (gps.isBroadcasting) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => OperatorBroadcastScreen(trip: widget.trip),
+                            ),
+                          );
+                        } else {
+                          final busId = widget.trip['busId'] as String? ??
+                              widget.trip['plateNumber'] as String? ??
+                              widget.trip['id'] as String;
+                          final scheduleId = widget.trip['id'] as String?;
+                          final routeId = widget.trip['routeId'] as String?;
+                          final ok = await gps.startBroadcasting(
+                            busId,
+                            scheduleId: scheduleId,
+                            routeId: routeId,
+                          );
+                          if (ok && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('GPS broadcasting started!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        }
+                      },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
                         decoration: BoxDecoration(

@@ -931,7 +931,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                       }
 
                       setStateModal(() => isSubmitting = true);
-                      await _startJourney(trip['id'], '', coOpIdController.text.trim());
+                      await _startJourney(trip, '', coOpIdController.text.trim());
                       setStateModal(() => isSubmitting = false);
                       
                       if (context.mounted) {
@@ -1024,14 +1024,14 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
 
 
 
-  Future<void> _startJourney(String scheduleId, String coOpName, String coOpId) async {
+  Future<void> _startJourney(Map<String, dynamic> trip, String coOpName, String coOpId) async {
     try {
       // 1. Start live GPS broadcasting FIRST so a Firestore error never
       //    silently prevents the operator's location from being shared.
       if (!mounted) return;
-      final busId = _activeTrip?['busId'] as String? ?? scheduleId;
-      // Pass scheduleId and routeId so GpsService enriches the RTDB node.
-      final routeId = _activeTrip?['routeId'] as String?;
+      final scheduleId = trip['id'] as String;
+      final busId = (trip['busId'] as String?) ?? (trip['plateNumber'] as String?) ?? scheduleId;
+      final routeId = trip['routeId'] as String?;
       final gpsProvider = Provider.of<GpsBroadcastProvider>(context, listen: false);
       final started = await gpsProvider.startBroadcasting(
         busId,

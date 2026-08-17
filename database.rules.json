@@ -1,16 +1,16 @@
 {
   "rules": {
     "busLocations": {
+      ".read": "auth != null",
+      ".write": "auth != null",
       "$busId": {
         ".read": "auth != null",
-        // Removed auth.token.busId == $busId because the busId custom claim is
-        // not populated in the operator token. Any authenticated operator can
-        // write to their assigned bus node; the schedules Firestore rule already
-        // ensures the schedule belongs to this operator before the journey starts.
         ".write": "auth != null"
       }
     },
     "tripStatus": {
+      ".read": "auth != null",
+      ".write": "auth != null",
       "$scheduleId": {
         ".read": "auth != null",
         ".write": "auth != null"
