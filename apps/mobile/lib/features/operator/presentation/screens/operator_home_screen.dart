@@ -1030,8 +1030,14 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
       //    silently prevents the operator's location from being shared.
       if (!mounted) return;
       final busId = _activeTrip?['busId'] as String? ?? scheduleId;
+      // Pass scheduleId and routeId so GpsService enriches the RTDB node.
+      final routeId = _activeTrip?['routeId'] as String?;
       final gpsProvider = Provider.of<GpsBroadcastProvider>(context, listen: false);
-      final started = await gpsProvider.startBroadcasting(busId);
+      final started = await gpsProvider.startBroadcasting(
+        busId,
+        scheduleId: scheduleId,
+        routeId: routeId,
+      );
       if (!started && mounted) {
         // Show a dialog instead of snackbar for GPS failures so the operator
         // can retry without dismissing the start journey flow.
@@ -1057,7 +1063,11 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
               ElevatedButton(
                 onPressed: () async {
                   Navigator.pop(ctx);
-                  final retryOk = await gpsProvider.startBroadcasting(busId);
+                  final retryOk = await gpsProvider.startBroadcasting(
+                    busId,
+                    scheduleId: scheduleId,
+                    routeId: routeId,
+                  );
                   if (retryOk && mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('GPS broadcasting started!'), backgroundColor: Colors.green),
