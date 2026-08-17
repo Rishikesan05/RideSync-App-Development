@@ -127,27 +127,47 @@ class _LiveScreenState extends State<LiveScreen>
       final bookingSnap = await FirebaseFirestore.instance
           .collection('bookings')
           .where('passengerId', isEqualTo: userId)
-          .where('status', isEqualTo: 'confirmed')
-          .orderBy('departureTime')
-          .limit(1)
           .get();
 
       if (bookingSnap.docs.isEmpty) {
         setState(() {
           _isFetchingSchedule = false;
-          _fetchError = 'No confirmed booking found.';
+          _fetchError = 'No booking found.';
         });
         return;
       }
 
-      final bookingData = bookingSnap.docs.first.data();
-      final scheduleId = bookingData['scheduleId'] as String?;
-      _passengerStop = bookingData['pickup'] as String?;
+      final allBookings = bookingSnap.docs.map((d) => d.data()).toList();
+      final bookingData = allBookings.firstWhere(
+        (b) => b['status'] != 'cancelled' && (b['busId'] != null || b['scheduleId'] != null),
+        orElse: () => allBookings.first,
+      );
 
-      if (scheduleId == null) {
+      final scheduleId = bookingData['scheduleId'] as String?;
+      final directBusId = bookingData['busId'] as String?;
+      _passengerStop = (bookingData['pickup'] as String?) ?? (bookingData['origin'] as String?);
+      final origin = bookingData['origin'] as String?;
+      final destination = bookingData['destination'] as String?;
+
+      if (scheduleId == null && directBusId != null) {
+        // Direct bus booking without schedule document (matching Firestore bookings schema)
+        setState(() {
+          _busId = directBusId;
+          _routeName = origin != null && destination != null ? '$origin - $destination' : 'Live Bus';
+          _fromStop = origin ?? 'Origin';
+          _toStop = destination ?? 'Destination';
+          _isFetchingSchedule = false;
+        });
+
+        tracking.startTracking(directBusId, directBusId);
+        _startStaleCheckTimer();
+        return;
+      }
+
+      if (scheduleId == null && directBusId == null) {
         setState(() {
           _isFetchingSchedule = false;
-          _fetchError = 'Booking has no schedule linked.';
+          _fetchError = 'Booking has no bus or schedule linked.';
         });
         return;
       }
@@ -155,28 +175,35 @@ class _LiveScreenState extends State<LiveScreen>
       // Fetch the schedule to get busId and route info
       final scheduleDoc = await FirebaseFirestore.instance
           .collection('schedules')
-          .doc(scheduleId)
+          .doc(scheduleId!)
           .get();
 
-      if (!scheduleDoc.exists) {
+      String busId = directBusId ?? scheduleId;
+      if (scheduleDoc.exists) {
+        final sd = scheduleDoc.data()!;
+        busId = (sd['busId'] as String?) ??
+            (sd['plateNumber'] as String?) ??
+            directBusId ??
+            scheduleId;
         setState(() {
-          _isFetchingSchedule = false;
-          _fetchError = 'Schedule not found.';
+          _routeName = (sd['routeName'] as String?) ?? (origin != null && destination != null ? '$origin - $destination' : 'Live Bus');
+          _fromStop = (sd['fromStop'] as String?) ?? origin ?? '—';
+          _toStop = (sd['toStop'] as String?) ?? destination ?? '—';
         });
-        return;
+        final routeId = sd['routeId'] as String?;
+        if (routeId != null) {
+          _fetchRoutePolyline(routeId);
+        }
+      } else {
+        setState(() {
+          _routeName = origin != null && destination != null ? '$origin - $destination' : 'Live Bus';
+          _fromStop = origin ?? '—';
+          _toStop = destination ?? '—';
+        });
       }
-
-      final sd = scheduleDoc.data()!;
-      // Resilient fallback: support busId, plateNumber, or scheduleId
-      final busId = (sd['busId'] as String?) ??
-          (sd['plateNumber'] as String?) ??
-          scheduleId;
 
       setState(() {
         _busId = busId;
-        _routeName = sd['routeName'] as String?;
-        _fromStop = sd['fromStop'] as String?;
-        _toStop = sd['toStop'] as String?;
         _isFetchingSchedule = false;
       });
 
@@ -184,11 +211,6 @@ class _LiveScreenState extends State<LiveScreen>
       if (busId.isNotEmpty) {
         tracking.startTracking(busId, scheduleId);
         _startStaleCheckTimer();
-        // Fetch and draw the route polyline + stop markers
-        final routeId = sd['routeId'] as String?;
-        if (routeId != null) {
-          _fetchRoutePolyline(routeId);
-        }
       }
     } catch (e) {
       debugPrint('[LiveScreen] Init error: $e');
