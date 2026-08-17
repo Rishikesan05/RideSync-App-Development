@@ -496,10 +496,10 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: isTransit ? const Color(0xFF052E16) : Colors.orange.withOpacity(0.2), // Dark green pill background
+                    color: isTransit ? const Color(0xFF052E16) : Colors.orange.withValues(alpha: 0.2), // Dark green pill background
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: isTransit ? const Color(0xFF15803D) : Colors.orange.withOpacity(0.4),
+                      color: isTransit ? const Color(0xFF15803D) : Colors.orange.withValues(alpha: 0.4),
                     ),
                   ),
                   child: Row(
@@ -655,7 +655,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                         borderRadius: BorderRadius.circular(10),
                         child: LinearProgressIndicator(
                           value: (24 + (trip['walkInCount'] ?? 0)) / capacity,
-                          backgroundColor: Colors.white.withOpacity(0.1),
+                          backgroundColor: Colors.white.withValues(alpha: 0.1),
                           valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF22C55E)), // Bright green
                           minHeight: 6,
                         ),
@@ -699,7 +699,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                 decoration: BoxDecoration(
                   color: const Color(0xFF172133), // Dark inner card matching Image 1
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.06)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
                 ),
                 child: Row(
                   children: [
@@ -746,20 +746,8 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
               ),
               const SizedBox(height: 16),
 
-              // Passenger manifest status text (Matching Image 1)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    'No confirmed passengers yet',
-                    style: TextStyle(
-                      color: Colors.white54,
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-              ),
+              // Passenger manifest stream
+              _buildMiniManifest(),
               const SizedBox(height: 16),
 
               // Bottom Action Buttons: Delay & End Trip (Matching Image 1)
@@ -779,7 +767,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        backgroundColor: const Color(0xFF451A03).withOpacity(0.5),
+                        backgroundColor: const Color(0xFF451A03).withValues(alpha: 0.5),
                         side: const BorderSide(color: Color(0xFFD97706), width: 1.5),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -1237,22 +1225,6 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
         ),
         child: Text('+$minutes m', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 18)),
       ),
-    );
-  }
-
-  Widget _tripMetric(IconData icon, String value, String label) {
-    return Row(
-      children: [
-        Icon(icon, color: AppColors.primaryOrange, size: 20),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-            Text(label, style: const TextStyle(color: Colors.white60, fontSize: 10)),
-          ],
-        ),
-      ],
     );
   }
 

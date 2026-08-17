@@ -29,7 +29,7 @@ class LiveScreen extends StatefulWidget {
 }
 
 class _LiveScreenState extends State<LiveScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   // ── Map controller ──────────────────────────────────────────────────────────
   GoogleMapController? _mapController;
 
@@ -37,15 +37,14 @@ class _LiveScreenState extends State<LiveScreen>
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
-  // ── Marker interpolation ────────────────────────────────────────────────────
-  /// The position currently rendered on the map (smoothly interpolated).
+  // ── Marker interpolation (Hardware-accelerated 60fps AnimationController) ──
+  late AnimationController _markerAnimController;
   LatLng? _displayPosition;
-
-  /// Used to smoothly animate the marker between real GPS ticks.
-  Timer? _interpolationTimer;
-  LatLng? _targetPosition;
-  LatLng? _previousPosition;
-  double _interpolationProgress = 1.0;
+  double _displayHeading = 0.0;
+  LatLng? _fromPosition;
+  LatLng? _toPosition;
+  double _fromHeading = 0.0;
+  double _toHeading = 0.0;
 
   // ── Schedule/route details (fetched once from Firestore) ────────────────────
   String? _busId;
@@ -74,6 +73,30 @@ class _LiveScreenState extends State<LiveScreen>
     _pulseAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    // Hardware-accelerated marker translation animation
+    _markerAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    );
+    _markerAnimController.addListener(() {
+      if (_fromPosition != null && _toPosition != null) {
+        final t = Curves.easeInOut.transform(_markerAnimController.value);
+        final lat = _fromPosition!.latitude + (_toPosition!.latitude - _fromPosition!.latitude) * t;
+        final lng = _fromPosition!.longitude + (_toPosition!.longitude - _fromPosition!.longitude) * t;
+        final heading = _fromHeading + (_toHeading - _fromHeading) * t;
+
+        if (mounted) {
+          setState(() {
+            _displayPosition = LatLng(lat, lng);
+            _displayHeading = heading;
+          });
+          _mapController?.animateCamera(
+            CameraUpdate.newLatLng(_displayPosition!),
+          );
+        }
+      }
+    });
 
     // Fetch schedule once providers are ready
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -144,7 +167,10 @@ class _LiveScreenState extends State<LiveScreen>
       }
 
       final sd = scheduleDoc.data()!;
-      final busId = sd['busId'] as String?;
+      // Resilient fallback: support busId, plateNumber, or scheduleId
+      final busId = (sd['busId'] as String?) ??
+          (sd['plateNumber'] as String?) ??
+          scheduleId;
 
       setState(() {
         _busId = busId;
@@ -155,7 +181,7 @@ class _LiveScreenState extends State<LiveScreen>
       });
 
       // Start RTDB subscriptions
-      if (busId != null) {
+      if (busId.isNotEmpty) {
         tracking.startTracking(busId, scheduleId);
         _startStaleCheckTimer();
         // Fetch and draw the route polyline + stop markers
@@ -268,44 +294,28 @@ class _LiveScreenState extends State<LiveScreen>
   // ── Marker animation ─────────────────────────────────────────────────────────
 
   /// Called every time [BusTrackingProvider] emits a new location.
-  void _animateMarkerTo(LatLng target) {
-    _interpolationTimer?.cancel();
-    _previousPosition = _displayPosition ?? target;
-    _targetPosition = target;
-    _interpolationProgress = 0.0;
+  void _animateMarkerTo(LatLng target, double targetHeading) {
+    if (_displayPosition == null) {
+      setState(() {
+        _displayPosition = target;
+        _displayHeading = targetHeading;
+      });
+      _mapController?.animateCamera(CameraUpdate.newLatLng(target));
+      return;
+    }
 
-    const int steps = 20;
-    const Duration stepDuration = Duration(milliseconds: 150);
+    _fromPosition = _displayPosition;
+    _toPosition = target;
+    _fromHeading = _displayHeading;
+    _toHeading = targetHeading;
 
-    _interpolationTimer =
-        Timer.periodic(stepDuration, (timer) {
-      _interpolationProgress += 1.0 / steps;
-      if (_interpolationProgress >= 1.0) {
-        _interpolationProgress = 1.0;
-        timer.cancel();
-      }
-
-      if (_previousPosition == null || _targetPosition == null) return;
-      final lat = _lerpDouble(
-          _previousPosition!.latitude, _targetPosition!.latitude, _interpolationProgress);
-      final lng = _lerpDouble(
-          _previousPosition!.longitude, _targetPosition!.longitude, _interpolationProgress);
-
-      if (mounted) {
-        setState(() => _displayPosition = LatLng(lat, lng));
-        _mapController?.animateCamera(
-          CameraUpdate.newLatLng(_displayPosition!),
-        );
-      }
-    });
+    _markerAnimController.forward(from: 0.0);
   }
-
-  double _lerpDouble(double a, double b, double t) => a + (b - a) * t;
 
   @override
   void dispose() {
     _pulseController.dispose();
-    _interpolationTimer?.cancel();
+    _markerAnimController.dispose();
     _staleCheckTimer?.cancel();
     _mapController?.dispose();
     // Stop RTDB subscriptions when leaving the screen
@@ -365,14 +375,16 @@ class _LiveScreenState extends State<LiveScreen>
       );
     }
 
-    // — Animate marker when a new location arrives —
+    // — Animate marker smoothly when a new location arrives —
     if (tracking.busLocation != null) {
       final newPos = tracking.busLocation!.latLng;
+      final newHeading = tracking.busLocation!.heading;
       if (_displayPosition == null) {
         _displayPosition = newPos;
-      } else if (_displayPosition != newPos && _targetPosition != newPos) {
+        _displayHeading = newHeading;
+      } else if (_toPosition != newPos) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _animateMarkerTo(newPos);
+          _animateMarkerTo(newPos, newHeading);
         });
       }
     }
@@ -558,9 +570,9 @@ class _LiveScreenState extends State<LiveScreen>
                 ? '${busLoc.speed.toStringAsFixed(0)} km/h'
                 : 'In Transit',
           ),
-          rotation: busLoc?.heading ?? 0,
+          rotation: _displayHeading,
           flat: true,
-          zIndex: 2, // Render bus on top of stop markers
+          zIndexInt: 2, // Render bus on top of stop markers
         ),
       );
     }

@@ -36,7 +36,6 @@ class GpsService {
 
   // ── Adaptive thresholds ──────────────────────────────────────────────────────
   static const int _fastIntervalMs = 2000;  // When bus is moving (≥ 5 km/h)
-  static const int _slowIntervalMs = 10000; // When bus is idle   (< 5 km/h)
   static const double _movingThresholdMps = 1.39; // 5 km/h in m/s
 
   StreamSubscription<Position>? _positionSub;
@@ -96,6 +95,13 @@ class GpsService {
   /// [routeId]    — Route ID; written to RTDB for Cloud Functions.
   ///
   /// Calling this while already broadcasting stops the old stream first.
+  /// Starts continuous GPS broadcasting via [Geolocator.getPositionStream].
+  ///
+  /// [busId]      — Firestore document ID or plate number of the assigned bus.
+  /// [scheduleId] — Active schedule ID; written to RTDB for Cloud Functions.
+  /// [routeId]    — Route ID; written to RTDB for Cloud Functions.
+  ///
+  /// Calling this while already broadcasting stops the old stream first.
   void startBroadcasting(
     String busId, {
     String? scheduleId,
@@ -112,20 +118,47 @@ class GpsService {
     _onSpeedUpdate = onSpeedUpdate;
     debugPrint('[GpsService] Broadcasting started for bus: $busId | schedule: $scheduleId');
 
-    // Use getPositionStream for true continuous updates — the OS delivers
-    // position events independently of any application-level await or error.
-    final locationSettings = AndroidSettings(
-      accuracy: LocationAccuracy.high,
-      // Minimum distance (metres) the device must move before an update fires.
-      // Set to 5m for smooth updates without too much noise when stationary.
-      distanceFilter: 5,
-      intervalDuration: const Duration(milliseconds: _fastIntervalMs),
-      foregroundNotificationConfig: const ForegroundNotificationConfig(
-        notificationText: 'RideSync is broadcasting your bus location.',
-        notificationTitle: 'Bus GPS Active',
-        enableWakeLock: true,
-      ),
+    final db = FirebaseDatabase.instanceFor(
+      app: Firebase.app(),
+      databaseURL: AppConstants.rtdbUrl,
     );
+
+    // Setup onDisconnect presence hook so that if network drops or app is terminated,
+    // the bus location node is automatically marked offline on the RTDB server side.
+    try {
+      final busRef = db.ref('busLocations/$_activeBusId');
+      busRef.onDisconnect().update({
+        'isBroadcasting': false,
+        'status': 'OFFLINE',
+        'disconnectedAt': ServerValue.timestamp,
+      }).catchError((e) {
+        debugPrint('[GpsService] RTDB onDisconnect registration warning: $e');
+      });
+    } catch (e) {
+      debugPrint('[GpsService] Failed to register onDisconnect hook: $e');
+    }
+
+    // Configure throttled location settings:
+    // - distanceFilter: 5 meters (reduces battery drain and stops redundant stationary writes)
+    // - ForegroundNotificationConfig for Android background isolate survival
+    LocationSettings locationSettings;
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      locationSettings = AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5,
+        intervalDuration: const Duration(milliseconds: _fastIntervalMs),
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationText: 'RideSync is broadcasting your bus location.',
+          notificationTitle: 'Bus GPS Active',
+          enableWakeLock: true,
+        ),
+      );
+    } else {
+      locationSettings = const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5,
+      );
+    }
 
     _positionSub = Geolocator.getPositionStream(locationSettings: locationSettings)
         .listen(
@@ -139,9 +172,9 @@ class GpsService {
         );
   }
 
-  /// Stops GPS broadcasting and sets `isBroadcasting: false` on RTDB so
-  /// passengers see a clean "signal lost" state rather than frozen coordinates,
-  /// then removes the node entirely.
+  /// Stops GPS broadcasting, cleans up onDisconnect hooks, and marks `isBroadcasting: false`
+  /// on RTDB so passengers see a clean "signal lost" state rather than frozen coordinates,
+  /// then removes the node cleanly.
   Future<void> stopBroadcasting() async {
     await _positionSub?.cancel();
     _positionSub = null;
@@ -149,22 +182,26 @@ class GpsService {
     _onSpeedUpdate = null;
 
     if (_activeBusId != null) {
+      final busIdToRemove = _activeBusId!;
+      _activeBusId = null;
+      _activeScheduleId = null;
+      _activeRouteId = null;
+
       try {
-        // Mark as not broadcasting BEFORE removing so listeners catch the
-        // `isBroadcasting: false` transition (admin portal staleness check).
         final db = FirebaseDatabase.instanceFor(
           app: Firebase.app(),
           databaseURL: AppConstants.rtdbUrl,
         );
-        await db.ref('busLocations/$_activeBusId').update({'isBroadcasting': false});
-        await db.ref('busLocations/$_activeBusId').remove();
-        debugPrint('[GpsService] RTDB node removed for bus: $_activeBusId');
+        final busRef = db.ref('busLocations/$busIdToRemove');
+        // Cancel the onDisconnect hook since this is a clean shutdown
+        await busRef.onDisconnect().cancel().catchError((_) {});
+        // Mark as not broadcasting BEFORE removing
+        await busRef.update({'isBroadcasting': false, 'status': 'STOPPED'});
+        await busRef.remove();
+        debugPrint('[GpsService] RTDB node cleanly removed for bus: $busIdToRemove');
       } catch (e) {
-        debugPrint('[GpsService] Failed to remove RTDB node: $e');
+        debugPrint('[GpsService] Failed to remove RTDB node cleanly: $e');
       }
-      _activeBusId = null;
-      _activeScheduleId = null;
-      _activeRouteId = null;
     }
   }
 
