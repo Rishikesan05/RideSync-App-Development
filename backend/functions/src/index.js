@@ -26,9 +26,14 @@ exports.api = onRequest(
 // ── ETA Calculator (RTDB trigger) ─────────────────────────────────────────────
 /**
  * Fires on every GPS update written to /busLocations/{busId}.
- * Reads the active schedule for this bus from Firestore, computes the
- * remaining distance using pre-stored stop distances, then writes the
- * calculated ETA back to /tripStatus/{scheduleId}.
+ *
+ * ## Gap 8 improvements (2026-08-17 — gps-fixing-2.0 branch)
+ * 1. Reads `scheduleId` and `routeId` directly from the RTDB payload written
+ *    by the updated GpsService, saving one Firestore query per GPS tick.
+ * 2. Writes `nextStop` (the stop after currentStop) to /tripStatus.
+ * 3. Writes `remainingDistanceKm` to /tripStatus for client-side display.
+ * 4. Falls back to a Firestore query if scheduleId is not in the RTDB payload
+ *    (backward-compatible with older client versions).
  *
  * Cost note: RTDB triggers are NOT counted against Cloud Functions invocation
  * quotas; they run on the same pricing tier as HTTPS functions.
@@ -46,25 +51,47 @@ exports.recalculateETA = onValueUpdated(
     // Operator stopped broadcasting (node was deleted)
     if (!location) return null;
 
-    try {
-      // 1. Find the active schedule for this bus
-      const schedulesSnap = await admin
-        .firestore()
-        .collection('schedules')
-        .where('busId', '==', busId)
-        .where('status', 'in', ['in-transit', 'active'])
-        .limit(1)
-        .get();
+    // If isBroadcasting is explicitly false, skip ETA recalc
+    if (location.isBroadcasting === false) return null;
 
-      if (schedulesSnap.empty) {
-        // No active trip — nothing to compute
-        return null;
+    try {
+      let scheduleId = location.scheduleId || null;
+      let routeId = location.routeId || null;
+      let scheduleData = null;
+
+      if (scheduleId) {
+        // ── Fast path: scheduleId was written directly to RTDB by GpsService ──
+        // One Firestore read instead of a query.
+        const scheduleDoc = await admin
+          .firestore()
+          .collection('schedules')
+          .doc(scheduleId)
+          .get();
+
+        if (!scheduleDoc.exists) return null;
+        scheduleData = scheduleDoc.data();
+        routeId = routeId || scheduleData.routeId;
+      } else {
+        // ── Fallback: query Firestore by busId (old client behaviour) ──────────
+        const schedulesSnap = await admin
+          .firestore()
+          .collection('schedules')
+          .where('busId', '==', busId)
+          .where('status', 'in', ['in-transit', 'active'])
+          .limit(1)
+          .get();
+
+        if (schedulesSnap.empty) return null;
+
+        const scheduleDoc = schedulesSnap.docs[0];
+        scheduleId = scheduleDoc.id;
+        scheduleData = scheduleDoc.data();
+        routeId = scheduleData.routeId;
       }
 
-      const scheduleDoc = schedulesSnap.docs[0];
-      const scheduleId = scheduleDoc.id;
-      const scheduleData = scheduleDoc.data();
-      const { routeId, currentStop } = scheduleData;
+      if (!routeId) return null;
+
+      const { currentStop, delayMinutes = 0 } = scheduleData;
 
       // 2. Fetch route to get ordered stops with precomputed distances
       const routeDoc = await admin
@@ -81,9 +108,7 @@ exports.recalculateETA = onValueUpdated(
       if (!stops || stops.length < 2) return null;
 
       // 3. Find the current stop index
-      const currentIdx = stops.findIndex(
-        (s) => s.name === currentStop
-      );
+      const currentIdx = stops.findIndex((s) => s.name === currentStop);
       const useIdx = currentIdx >= 0 ? currentIdx : 0;
 
       const endStop = stops[stops.length - 1];
@@ -94,15 +119,21 @@ exports.recalculateETA = onValueUpdated(
       const speedKmh = Math.max(location.speed || 30, 10);
       const etaMs = Date.now() + (remainingKm / speedKmh) * 3_600_000;
 
-      // 5. Write ETA + delay back to RTDB
-      const delayMinutes = scheduleData.delayMinutes || 0;
+      // 5. Determine next stop (Gap 8 enhancement)
+      const nextStopIdx = useIdx + 1;
+      const nextStop =
+        nextStopIdx < stops.length ? stops[nextStopIdx].name : null;
+
+      // 6. Write ETA, nextStop, remainingDistanceKm, and delay to RTDB
       await admin
         .database()
         .ref(`/tripStatus/${scheduleId}`)
         .update({
           status: 'active',
           currentStop: currentStop || stops[0].name,
+          nextStop: nextStop ?? stops[stops.length - 1].name,
           eta: etaMs,
+          remainingDistanceKm: Math.round(remainingKm * 10) / 10,
           delayMinutes,
           lastUpdatedAt: Date.now(),
         });
