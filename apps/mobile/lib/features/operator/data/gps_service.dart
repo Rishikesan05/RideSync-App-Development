@@ -21,6 +21,13 @@ import 'package:geolocator/geolocator.dart';
 /// delivers position events at the OS level. Application-level RTDB write
 /// errors are now handled inside [_onPosition] and **never** interrupt the
 /// stream, guaranteeing continuous location sharing for the full journey.
+///
+/// ## Fix (2026-08-17) — gps-fixing-2.0 branch
+/// Added `scheduleId`, `routeId`, and `isBroadcasting` to the RTDB payload so
+/// that the admin portal and Cloud Function can read these without an extra
+/// Firestore round-trip. Also sets `isBroadcasting: false` before removing
+/// the node, so the admin portal can cleanly distinguish "stopped" from
+/// "no signal".
 class GpsService {
   GpsService._();
   static final GpsService instance = GpsService._();
@@ -32,6 +39,8 @@ class GpsService {
 
   StreamSubscription<Position>? _positionSub;
   String? _activeBusId;
+  String? _activeScheduleId;
+  String? _activeRouteId;
   bool _isBroadcasting = false;
   void Function(double speedKmh)? _onSpeedUpdate;
 
@@ -79,18 +88,27 @@ class GpsService {
   }
 
   /// Starts continuous GPS broadcasting via [Geolocator.getPositionStream].
-  /// The [busId] is the Firestore document ID of the bus assigned to this
-  /// operator.
+  ///
+  /// [busId]      — Firestore document ID of the assigned bus.
+  /// [scheduleId] — Active schedule ID; written to RTDB for Cloud Functions.
+  /// [routeId]    — Route ID; written to RTDB for Cloud Functions.
   ///
   /// Calling this while already broadcasting stops the old stream first.
-  void startBroadcasting(String busId, {void Function(double speedKmh)? onSpeedUpdate}) {
+  void startBroadcasting(
+    String busId, {
+    String? scheduleId,
+    String? routeId,
+    void Function(double speedKmh)? onSpeedUpdate,
+  }) {
     // Cancel any existing stream before opening a new one
     stopBroadcasting();
 
     _activeBusId = busId;
+    _activeScheduleId = scheduleId;
+    _activeRouteId = routeId;
     _isBroadcasting = true;
     _onSpeedUpdate = onSpeedUpdate;
-    debugPrint('[GpsService] Broadcasting started for bus: $busId');
+    debugPrint('[GpsService] Broadcasting started for bus: $busId | schedule: $scheduleId');
 
     // Use getPositionStream for true continuous updates — the OS delivers
     // position events independently of any application-level await or error.
@@ -119,8 +137,9 @@ class GpsService {
         );
   }
 
-  /// Stops GPS broadcasting and removes the stale node from RTDB so passengers
-  /// see a clean "signal lost" state rather than frozen coordinates.
+  /// Stops GPS broadcasting and sets `isBroadcasting: false` on RTDB so
+  /// passengers see a clean "signal lost" state rather than frozen coordinates,
+  /// then removes the node entirely.
   Future<void> stopBroadcasting() async {
     await _positionSub?.cancel();
     _positionSub = null;
@@ -129,6 +148,11 @@ class GpsService {
 
     if (_activeBusId != null) {
       try {
+        // Mark as not broadcasting BEFORE removing so listeners catch the
+        // `isBroadcasting: false` transition (admin portal staleness check).
+        await FirebaseDatabase.instance
+            .ref('busLocations/$_activeBusId')
+            .update({'isBroadcasting': false});
         await FirebaseDatabase.instance
             .ref('busLocations/$_activeBusId')
             .remove();
@@ -137,6 +161,8 @@ class GpsService {
         debugPrint('[GpsService] Failed to remove RTDB node: $e');
       }
       _activeBusId = null;
+      _activeScheduleId = null;
+      _activeRouteId = null;
     }
   }
 
@@ -159,17 +185,25 @@ class GpsService {
     // Notify speed to provider callback
     _onSpeedUpdate?.call(speedKmh);
 
+    // Build the RTDB payload — includes scheduleId, routeId, isBroadcasting
+    // so the Cloud Function and admin portal don't need an extra Firestore read.
+    final Map<String, dynamic> payload = {
+      'lat': pos.latitude,
+      'lng': pos.longitude,
+      'speed': double.parse(speedKmh.toStringAsFixed(1)),
+      'heading': pos.heading,
+      'isMoving': isMoving,
+      'isBroadcasting': true,
+      'timestamp': ServerValue.timestamp,
+    };
+
+    if (_activeScheduleId != null) payload['scheduleId'] = _activeScheduleId!;
+    if (_activeRouteId != null) payload['routeId'] = _activeRouteId!;
+
     // Write to RTDB — fire-and-forget; errors are logged but never rethrown
     FirebaseDatabase.instance
         .ref('busLocations/$_activeBusId')
-        .set({
-          'lat': pos.latitude,
-          'lng': pos.longitude,
-          'speed': double.parse(speedKmh.toStringAsFixed(1)),
-          'heading': pos.heading,
-          'isMoving': isMoving,
-          'timestamp': ServerValue.timestamp,
-        })
+        .set(payload)
         .catchError((Object e) {
           debugPrint('[GpsService] RTDB write error: $e');
           // Non-fatal — stream continues; next position update will retry
