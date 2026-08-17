@@ -9,6 +9,10 @@ import 'package:ridesync/features/operator/data/gps_service.dart';
 ///   • Show/hide the "BROADCASTING GPS" badge on the active trip card.
 ///   • Display the live speed value.
 ///   • Enable/disable the Start / End Journey buttons.
+///
+/// ## Fix (2026-08-17) — gps-fixing-2.0 branch
+/// [startBroadcasting] now accepts [scheduleId] and [routeId] so they can
+/// be forwarded to [GpsService] and written to the RTDB payload.
 class GpsBroadcastProvider extends ChangeNotifier {
   final GpsService _service = GpsService.instance;
 
@@ -34,8 +38,17 @@ class GpsBroadcastProvider extends ChangeNotifier {
   }
 
   /// Call this when the user taps "Start Journey" after the co-operator check.
+  ///
+  /// [busId]      — Firestore document ID of the assigned bus (required).
+  /// [scheduleId] — Active schedule document ID (forwarded to GpsService/RTDB).
+  /// [routeId]    — Route document ID (forwarded to GpsService/RTDB).
+  ///
   /// Returns true if broadcasting was started successfully.
-  Future<bool> startBroadcasting(String busId) async {
+  Future<bool> startBroadcasting(
+    String busId, {
+    String? scheduleId,
+    String? routeId,
+  }) async {
     _errorMessage = null;
 
     // Force-refresh the Firebase Auth ID token so that the latest custom claims
@@ -68,10 +81,15 @@ class GpsBroadcastProvider extends ChangeNotifier {
     }
 
     try {
-      _service.startBroadcasting(busId, onSpeedUpdate: (double speedKmh) {
-        _currentSpeed = speedKmh;
-        notifyListeners();
-      });
+      _service.startBroadcasting(
+        busId,
+        scheduleId: scheduleId,
+        routeId: routeId,
+        onSpeedUpdate: (double speedKmh) {
+          _currentSpeed = speedKmh;
+          notifyListeners();
+        },
+      );
       notifyListeners();
       return true;
     } catch (e) {
