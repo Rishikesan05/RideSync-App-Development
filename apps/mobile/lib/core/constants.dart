@@ -40,5 +40,9 @@ class AppConstants {
   /// For local emulator use: 'http://10.0.2.2:5001/ridesync-lk/asia-south1/api'
   static const String backendBaseUrl =
       'https://asia-south1-ridesync-lk.cloudfunctions.net/api';
+
+  /// Firebase Realtime Database URL (asia-southeast1 instance).
+  static const String rtdbUrl =
+      'https://ridesync-lk-default-rtdb.asia-southeast1.firebasedatabase.app';
 }
 

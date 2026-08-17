@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:ridesync/core/constants.dart';
 
 /// Low-level service that reads the device GPS and writes the location to
 /// Firebase Realtime Database under `busLocations/{busId}`.
@@ -150,12 +152,12 @@ class GpsService {
       try {
         // Mark as not broadcasting BEFORE removing so listeners catch the
         // `isBroadcasting: false` transition (admin portal staleness check).
-        await FirebaseDatabase.instance
-            .ref('busLocations/$_activeBusId')
-            .update({'isBroadcasting': false});
-        await FirebaseDatabase.instance
-            .ref('busLocations/$_activeBusId')
-            .remove();
+        final db = FirebaseDatabase.instanceFor(
+          app: Firebase.app(),
+          databaseURL: AppConstants.rtdbUrl,
+        );
+        await db.ref('busLocations/$_activeBusId').update({'isBroadcasting': false});
+        await db.ref('busLocations/$_activeBusId').remove();
         debugPrint('[GpsService] RTDB node removed for bus: $_activeBusId');
       } catch (e) {
         debugPrint('[GpsService] Failed to remove RTDB node: $e');
@@ -201,7 +203,10 @@ class GpsService {
     if (_activeRouteId != null) payload['routeId'] = _activeRouteId!;
 
     // Write to RTDB — fire-and-forget; errors are logged but never rethrown
-    FirebaseDatabase.instance
+    FirebaseDatabase.instanceFor(
+      app: Firebase.app(),
+      databaseURL: AppConstants.rtdbUrl,
+    )
         .ref('busLocations/$_activeBusId')
         .set(payload)
         .catchError((Object e) {
