@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/live_journey_provider.dart';
@@ -54,6 +55,10 @@ class _LiveScreenState extends State<LiveScreen>
   String? _passengerStop; // passenger's boarding stop
   bool _isFetchingSchedule = false;
   String? _fetchError;
+
+  // ── Route polyline + stop markers (Gap 6 fix) ────────────────────────────────
+  Set<Polyline> _routePolylines = {};
+  Set<Marker> _stopMarkers = {};
 
   // ── Stale-signal warning timer ──────────────────────────────────────────────
   Timer? _staleCheckTimer;
@@ -153,6 +158,11 @@ class _LiveScreenState extends State<LiveScreen>
       if (busId != null) {
         tracking.startTracking(busId, scheduleId);
         _startStaleCheckTimer();
+        // Fetch and draw the route polyline + stop markers
+        final routeId = sd['routeId'] as String?;
+        if (routeId != null) {
+          _fetchRoutePolyline(routeId);
+        }
       }
     } catch (e) {
       debugPrint('[LiveScreen] Init error: $e');
@@ -171,6 +181,88 @@ class _LiveScreenState extends State<LiveScreen>
     _staleCheckTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (mounted) setState(() {}); // rebuild so isStale check re-evaluates
     });
+  }
+
+  // ── Route polyline + stop markers (Gap 6 fix) ────────────────────────────────
+
+  /// Fetches route stops from Firestore and geocodes each stop name to
+  /// lat/lng using the [geocoding] package (free — no billing required).
+  /// Draws a straight-line polyline connecting all stops and places a
+  /// distinct pin marker at each stop.
+  Future<void> _fetchRoutePolyline(String routeId) async {
+    try {
+      final routeDoc = await FirebaseFirestore.instance
+          .collection('routes')
+          .doc(routeId)
+          .get();
+      if (!routeDoc.exists || !mounted) return;
+
+      final stops = (routeDoc.data()?['stops'] as List<dynamic>?) ?? [];
+      if (stops.isEmpty) return;
+
+      final List<LatLng> polylinePoints = [];
+      final Set<Marker> stopMarkers = {};
+
+      for (int i = 0; i < stops.length; i++) {
+        final stopName = stops[i]['name'] as String? ?? '';
+        if (stopName.isEmpty) continue;
+
+        try {
+          // Geocode stop name within Sri Lanka for accuracy
+          final locations =
+              await locationFromAddress('$stopName, Sri Lanka');
+          if (locations.isEmpty) continue;
+
+          final latLng =
+              LatLng(locations.first.latitude, locations.first.longitude);
+          polylinePoints.add(latLng);
+
+          // Add stop marker: use orange for first/last, white for intermediate
+          final isTerminal = i == 0 || i == stops.length - 1;
+          stopMarkers.add(
+            Marker(
+              markerId: MarkerId('stop_$i'),
+              position: latLng,
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                isTerminal
+                    ? BitmapDescriptor.hueOrange
+                    : BitmapDescriptor.hueAzure,
+              ),
+              infoWindow: InfoWindow(
+                title: stopName,
+                snippet: i == 0
+                    ? 'Origin'
+                    : i == stops.length - 1
+                        ? 'Destination'
+                        : 'Stop ${i + 1}',
+              ),
+              flat: false,
+            ),
+          );
+        } catch (geocodeErr) {
+          // Non-fatal: skip stops that can't be geocoded
+          debugPrint('[LiveScreen] Geocode failed for "$stopName": $geocodeErr');
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _routePolylines = polylinePoints.length >= 2
+            ? {
+                Polyline(
+                  polylineId: const PolylineId('route'),
+                  points: polylinePoints,
+                  color: AppColors.primaryOrange,
+                  width: 4,
+                  patterns: [PatternItem.dash(20), PatternItem.gap(8)],
+                ),
+              }
+            : {};
+        _stopMarkers = stopMarkers;
+      });
+    } catch (e) {
+      debugPrint('[LiveScreen] _fetchRoutePolyline error: $e');
+    }
   }
 
   // ── Marker animation ─────────────────────────────────────────────────────────
@@ -451,26 +543,33 @@ class _LiveScreenState extends State<LiveScreen>
 
   Widget _buildMap(bool isDark, BusLocation? busLoc) {
     final center = _displayPosition ?? const LatLng(7.8731, 80.7718);
+
+    // Merge the bus marker with the geocoded stop markers
+    final Set<Marker> allMarkers = {..._stopMarkers};
+    if (_displayPosition != null) {
+      allMarkers.add(
+        Marker(
+          markerId: const MarkerId('bus'),
+          position: _displayPosition!,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+          infoWindow: InfoWindow(
+            title: _routeName ?? 'Bus',
+            snippet: busLoc != null
+                ? '${busLoc.speed.toStringAsFixed(0)} km/h'
+                : 'In Transit',
+          ),
+          rotation: busLoc?.heading ?? 0,
+          flat: true,
+          zIndex: 2, // Render bus on top of stop markers
+        ),
+      );
+    }
+
     return GoogleMap(
       initialCameraPosition: CameraPosition(target: center, zoom: 14),
       onMapCreated: (controller) => _mapController = controller,
-      markers: _displayPosition != null
-          ? {
-              Marker(
-                markerId: const MarkerId('bus'),
-                position: _displayPosition!,
-                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-                infoWindow: InfoWindow(
-                  title: _routeName ?? 'Bus',
-                  snippet: busLoc != null
-                      ? '${busLoc.speed.toStringAsFixed(0)} km/h'
-                      : 'In Transit',
-                ),
-                rotation: busLoc?.heading ?? 0,
-                flat: true,
-              ),
-            }
-          : {},
+      markers: allMarkers,
+      polylines: _routePolylines,
       mapToolbarEnabled: false,
       zoomControlsEnabled: false,
       myLocationButtonEnabled: true,
