@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:ridesync/features/operator/presentation/providers/gps_broadcast_provider.dart';
+import 'package:ridesync/features/operator/presentation/screens/operator_broadcast_screen.dart';
 
 class OperatorNavigationScreen extends StatefulWidget {
   final Map<String, dynamic> trip;
@@ -307,6 +308,66 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+
+            // ── 4b. Floating Live Broadcast Button ──────────────────────────
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 152,
+              child: Center(
+                child: Builder(
+                  builder: (context) {
+                    final gps = context.watch<GpsBroadcastProvider>();
+                    return GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => OperatorBroadcastScreen(trip: widget.trip),
+                        ),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+                        decoration: BoxDecoration(
+                          color: gps.isBroadcasting
+                              ? const Color(0xFF166534)
+                              : const Color(0xFFDC2626),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (gps.isBroadcasting
+                                      ? const Color(0xFF22C55E)
+                                      : const Color(0xFFEF4444))
+                                  .withValues(alpha: 0.4),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              gps.isBroadcasting ? Icons.gps_fixed : Icons.gps_off,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              gps.isBroadcasting ? 'GPS LIVE — Tap to manage' : 'Start Live Broadcast',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
