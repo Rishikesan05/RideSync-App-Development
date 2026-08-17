@@ -67,18 +67,29 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
       final startOfToday = DateTime(now.year, now.month, now.day);
       final endOfToday = startOfToday.add(const Duration(days: 1));
 
-      // Fetch all schedules for this operator to avoid string vs timestamp and index issues
-      final schedulesQuery = await FirebaseFirestore.instance
+      // Fetch all schedules for this operator
+      QuerySnapshot schedulesQuery = await FirebaseFirestore.instance
           .collection('schedules')
           .where('operatorId', isEqualTo: operatorId)
           .get()
           .timeout(const Duration(seconds: 10));
 
+      // Fallback: If no operator-specific schedules match operatorId, query all active/scheduled trips
+      if (schedulesQuery.docs.isEmpty) {
+        schedulesQuery = await FirebaseFirestore.instance
+            .collection('schedules')
+            .limit(20)
+            .get()
+            .timeout(const Duration(seconds: 10));
+      }
+
       final docs = schedulesQuery.docs;
       
+      List<Map<String, dynamic>> allSchedules = [];
       List<Map<String, dynamic>> todaySchedules = [];
+
       for (var doc in docs) {
-        final data = doc.data();
+        final data = doc.data() as Map<String, dynamic>;
         DateTime? depTime;
         final rawTime = data['departureTime'];
         if (rawTime is Timestamp) {
@@ -87,42 +98,53 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
           depTime = DateTime.tryParse(rawTime);
         }
 
+        final tripData = Map<String, dynamic>.from(data);
+        tripData['id'] = doc.id;
+        tripData['parsedTime'] = depTime ?? now;
+        tripData['plateNumber'] = data['busPlateNumber'] ?? data['plateNumber'] ?? 'Bus';
+        tripData['capacity'] = data['busCapacity'] ?? data['capacity'] ?? 40;
+
+        allSchedules.add(tripData);
+
         // Filter for today
         if (depTime != null && 
             depTime.isAfter(startOfToday.subtract(const Duration(seconds: 1))) && 
             depTime.isBefore(endOfToday)) {
-          final tripData = Map<String, dynamic>.from(data);
-          tripData['id'] = doc.id;
-          tripData['parsedTime'] = depTime; // For sorting
           todaySchedules.add(tripData);
         }
       }
 
-      // Sort in Dart
-      todaySchedules.sort((a, b) {
+      // If no trips specifically for today, show all available assigned trips
+      final scheduleList = todaySchedules.isNotEmpty ? todaySchedules : allSchedules;
+
+      // Sort by departure time
+      scheduleList.sort((a, b) {
         final DateTime timeA = a['parsedTime'];
         final DateTime timeB = b['parsedTime'];
         return timeA.compareTo(timeB);
       });
 
-      // Find active trip (first scheduled/active trip today)
+      // Find active trip (first in-transit/active, or first scheduled trip)
       Map<String, dynamic>? activeTrip;
-      if (todaySchedules.isNotEmpty) {
-        activeTrip = todaySchedules.firstWhere(
-          (s) => s['status'] == 'active' || s['status'] == 'scheduled',
-          orElse: () => todaySchedules.first,
+      if (scheduleList.isNotEmpty) {
+        activeTrip = scheduleList.firstWhere(
+          (s) => s['status'] == 'in-transit' || s['status'] == 'active',
+          orElse: () => scheduleList.firstWhere(
+            (s) => s['status'] == 'scheduled',
+            orElse: () => scheduleList.first,
+          ),
         );
       }
 
       if (mounted) {
         setState(() {
-          _todaySchedules = todaySchedules;
+          _todaySchedules = scheduleList;
           _activeTrip = activeTrip;
           _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint('Error fetching operator data: $e');
+      debugPrint('[OperatorHomeScreen] Error fetching operator data: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;

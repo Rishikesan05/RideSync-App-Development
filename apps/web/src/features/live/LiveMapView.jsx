@@ -58,11 +58,13 @@ function headingToCompass(deg) {
 function findBusLocation(fleet, schedule) {
   if (!fleet || !schedule) return null;
   if (schedule.busId && fleet[schedule.busId]) return fleet[schedule.busId];
+  if (schedule.busPlateNumber && fleet[schedule.busPlateNumber]) return fleet[schedule.busPlateNumber];
   if (schedule.plateNumber && fleet[schedule.plateNumber]) return fleet[schedule.plateNumber];
   if (schedule.id && fleet[schedule.id]) return fleet[schedule.id];
   // Match case-insensitively or trimmed if direct match was not found
   for (const [key, val] of Object.entries(fleet)) {
     if (schedule.busId && key.toLowerCase() === schedule.busId.toLowerCase()) return val;
+    if (schedule.busPlateNumber && key.toLowerCase() === schedule.busPlateNumber.toLowerCase()) return val;
     if (schedule.plateNumber && key.toLowerCase() === schedule.plateNumber.toLowerCase()) return val;
     if (schedule.id && key.toLowerCase() === schedule.id.toLowerCase()) return val;
   }
@@ -403,7 +405,7 @@ export const LiveMapView = () => {
                         <DirectionsBus />
                       </ListItemIcon>
                       <ListItemText
-                        primary={s.plateNumber}
+                        primary={s.busPlateNumber || s.plateNumber || s.busId}
                         secondary={s.routeName}
                         primaryTypographyProps={{ fontWeight: 700 }}
                         secondaryTypographyProps={{ noWrap: true, variant: 'caption' }}
@@ -456,7 +458,7 @@ export const LiveMapView = () => {
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
                     <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                      {selectedSchedule.plateNumber}
+                      {selectedSchedule.busPlateNumber || selectedSchedule.plateNumber || selectedSchedule.busId}
                     </Typography>
                     {/* Live signal badge */}
                     <Box sx={{
