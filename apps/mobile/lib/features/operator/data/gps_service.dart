@@ -97,8 +97,14 @@ class GpsService {
   /// [scheduleId] — Active schedule ID; written to RTDB for Cloud Functions.
   /// [routeId]    — Route ID; written to RTDB for Cloud Functions.
   ///
-  /// Calling this while already broadcasting stops the old stream first.
-  void startBroadcasting(
+  /// Starts continuous GPS broadcasting via [Geolocator.getPositionStream].
+  ///
+  /// [busId]      — Firestore document ID or plate number of the assigned bus.
+  /// [scheduleId] — Active schedule ID; written to RTDB for Cloud Functions.
+  /// [routeId]    — Route ID; written to RTDB for Cloud Functions.
+  ///
+  /// Calling this while already broadcasting stops any previous stream first.
+  Future<void> startBroadcasting(
     String busId, {
     String? scheduleId,
     String? routeId,
@@ -106,9 +112,14 @@ class GpsService {
     String? busPlateNumber,
     String? routeName,
     void Function(double speedKmh)? onSpeedUpdate,
-  }) {
-    // Cancel any existing stream before opening a new one
-    stopBroadcasting();
+  }) async {
+    // 1. Cancel previous stream safely without setting the new bus to OFFLINE
+    if (_activeBusId != null && _activeBusId != busId) {
+      await stopBroadcasting();
+    } else {
+      await _positionSub?.cancel();
+      _positionSub = null;
+    }
 
     _activeBusId = busId;
     _activeScheduleId = scheduleId;
@@ -160,6 +171,16 @@ class GpsService {
         accuracy: LocationAccuracy.high,
         distanceFilter: 5,
       );
+    }
+
+    // Immediately push initial position to RTDB so the bus goes LIVE with 0 latency
+    try {
+      final initialPos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      ).timeout(const Duration(seconds: 3));
+      _onPosition(initialPos);
+    } catch (e) {
+      debugPrint('[GpsService] Initial position check non-fatal: $e');
     }
 
     _positionSub = Geolocator.getPositionStream(locationSettings: locationSettings)

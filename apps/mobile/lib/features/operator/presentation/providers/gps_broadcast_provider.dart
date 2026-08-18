@@ -87,7 +87,7 @@ class GpsBroadcastProvider extends ChangeNotifier {
     }
 
     try {
-      _service.startBroadcasting(
+      await _service.startBroadcasting(
         busId,
         scheduleId: scheduleId,
         routeId: routeId,
