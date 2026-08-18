@@ -22,8 +22,7 @@ RideSync/
 │   └── functions/      # Firebase Cloud Functions (Typescript)
 ├── packages/
 │   └── shared/         # Shared data models and business logic
-├── config/             # Centralized project configurations
-└── docs/               # Detailed architecture and design specifications
+└── config/             # Centralized project configurations
 ```
 
 ---
