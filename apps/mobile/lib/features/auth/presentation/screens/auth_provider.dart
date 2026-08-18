@@ -73,17 +73,30 @@ class AuthProvider with ChangeNotifier {
             _status = profileData['status'];
           }
 
+          // Fetch real total rides count from bookings collection if not set on doc
+          int userRides = data['totalRides'] ?? 0;
+          if (userRides == 0) {
+            try {
+              final countSnap = await _firestore
+                  .collection('bookings')
+                  .where('passengerId', isEqualTo: firebaseUser.uid)
+                  .get();
+              userRides = countSnap.docs.length;
+            } catch (_) {}
+          }
+
           _user = UserModel(
             id: firebaseUser.uid,
-            name: profileData['displayName'] ?? data['displayName'] ?? data['name'] ?? firebaseUser.displayName ?? 'New User',
+            name: profileData['displayName'] ?? data['displayName'] ?? data['name'] ?? firebaseUser.displayName ?? 'Passenger User',
             email: firebaseUser.email ?? profileData['email'] ?? data['email'] ?? '',
+            phone: profileData['phone'] ?? data['phone'] ?? firebaseUser.phoneNumber ?? '',
             role: roleStr == 'operator' ? 'Operator' : 'Passenger',
             operatorType: profileData['operatorType'] ?? data['operatorType'],
             operatorId: profileData['operatorId'] ?? data['operatorId'],
             joinYear: 2024,
-            totalRides: data['totalRides'] ?? 0,
+            totalRides: userRides,
             rating: (data['rating'] ?? 5.0).toDouble(),
-            loyaltyPoints: data['loyaltyPoints'] ?? 0,
+            loyaltyPoints: data['loyaltyPoints'] ?? (userRides * 10),
           );
           _isAuthenticated = true;
           _isGuest = false;
@@ -91,7 +104,18 @@ class AuthProvider with ChangeNotifier {
           await prefs.setBool('is_guest', false);
         } else {
           debugPrint('User doc does not exist yet for ${firebaseUser.uid}');
-          // If auth exists but doc doesn't, we might still be syncing
+          // If auth exists but doc doesn't, we still set a fallback user
+          _user = UserModel(
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName ?? 'Passenger User',
+            email: firebaseUser.email ?? '',
+            phone: firebaseUser.phoneNumber ?? '',
+            role: 'Passenger',
+            joinYear: 2024,
+            totalRides: 0,
+            rating: 5.0,
+            loyaltyPoints: 0,
+          );
           _isAuthenticated = true; 
           _isGuest = false;
         }
@@ -102,6 +126,37 @@ class AuthProvider with ChangeNotifier {
     }
     _isInitialized = true;
     notifyListeners();
+  }
+
+  /// Updates passenger personal details in both /users/{uid} and /passengers/{uid} in Firestore
+  Future<void> updatePassengerProfile({
+    required String name,
+    required String phone,
+  }) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) throw Exception('No user is currently logged in.');
+
+    await _firestore.collection('users').doc(currentUser.uid).set({
+      'displayName': name,
+      'name': name,
+      'phone': phone,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    await _firestore.collection('passengers').doc(currentUser.uid).set({
+      'displayName': name,
+      'phone': phone,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    try {
+      await currentUser.updateDisplayName(name);
+    } catch (_) {}
+
+    if (_user != null) {
+      _user = _user!.copyWith(name: name, phone: phone);
+      notifyListeners();
+    }
   }
 
   // Set the role during onboarding (before auth)

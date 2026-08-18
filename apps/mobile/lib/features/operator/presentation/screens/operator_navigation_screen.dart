@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
@@ -24,6 +25,7 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
   bool _isSoundMuted = false;
   final Set<Polyline> _polylines = {};
   final Set<Marker> _markers = {};
+  StreamSubscription<Position>? _navPositionSub;
 
   // Dark navigation map theme style JSON
   static const String _darkMapStyle = '''
@@ -45,7 +47,43 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
   void initState() {
     super.initState();
     _fetchCurrentLocation();
+    _startPositionListening();
     _setupRoutePolyline();
+  }
+
+  void _startPositionListening() {
+    const locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 3,
+    );
+    _navPositionSub = Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+      (pos) {
+        if (mounted) {
+          final newLoc = LatLng(pos.latitude, pos.longitude);
+          setState(() {
+            _currentLocation = newLoc;
+          });
+          _mapController?.animateCamera(
+            CameraUpdate.newCameraPosition(
+              CameraPosition(
+                target: newLoc,
+                zoom: 17,
+                tilt: 45,
+                bearing: pos.heading,
+              ),
+            ),
+          );
+        }
+      },
+      onError: (e) => debugPrint('[OperatorNav] Position stream error: $e'),
+    );
+  }
+
+  @override
+  void dispose() {
+    _navPositionSub?.cancel();
+    _mapController?.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchCurrentLocation() async {
@@ -125,6 +163,7 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
                 zoom: 16,
                 tilt: 40,
               ),
+              style: _darkMapStyle,
               onMapCreated: (controller) {
                 _mapController = controller;
               },
@@ -322,12 +361,36 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
                   builder: (context) {
                     final gps = context.watch<GpsBroadcastProvider>();
                     return GestureDetector(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => OperatorBroadcastScreen(trip: widget.trip),
-                        ),
-                      ),
+                      onTap: () async {
+                        if (gps.isBroadcasting) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => OperatorBroadcastScreen(trip: widget.trip),
+                            ),
+                          );
+                        } else {
+                          final busId = widget.trip['busId'] as String? ??
+                              widget.trip['busPlateNumber'] as String? ??
+                              widget.trip['plateNumber'] as String? ??
+                              widget.trip['id'] as String;
+                          final scheduleId = widget.trip['id'] as String?;
+                          final routeId = widget.trip['routeId'] as String?;
+                          final ok = await gps.startBroadcasting(
+                            busId,
+                            scheduleId: scheduleId,
+                            routeId: routeId,
+                          );
+                          if (ok && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('GPS broadcasting started!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        }
+                      },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
                         decoration: BoxDecoration(

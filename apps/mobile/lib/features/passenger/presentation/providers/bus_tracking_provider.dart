@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:ridesync/core/constants.dart';
 
 /// Holds the latest parsed GPS snapshot from RTDB for one bus.
 class BusLocation {
@@ -106,8 +108,13 @@ class BusTrackingProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    final rtdb = FirebaseDatabase.instanceFor(
+      app: Firebase.app(),
+      databaseURL: AppConstants.rtdbUrl,
+    );
+
     // 1. Subscribe to live GPS location
-    _locationSub = FirebaseDatabase.instance
+    _locationSub = rtdb
         .ref('busLocations/$busId')
         .onValue
         .listen(
@@ -137,7 +144,7 @@ class BusTrackingProvider extends ChangeNotifier {
     );
 
     // 2. Subscribe to trip status (ETA, current stop, delay)
-    _statusSub = FirebaseDatabase.instance
+    _statusSub = rtdb
         .ref('tripStatus/$scheduleId')
         .onValue
         .listen(

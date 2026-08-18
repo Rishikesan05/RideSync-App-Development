@@ -54,6 +54,63 @@ function headingToCompass(deg) {
   return dirs[Math.round(deg / 45) % 8];
 }
 
+/** Resilient helper to match a schedule against live fleet RTDB keys */
+function findBusLocation(fleet, schedule) {
+  if (!fleet || !schedule) return null;
+  if (schedule.busId && fleet[schedule.busId]) return fleet[schedule.busId];
+  if (schedule.busPlateNumber && fleet[schedule.busPlateNumber]) return fleet[schedule.busPlateNumber];
+  if (schedule.plateNumber && fleet[schedule.plateNumber]) return fleet[schedule.plateNumber];
+  if (schedule.id && fleet[schedule.id]) return fleet[schedule.id];
+  // Match case-insensitively or trimmed if direct match was not found
+  for (const [key, val] of Object.entries(fleet)) {
+    if (schedule.busId && key.toLowerCase() === schedule.busId.toLowerCase()) return val;
+    if (schedule.busPlateNumber && key.toLowerCase() === schedule.busPlateNumber.toLowerCase()) return val;
+    if (schedule.plateNumber && key.toLowerCase() === schedule.plateNumber.toLowerCase()) return val;
+    if (schedule.id && key.toLowerCase() === schedule.id.toLowerCase()) return val;
+  }
+  return null;
+}
+
+/** Smoothly interpolates Google Maps Marker position via requestAnimationFrame */
+function animateMarkerTo(marker, targetLat, targetLng, duration = 1200) {
+  if (!marker || !window.google?.maps) return;
+  const startPos = marker.getPosition();
+  if (!startPos) {
+    marker.setPosition(new window.google.maps.LatLng(targetLat, targetLng));
+    return;
+  }
+  const startLat = startPos.lat();
+  const startLng = startPos.lng();
+  if (Math.abs(startLat - targetLat) < 0.000005 && Math.abs(startLng - targetLng) < 0.000005) {
+    return;
+  }
+
+  if (marker._animFrameId) {
+    cancelAnimationFrame(marker._animFrameId);
+  }
+
+  const startTime = performance.now();
+  const step = (now) => {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // Smooth quadratic easeInOut
+    const easeProgress = progress < 0.5
+      ? 2 * progress * progress
+      : -1 + (4 - 2 * progress) * progress;
+
+    const curLat = startLat + (targetLat - startLat) * easeProgress;
+    const curLng = startLng + (targetLng - startLng) * easeProgress;
+    marker.setPosition(new window.google.maps.LatLng(curLat, curLng));
+
+    if (progress < 1) {
+      marker._animFrameId = requestAnimationFrame(step);
+    } else {
+      marker._animFrameId = null;
+    }
+  };
+  marker._animFrameId = requestAnimationFrame(step);
+}
+
 // Dark map styles for Google Maps
 const DARK_MAP_STYLES = [
   { elementType: 'geometry', stylers: [{ color: '#1e293b' }] },
@@ -199,12 +256,15 @@ export const LiveMapView = () => {
       const ageMs = Date.now() - (loc.timestamp ?? 0);
       const isStale = ageMs > 60_000;
 
-      const position = new window.google.maps.LatLng(loc.lat, loc.lng);
-      const isSelected = selectedSchedule?.busId === busId;
+      const isSelected = selectedSchedule && (
+        selectedSchedule.busId === busId ||
+        selectedSchedule.plateNumber === busId ||
+        selectedSchedule.id === busId
+      );
 
       if (allBusMarkers.current[busId]) {
-        // Smooth move to new position
-        allBusMarkers.current[busId].setPosition(position);
+        // Smoothly interpolate position via requestAnimationFrame
+        animateMarkerTo(allBusMarkers.current[busId], loc.lat, loc.lng, 1200);
         allBusMarkers.current[busId].setOpacity(isStale ? 0.4 : 1.0);
       } else {
         // Create new marker for this bus
@@ -222,7 +282,11 @@ export const LiveMapView = () => {
 
         // Click a fleet bus to select its schedule
         allBusMarkers.current[busId].addListener('click', () => {
-          const matchedSchedule = schedules.find(s => s.busId === busId);
+          const matchedSchedule = schedules.find(s =>
+            (s.busId && s.busId.toLowerCase() === busId.toLowerCase()) ||
+            (s.plateNumber && s.plateNumber.toLowerCase() === busId.toLowerCase()) ||
+            (s.id && s.id.toLowerCase() === busId.toLowerCase())
+          );
           if (matchedSchedule) {
             setSelectedSchedule(matchedSchedule);
             mapInstance.current.panTo(position);
@@ -235,22 +299,27 @@ export const LiveMapView = () => {
     // 2. Remove markers for buses that have left the fleet
     Object.keys(allBusMarkers.current).forEach((busId) => {
       if (!fleet[busId]) {
+        if (allBusMarkers.current[busId]._animFrameId) {
+          cancelAnimationFrame(allBusMarkers.current[busId]._animFrameId);
+        }
         allBusMarkers.current[busId].setMap(null);
         delete allBusMarkers.current[busId];
       }
     });
 
     // 3. Pan to selected bus if it exists
-    if (selectedSchedule?.busId && fleet[selectedSchedule.busId]) {
-      const loc = fleet[selectedSchedule.busId];
-      mapInstance.current.panTo(new window.google.maps.LatLng(loc.lat, loc.lng));
+    if (selectedSchedule) {
+      const loc = findBusLocation(fleet, selectedSchedule);
+      if (loc && loc.lat != null && loc.lng != null) {
+        mapInstance.current.panTo(new window.google.maps.LatLng(loc.lat, loc.lng));
+      }
     }
   }, [fleet, selectedSchedule, schedules]);
 
   // ── Derive live telemetry for selected bus ────────────────────────────────
   const liveBusData = useMemo(() => {
-    if (!selectedSchedule?.busId) return null;
-    return fleet[selectedSchedule.busId] || null;
+    if (!selectedSchedule) return null;
+    return findBusLocation(fleet, selectedSchedule);
   }, [fleet, selectedSchedule]);
 
   const signalStatus = useMemo(() => getSignalStatus(liveBusData?.timestamp), [liveBusData?.timestamp]);
@@ -307,7 +376,7 @@ export const LiveMapView = () => {
               <List sx={{ p: 0, flex: 1, overflowY: 'auto' }}>
                 {schedules.map((s) => {
                   const isSelected = selectedSchedule?.id === s.id;
-                  const busLoc = fleet[s.busId];
+                  const busLoc = findBusLocation(fleet, s);
                   const busSignal = getSignalStatus(busLoc?.timestamp);
 
                   return (
@@ -335,7 +404,7 @@ export const LiveMapView = () => {
                         <DirectionsBus />
                       </ListItemIcon>
                       <ListItemText
-                        primary={s.plateNumber}
+                        primary={s.busPlateNumber || s.plateNumber || s.busId}
                         secondary={s.routeName}
                         primaryTypographyProps={{ fontWeight: 700 }}
                         secondaryTypographyProps={{ noWrap: true, variant: 'caption' }}
@@ -388,7 +457,7 @@ export const LiveMapView = () => {
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
                     <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                      {selectedSchedule.plateNumber}
+                      {selectedSchedule.busPlateNumber || selectedSchedule.plateNumber || selectedSchedule.busId}
                     </Typography>
                     {/* Live signal badge */}
                     <Box sx={{

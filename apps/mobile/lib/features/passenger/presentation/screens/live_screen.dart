@@ -29,7 +29,7 @@ class LiveScreen extends StatefulWidget {
 }
 
 class _LiveScreenState extends State<LiveScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   // ── Map controller ──────────────────────────────────────────────────────────
   GoogleMapController? _mapController;
 
@@ -37,15 +37,14 @@ class _LiveScreenState extends State<LiveScreen>
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
-  // ── Marker interpolation ────────────────────────────────────────────────────
-  /// The position currently rendered on the map (smoothly interpolated).
+  // ── Marker interpolation (Hardware-accelerated 60fps AnimationController) ──
+  late AnimationController _markerAnimController;
   LatLng? _displayPosition;
-
-  /// Used to smoothly animate the marker between real GPS ticks.
-  Timer? _interpolationTimer;
-  LatLng? _targetPosition;
-  LatLng? _previousPosition;
-  double _interpolationProgress = 1.0;
+  double _displayHeading = 0.0;
+  LatLng? _fromPosition;
+  LatLng? _toPosition;
+  double _fromHeading = 0.0;
+  double _toHeading = 0.0;
 
   // ── Schedule/route details (fetched once from Firestore) ────────────────────
   String? _busId;
@@ -74,6 +73,30 @@ class _LiveScreenState extends State<LiveScreen>
     _pulseAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    // Hardware-accelerated marker translation animation
+    _markerAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    );
+    _markerAnimController.addListener(() {
+      if (_fromPosition != null && _toPosition != null) {
+        final t = Curves.easeInOut.transform(_markerAnimController.value);
+        final lat = _fromPosition!.latitude + (_toPosition!.latitude - _fromPosition!.latitude) * t;
+        final lng = _fromPosition!.longitude + (_toPosition!.longitude - _fromPosition!.longitude) * t;
+        final heading = _fromHeading + (_toHeading - _fromHeading) * t;
+
+        if (mounted) {
+          setState(() {
+            _displayPosition = LatLng(lat, lng);
+            _displayHeading = heading;
+          });
+          _mapController?.animateCamera(
+            CameraUpdate.newLatLng(_displayPosition!),
+          );
+        }
+      }
+    });
 
     // Fetch schedule once providers are ready
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -104,27 +127,47 @@ class _LiveScreenState extends State<LiveScreen>
       final bookingSnap = await FirebaseFirestore.instance
           .collection('bookings')
           .where('passengerId', isEqualTo: userId)
-          .where('status', isEqualTo: 'confirmed')
-          .orderBy('departureTime')
-          .limit(1)
           .get();
 
       if (bookingSnap.docs.isEmpty) {
         setState(() {
           _isFetchingSchedule = false;
-          _fetchError = 'No confirmed booking found.';
+          _fetchError = 'No booking found.';
         });
         return;
       }
 
-      final bookingData = bookingSnap.docs.first.data();
-      final scheduleId = bookingData['scheduleId'] as String?;
-      _passengerStop = bookingData['pickup'] as String?;
+      final allBookings = bookingSnap.docs.map((d) => d.data()).toList();
+      final bookingData = allBookings.firstWhere(
+        (b) => b['status'] != 'cancelled' && (b['busId'] != null || b['scheduleId'] != null),
+        orElse: () => allBookings.first,
+      );
 
-      if (scheduleId == null) {
+      final scheduleId = bookingData['scheduleId'] as String?;
+      final directBusId = bookingData['busId'] as String?;
+      _passengerStop = (bookingData['pickup'] as String?) ?? (bookingData['origin'] as String?);
+      final origin = bookingData['origin'] as String?;
+      final destination = bookingData['destination'] as String?;
+
+      if (scheduleId == null && directBusId != null) {
+        // Direct bus booking without schedule document (matching Firestore bookings schema)
+        setState(() {
+          _busId = directBusId;
+          _routeName = origin != null && destination != null ? '$origin - $destination' : 'Live Bus';
+          _fromStop = origin ?? 'Origin';
+          _toStop = destination ?? 'Destination';
+          _isFetchingSchedule = false;
+        });
+
+        tracking.startTracking(directBusId, directBusId);
+        _startStaleCheckTimer();
+        return;
+      }
+
+      if (scheduleId == null && directBusId == null) {
         setState(() {
           _isFetchingSchedule = false;
-          _fetchError = 'Booking has no schedule linked.';
+          _fetchError = 'Booking has no bus or schedule linked.';
         });
         return;
       }
@@ -132,30 +175,45 @@ class _LiveScreenState extends State<LiveScreen>
       // Fetch the schedule to get busId and route info
       final scheduleDoc = await FirebaseFirestore.instance
           .collection('schedules')
-          .doc(scheduleId)
+          .doc(scheduleId!)
           .get();
 
-      if (!scheduleDoc.exists) {
+      String busId = directBusId ?? scheduleId;
+      if (scheduleDoc.exists) {
+        final sd = scheduleDoc.data()!;
+        busId = (sd['busId'] as String?) ??
+            (sd['busPlateNumber'] as String?) ??
+            (sd['plateNumber'] as String?) ??
+            directBusId ??
+            scheduleId;
         setState(() {
-          _isFetchingSchedule = false;
-          _fetchError = 'Schedule not found.';
+          _routeName = (sd['routeName'] as String?) ?? (origin != null && destination != null ? '$origin - $destination' : 'Live Bus');
+          _fromStop = (sd['fromStop'] as String?) ?? (sd['startingPoint'] as String?) ?? origin ?? '—';
+          _toStop = (sd['toStop'] as String?) ?? destination ?? '—';
         });
-        return;
+        final routeId = (sd['routeId'] as String?) ?? (bookingData['routeId'] as String?);
+        if (routeId != null) {
+          _fetchRoutePolyline(routeId);
+        }
+      } else {
+        setState(() {
+          _routeName = origin != null && destination != null ? '$origin - $destination' : 'Live Bus';
+          _fromStop = origin ?? '—';
+          _toStop = destination ?? '—';
+        });
+        final routeId = bookingData['routeId'] as String?;
+        if (routeId != null) {
+          _fetchRoutePolyline(routeId);
+        }
       }
-
-      final sd = scheduleDoc.data()!;
-      final busId = sd['busId'] as String?;
 
       setState(() {
         _busId = busId;
-        _routeName = sd['routeName'] as String?;
-        _fromStop = sd['fromStop'] as String?;
-        _toStop = sd['toStop'] as String?;
         _isFetchingSchedule = false;
       });
 
       // Start RTDB subscriptions
-      if (busId != null) {
+      if (busId.isNotEmpty) {
         tracking.startTracking(busId, scheduleId);
         _startStaleCheckTimer();
         // Fetch and draw the route polyline + stop markers
@@ -268,44 +326,28 @@ class _LiveScreenState extends State<LiveScreen>
   // ── Marker animation ─────────────────────────────────────────────────────────
 
   /// Called every time [BusTrackingProvider] emits a new location.
-  void _animateMarkerTo(LatLng target) {
-    _interpolationTimer?.cancel();
-    _previousPosition = _displayPosition ?? target;
-    _targetPosition = target;
-    _interpolationProgress = 0.0;
+  void _animateMarkerTo(LatLng target, double targetHeading) {
+    if (_displayPosition == null) {
+      setState(() {
+        _displayPosition = target;
+        _displayHeading = targetHeading;
+      });
+      _mapController?.animateCamera(CameraUpdate.newLatLng(target));
+      return;
+    }
 
-    const int steps = 20;
-    const Duration stepDuration = Duration(milliseconds: 150);
+    _fromPosition = _displayPosition;
+    _toPosition = target;
+    _fromHeading = _displayHeading;
+    _toHeading = targetHeading;
 
-    _interpolationTimer =
-        Timer.periodic(stepDuration, (timer) {
-      _interpolationProgress += 1.0 / steps;
-      if (_interpolationProgress >= 1.0) {
-        _interpolationProgress = 1.0;
-        timer.cancel();
-      }
-
-      if (_previousPosition == null || _targetPosition == null) return;
-      final lat = _lerpDouble(
-          _previousPosition!.latitude, _targetPosition!.latitude, _interpolationProgress);
-      final lng = _lerpDouble(
-          _previousPosition!.longitude, _targetPosition!.longitude, _interpolationProgress);
-
-      if (mounted) {
-        setState(() => _displayPosition = LatLng(lat, lng));
-        _mapController?.animateCamera(
-          CameraUpdate.newLatLng(_displayPosition!),
-        );
-      }
-    });
+    _markerAnimController.forward(from: 0.0);
   }
-
-  double _lerpDouble(double a, double b, double t) => a + (b - a) * t;
 
   @override
   void dispose() {
     _pulseController.dispose();
-    _interpolationTimer?.cancel();
+    _markerAnimController.dispose();
     _staleCheckTimer?.cancel();
     _mapController?.dispose();
     // Stop RTDB subscriptions when leaving the screen
@@ -365,14 +407,16 @@ class _LiveScreenState extends State<LiveScreen>
       );
     }
 
-    // — Animate marker when a new location arrives —
+    // — Animate marker smoothly when a new location arrives —
     if (tracking.busLocation != null) {
       final newPos = tracking.busLocation!.latLng;
+      final newHeading = tracking.busLocation!.heading;
       if (_displayPosition == null) {
         _displayPosition = newPos;
-      } else if (_displayPosition != newPos && _targetPosition != newPos) {
+        _displayHeading = newHeading;
+      } else if (_toPosition != newPos) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _animateMarkerTo(newPos);
+          _animateMarkerTo(newPos, newHeading);
         });
       }
     }
@@ -558,7 +602,7 @@ class _LiveScreenState extends State<LiveScreen>
                 ? '${busLoc.speed.toStringAsFixed(0)} km/h'
                 : 'In Transit',
           ),
-          rotation: busLoc?.heading ?? 0,
+          rotation: _displayHeading,
           flat: true,
           zIndexInt: 2, // Render bus on top of stop markers
         ),
