@@ -216,11 +216,6 @@ class _LiveScreenState extends State<LiveScreen>
       if (busId.isNotEmpty) {
         tracking.startTracking(busId, scheduleId);
         _startStaleCheckTimer();
-        // Fetch and draw the route polyline + stop markers
-        final routeId = sd['routeId'] as String?;
-        if (routeId != null) {
-          _fetchRoutePolyline(routeId);
-        }
       }
     } catch (e) {
       debugPrint('[LiveScreen] Init error: $e');

@@ -163,7 +163,6 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
                 zoom: 16,
                 tilt: 40,
               ),
-              style: _darkMapStyle,
               onMapCreated: (controller) {
                 _mapController = controller;
               },

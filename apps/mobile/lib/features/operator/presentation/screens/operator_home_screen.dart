@@ -831,21 +831,58 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () => _showStartJourneyModal(trip, isDark),
-
-                      icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-                      label: const Text('Start Journey', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryOrange,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
+                  icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+                  label: const Text('Start Journey', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryOrange,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                ],
-              ],
-            ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniManifest() {
+    final scheduleId = _activeTrip?['id'];
+    if (scheduleId == null) return const SizedBox.shrink();
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('bookings')
+          .where('scheduleId', isEqualTo: scheduleId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final count = snapshot.data?.docs.length ?? 0;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.people_outline, size: 18, color: AppColors.primaryOrange),
+              const SizedBox(width: 8),
+              Text(
+                'Booked Passengers: $count',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+            ],
           ),
         );
+      },
+    );
   }
 
   void _showStartJourneyModal(Map<String, dynamic> trip, bool isDark) {
