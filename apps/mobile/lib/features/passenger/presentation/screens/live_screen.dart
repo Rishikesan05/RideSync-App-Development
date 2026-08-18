@@ -277,7 +277,7 @@ class _LiveScreenState extends State<LiveScreen>
 
       // Start RTDB subscriptions
       if (busId.isNotEmpty) {
-        tracking.startTracking(busId, scheduleId);
+        tracking.startTracking(busId, scheduleId ?? busId);
         _startStaleCheckTimer();
       }
     } catch (e) {
