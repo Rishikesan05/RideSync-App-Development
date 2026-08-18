@@ -182,15 +182,16 @@ class _LiveScreenState extends State<LiveScreen>
       if (scheduleDoc.exists) {
         final sd = scheduleDoc.data()!;
         busId = (sd['busId'] as String?) ??
+            (sd['busPlateNumber'] as String?) ??
             (sd['plateNumber'] as String?) ??
             directBusId ??
             scheduleId;
         setState(() {
           _routeName = (sd['routeName'] as String?) ?? (origin != null && destination != null ? '$origin - $destination' : 'Live Bus');
-          _fromStop = (sd['fromStop'] as String?) ?? origin ?? '—';
+          _fromStop = (sd['fromStop'] as String?) ?? (sd['startingPoint'] as String?) ?? origin ?? '—';
           _toStop = (sd['toStop'] as String?) ?? destination ?? '—';
         });
-        final routeId = sd['routeId'] as String?;
+        final routeId = (sd['routeId'] as String?) ?? (bookingData['routeId'] as String?);
         if (routeId != null) {
           _fetchRoutePolyline(routeId);
         }
@@ -200,6 +201,10 @@ class _LiveScreenState extends State<LiveScreen>
           _fromStop = origin ?? '—';
           _toStop = destination ?? '—';
         });
+        final routeId = bookingData['routeId'] as String?;
+        if (routeId != null) {
+          _fetchRoutePolyline(routeId);
+        }
       }
 
       setState(() {

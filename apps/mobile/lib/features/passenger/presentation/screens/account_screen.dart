@@ -76,7 +76,7 @@ class AccountScreen extends StatelessWidget {
         children: [
           const SizedBox(height: 20),
           if (auth.isAuthenticated)
-            _buildProfileHeader(auth, isDark)
+            _buildProfileHeader(context, auth, isDark)
           else
             _buildGuestHeader(context, auth, isDark),
         ],
@@ -84,43 +84,46 @@ class AccountScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileHeader(AuthProvider auth, bool isDark) {
+  Widget _buildProfileHeader(BuildContext context, AuthProvider auth, bool isDark) {
     return Column(
       children: [
-        Stack(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: CircleAvatar(
-                radius: 50,
-                backgroundColor: isDark
-                    ? Colors.grey[800]
-                    : Colors.white,
-                child: Icon(
-                  Icons.person,
-                  size: 60,
-                  color: isDark ? Colors.white : AppColors.primaryOrange,
+        GestureDetector(
+          onTap: () => _showPersonalInformationDialog(context, auth, isDark),
+          child: Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: isDark
+                      ? Colors.grey[800]
+                      : Colors.white,
+                  child: Icon(
+                    Icons.person,
+                    size: 60,
+                    color: isDark ? Colors.white : AppColors.primaryOrange,
+                  ),
                 ),
               ),
-            ),
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: Colors.white,
-                child: Icon(Icons.edit, size: 18, color: AppColors.primaryOrange),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.white,
+                  child: const Icon(Icons.edit, size: 18, color: AppColors.primaryOrange),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 16),
         Text(
-          auth.user?.name ?? 'User Name',
+          auth.user?.name ?? 'Passenger User',
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -320,6 +323,7 @@ class AccountScreen extends StatelessWidget {
               'Personal Information',
               isDark,
               subTitle: 'Name, email, and phone validation',
+              onTap: () => _showPersonalInformationDialog(context, auth, isDark),
             ),
             _buildMenuItem(
               context,
@@ -684,12 +688,262 @@ class AccountScreen extends StatelessWidget {
         },
       ),
     );
-  }  void _showFavouriteRoutesDialog(BuildContext context, bool isDark) {
+  }
+
+  void _showPersonalInformationDialog(BuildContext context, AuthProvider auth, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) => _PersonalInformationDialog(auth: auth, isDark: isDark),
+    );
+  }
+
+  void _showFavouriteRoutesDialog(BuildContext context, bool isDark) {
     showDialog(
       context: context,
       builder: (context) => _FavouriteRoutesDialog(isDark: isDark),
     );
   }
+}
+
+class _PersonalInformationDialog extends StatefulWidget {
+  final AuthProvider auth;
+  final bool isDark;
+  const _PersonalInformationDialog({required this.auth, required this.isDark});
+
+  @override
+  State<_PersonalInformationDialog> createState() => _PersonalInformationDialogState();
+}
+
+class _PersonalInformationDialogState extends State<_PersonalInformationDialog> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _phoneCtrl;
+  bool _isSaving = false;
+  String? _errorMsg;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.auth.user?.name ?? '');
+    _phoneCtrl = TextEditingController(text: widget.auth.user?.phone ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSave() async {
+    final name = _nameCtrl.text.trim();
+    final phone = _phoneCtrl.text.trim();
+
+    if (name.isEmpty) {
+      setState(() => _errorMsg = 'Please enter your full name');
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+      _errorMsg = null;
+    });
+
+    try {
+      await widget.auth.updatePassengerProfile(name: name, phone: phone);
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Personal details updated successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+        _errorMsg = 'Failed to update details: $e';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = widget.auth.user;
+    final isDark = widget.isDark;
+
+    return AlertDialog(
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primaryOrange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.person_outline, color: AppColors.primaryOrange, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Personal Details',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : AppColors.textDark,
+            ),
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Account Role & ID chip
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white10 : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.verified_user_outlined, size: 14, color: AppColors.primaryOrange),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Passenger Account',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white70 : Colors.black87,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    user?.id != null ? 'ID: ${user!.id.substring(0, mathMin(6, user.id.length))}...' : '',
+                    style: TextStyle(fontSize: 11, color: isDark ? Colors.white38 : Colors.black38),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Name Field
+            Text(
+              'FULL NAME',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white60 : Colors.black54,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _nameCtrl,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              decoration: InputDecoration(
+                hintText: 'Enter your full name',
+                prefixIcon: const Icon(Icons.person, size: 18),
+                filled: true,
+                fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Email Field (Read only)
+            Text(
+              'EMAIL ADDRESS',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white60 : Colors.black54,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: TextEditingController(text: user?.email ?? ''),
+              readOnly: true,
+              style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.email_outlined, size: 18),
+                suffixIcon: const Icon(Icons.lock_outline, size: 16, color: Colors.grey),
+                filled: true,
+                fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Phone Field
+            Text(
+              'PHONE NUMBER',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white60 : Colors.black54,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _phoneCtrl,
+              keyboardType: TextInputType.phone,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              decoration: InputDecoration(
+                hintText: '+94 77 XXXXXXX',
+                prefixIcon: const Icon(Icons.phone_outlined, size: 18),
+                filled: true,
+                fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+            ),
+
+            if (_errorMsg != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _errorMsg!,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSaving ? null : () => Navigator.pop(context),
+          child: Text('Cancel', style: TextStyle(color: isDark ? Colors.white60 : Colors.black54)),
+        ),
+        ElevatedButton(
+          onPressed: _isSaving ? null : _handleSave,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primaryOrange,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          ),
+          child: _isSaving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                )
+              : const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        ),
+      ],
+    );
+  }
+
+  int mathMin(int a, int b) => a < b ? a : b;
 }
 
 class _FavouriteRoutesDialog extends StatefulWidget {

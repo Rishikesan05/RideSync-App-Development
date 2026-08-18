@@ -106,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Consumer<LiveJourneyProvider>(
                           builder: (context, liveJourney, child) {
-                            if (liveJourney.hasActiveBooking && liveJourney.hasJourneyStarted) {
+                            if (liveJourney.hasActiveBooking) {
                               return Column(
                                 children: [
                                   _BookingPreviewCard(isDark: isDark),
@@ -592,9 +592,20 @@ class _BookingPreviewCardState extends State<_BookingPreviewCard> with SingleTic
 
   @override
   Widget build(BuildContext context) {
+    final live = context.watch<LiveJourneyProvider>();
+    final routeTitle = live.routeName ?? 
+        (live.origin != null && live.destination != null ? '${live.origin} → ${live.destination}' : 'Active Trip');
+    final plate = live.busPlateNumber != null && live.busPlateNumber!.isNotEmpty 
+        ? 'Bus: ${live.busPlateNumber}' 
+        : 'Live Bus';
+    final origin = live.origin ?? 'Origin';
+    final dest = live.destination ?? 'Destination';
+    final seatsText = live.seats.isNotEmpty ? 'Seat ${live.seats.join(", ")}' : '';
+    final isStarted = live.hasJourneyStarted;
+
     return Container(
       decoration: BoxDecoration(
-        color: widget.isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.6),
+        color: widget.isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: widget.isDark ? Colors.white.withValues(alpha: 0.1) : Colors.white,
@@ -625,11 +636,11 @@ class _BookingPreviewCardState extends State<_BookingPreviewCard> with SingleTic
                       child: Container(
                         width: 12,
                         height: 12,
-                        decoration: const BoxDecoration(
-                          color: Colors.redAccent,
+                        decoration: BoxDecoration(
+                          color: isStarted ? Colors.green : Colors.orange,
                           shape: BoxShape.circle,
                           boxShadow: [
-                            BoxShadow(color: Colors.redAccent, blurRadius: 8, spreadRadius: 2)
+                            BoxShadow(color: isStarted ? Colors.green : Colors.orange, blurRadius: 8, spreadRadius: 2)
                           ],
                         ),
                       ),
@@ -637,9 +648,9 @@ class _BookingPreviewCardState extends State<_BookingPreviewCard> with SingleTic
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'LIVE TRACKING',
+                        isStarted ? 'LIVE TRACKING' : 'CONFIRMED TRIP',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Colors.redAccent,
+                          color: isStarted ? Colors.green : AppColors.primaryOrange,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 1.2,
                         ),
@@ -652,9 +663,9 @@ class _BookingPreviewCardState extends State<_BookingPreviewCard> with SingleTic
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        'ETA: 12 mins',
+                        isStarted ? 'IN TRANSIT' : 'UPCOMING',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: widget.isDark ? Colors.white : Colors.black87,
                         ),
@@ -662,9 +673,9 @@ class _BookingPreviewCardState extends State<_BookingPreviewCard> with SingleTic
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 Text(
-                  'Express 154 to Fort',
+                  routeTitle,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: widget.isDark ? Colors.white : AppColors.textDark,
@@ -672,13 +683,14 @@ class _BookingPreviewCardState extends State<_BookingPreviewCard> with SingleTic
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Your bus is currently near Town Hall',
+                  [plate, if (seatsText.isNotEmpty) seatsText].join(' • '),
                   style: TextStyle(
                     fontSize: 13,
-                    color: widget.isDark ? Colors.white60 : Colors.black54,
+                    fontWeight: FontWeight.w600,
+                    color: widget.isDark ? Colors.white70 : Colors.black54,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 18),
                 // Progress Bar
                 Stack(
                   children: [
@@ -690,12 +702,12 @@ class _BookingPreviewCardState extends State<_BookingPreviewCard> with SingleTic
                       ),
                     ),
                     FractionallySizedBox(
-                      widthFactor: 0.65,
+                      widthFactor: isStarted ? 0.65 : 0.15,
                       child: Container(
                         height: 8,
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [AppColors.primaryOrange, Colors.redAccent],
+                            colors: [AppColors.primaryOrange, Colors.orangeAccent],
                           ),
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -703,17 +715,17 @@ class _BookingPreviewCardState extends State<_BookingPreviewCard> with SingleTic
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Borella', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: widget.isDark ? Colors.white70 : Colors.black45)),
-                    Text('Fort', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: widget.isDark ? Colors.white70 : Colors.black45)),
+                    Text(origin, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: widget.isDark ? Colors.white70 : Colors.black54)),
+                    Text(dest, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: widget.isDark ? Colors.white70 : Colors.black54)),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
                 RideSyncPrimaryButton(
-                  label: 'View Live Map',
+                  label: 'View Live Tracking',
                   icon: Icons.map_rounded,
                   onPressed: () {
                     Navigator.pushNamed(context, '/main', arguments: {'index': 2});

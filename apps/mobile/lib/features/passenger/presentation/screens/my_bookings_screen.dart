@@ -35,8 +35,6 @@ class MyBookingsScreen extends StatelessWidget {
         stream: FirebaseFirestore.instance
             .collection('bookings')
             .where('passengerId', isEqualTo: userId)
-            .orderBy('timestamp', descending: true)
-            .limit(50)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -52,15 +50,13 @@ class MyBookingsScreen extends StatelessWidget {
                   children: [
                     const Icon(Icons.error_outline, size: 48, color: AppColors.textLight),
                     const SizedBox(height: 16),
-                    Text(
+                    const Text(
                       'Unable to load bookings',
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      snapshot.error.toString().contains('index')
-                          ? 'Firestore index is being built. Please try again in a few minutes.'
-                          : 'Error: ${snapshot.error}',
+                      'Error: ${snapshot.error}',
                       style: const TextStyle(color: AppColors.textLight, fontSize: 12),
                       textAlign: TextAlign.center,
                     ),
@@ -70,7 +66,7 @@ class MyBookingsScreen extends StatelessWidget {
             );
           }
 
-          final docs = snapshot.data?.docs ?? [];
+          final docs = List<DocumentSnapshot>.from(snapshot.data?.docs ?? []);
 
           if (docs.isEmpty) {
             return Center(
@@ -87,6 +83,18 @@ class MyBookingsScreen extends StatelessWidget {
             );
           }
 
+          // In-memory sort by timestamp descending
+          docs.sort((a, b) {
+            final aData = a.data() as Map<String, dynamic>;
+            final bData = b.data() as Map<String, dynamic>;
+            final aTime = aData['timestamp'] ?? aData['createdAt'];
+            final bTime = bData['timestamp'] ?? bData['createdAt'];
+            if (aTime is Timestamp && bTime is Timestamp) {
+              return bTime.compareTo(aTime);
+            }
+            return 0;
+          });
+
           // Separate into upcoming and past
           final now = DateTime.now();
           final upcoming = <DocumentSnapshot>[];
@@ -98,6 +106,8 @@ class MyBookingsScreen extends StatelessWidget {
             DateTime? departure;
             if (depTime is Timestamp) {
               departure = depTime.toDate();
+            } else if (depTime is String) {
+              departure = DateTime.tryParse(depTime)?.toLocal();
             }
             if (departure != null && departure.isAfter(now)) {
               upcoming.add(doc);
@@ -161,7 +171,10 @@ class MyBookingsScreen extends StatelessWidget {
     final depTime = data['departureTime'];
     if (depTime is Timestamp) {
       departure = depTime.toDate();
+    } else if (depTime is String) {
+      departure = DateTime.tryParse(depTime)?.toLocal();
     }
+    final balanceDue = (data['balanceDue'] as num? ?? 0).toDouble();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -245,19 +258,33 @@ class MyBookingsScreen extends StatelessWidget {
           Row(
             children: [
               if (departure != null) ...[
-                Icon(Icons.calendar_today, size: 13, color: AppColors.textLight),
+                const Icon(Icons.calendar_today, size: 13, color: AppColors.textLight),
                 const SizedBox(width: 4),
                 Text(DateFormat('MMM d, hh:mm a').format(departure), style: const TextStyle(fontSize: 11, color: AppColors.textLight)),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
               ],
-              Icon(Icons.event_seat, size: 13, color: AppColors.textLight),
+              const Icon(Icons.event_seat, size: 13, color: AppColors.textLight),
               const SizedBox(width: 4),
               Text(seats, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
               if (distanceKm.toString().isNotEmpty) ...[
-                const SizedBox(width: 16),
-                Icon(Icons.straighten, size: 13, color: AppColors.textLight),
+                const SizedBox(width: 14),
+                const Icon(Icons.straighten, size: 13, color: AppColors.textLight),
                 const SizedBox(width: 4),
                 Text('$distanceKm km', style: const TextStyle(fontSize: 11, color: AppColors.textLight)),
+              ],
+              if (balanceDue > 0) ...[
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'Due: LKR ${balanceDue.toStringAsFixed(0)}',
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.orange),
+                  ),
+                ),
               ],
               const Spacer(),
               Text(

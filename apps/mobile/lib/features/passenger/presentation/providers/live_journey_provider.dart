@@ -6,6 +6,8 @@ class LiveJourneyProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _hasActiveBooking = false;
   bool _hasJourneyStarted = false;
+  Map<String, dynamic>? _activeBooking;
+  Map<String, dynamic>? _activeSchedule;
   
   StreamSubscription? _bookingSub;
   StreamSubscription? _scheduleSub;
@@ -13,6 +15,16 @@ class LiveJourneyProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get hasActiveBooking => _hasActiveBooking;
   bool get hasJourneyStarted => _hasJourneyStarted;
+  Map<String, dynamic>? get activeBooking => _activeBooking;
+  Map<String, dynamic>? get activeSchedule => _activeSchedule;
+
+  String? get routeName => _activeBooking?['routeName'] ?? _activeSchedule?['routeName'];
+  String? get origin => _activeBooking?['origin'] ?? _activeSchedule?['startingPoint'];
+  String? get destination => _activeBooking?['destination'];
+  String? get busPlateNumber => _activeBooking?['plateNumber'] ?? _activeSchedule?['busPlateNumber'];
+  List<dynamic> get seats => (_activeBooking?['seats'] as List<dynamic>?) ?? [];
+  double get balanceDue => (_activeBooking?['balanceDue'] as num? ?? 0.0).toDouble();
+  double get totalFare => (_activeBooking?['totalFare'] as num? ?? 0.0).toDouble();
 
   void initialize(String? userId) {
     _bookingSub?.cancel();
@@ -20,6 +32,8 @@ class LiveJourneyProvider extends ChangeNotifier {
     
     _hasActiveBooking = false;
     _hasJourneyStarted = false;
+    _activeBooking = null;
+    _activeSchedule = null;
 
     if (userId == null) {
       notifyListeners();
@@ -38,6 +52,8 @@ class LiveJourneyProvider extends ChangeNotifier {
       if (bookingSnap.docs.isEmpty) {
         _hasActiveBooking = false;
         _hasJourneyStarted = false;
+        _activeBooking = null;
+        _activeSchedule = null;
         _isLoading = false;
         _scheduleSub?.cancel();
         notifyListeners();
@@ -45,13 +61,18 @@ class LiveJourneyProvider extends ChangeNotifier {
       }
 
       // Find the most relevant booking (prefer confirmed/active, or any booking with busId/scheduleId)
-      final allDocs = bookingSnap.docs.map((d) => d.data()).toList();
+      final allDocs = bookingSnap.docs.map((d) {
+        final data = d.data();
+        data['id'] = d.id;
+        return data;
+      }).toList();
       final activeBooking = allDocs.firstWhere(
         (b) => b['status'] != 'cancelled' && (b['busId'] != null || b['scheduleId'] != null),
         orElse: () => allDocs.first,
       );
 
       _hasActiveBooking = true;
+      _activeBooking = activeBooking;
       final scheduleId = activeBooking['scheduleId'] as String?;
       final busId = activeBooking['busId'] as String?;
 
@@ -79,6 +100,7 @@ class LiveJourneyProvider extends ChangeNotifier {
         }
 
         final scheduleData = scheduleSnap.data()!;
+        _activeSchedule = scheduleData;
         final status = scheduleData['status'] as String?;
 
         // "journey started" happens when operator/admin updates status to in-transit, or if bus is broadcasting
