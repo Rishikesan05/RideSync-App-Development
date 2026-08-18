@@ -48,7 +48,7 @@ class LiveJourneyProvider extends ChangeNotifier {
         .collection('bookings')
         .where('passengerId', isEqualTo: userId)
         .snapshots()
-        .listen((bookingSnap) {
+        .listen((bookingSnap) async {
       if (bookingSnap.docs.isEmpty) {
         _hasActiveBooking = false;
         _hasJourneyStarted = false;
@@ -60,31 +60,87 @@ class LiveJourneyProvider extends ChangeNotifier {
         return;
       }
 
-      // Find the most relevant booking (prefer confirmed/active, or any booking with busId/scheduleId)
-      final allDocs = bookingSnap.docs.map((d) {
-        final data = d.data();
-        data['id'] = d.id;
-        return data;
-      }).toList();
-      final activeBooking = allDocs.firstWhere(
-        (b) => b['status'] != 'cancelled' && (b['busId'] != null || b['scheduleId'] != null),
-        orElse: () => allDocs.first,
-      );
+      // Filter active (non-cancelled, non-completed) bookings with a linked bus/schedule
+      final allBookings = bookingSnap.docs
+          .map((d) {
+            final data = d.data();
+            data['id'] = d.id;
+            return data;
+          })
+          .where((b) =>
+              b['status'] != 'cancelled' &&
+              b['status'] != 'completed' &&
+              (b['busId'] != null || b['scheduleId'] != null))
+          .toList();
 
-      _hasActiveBooking = true;
-      _activeBooking = activeBooking;
-      final scheduleId = activeBooking['scheduleId'] as String?;
-      final busId = activeBooking['busId'] as String?;
+      if (allBookings.isEmpty) {
+        _hasActiveBooking = false;
+        _hasJourneyStarted = false;
+        _activeBooking = null;
+        _activeSchedule = null;
+        _isLoading = false;
+        _scheduleSub?.cancel();
+        notifyListeners();
+        return;
+      }
+
+      // Sort newest bookings first
+      allBookings.sort((a, b) {
+        final timeA = a['departureTime'] ?? a['timestamp'];
+        final timeB = b['departureTime'] ?? b['timestamp'];
+        if (timeA == null || timeB == null) return 0;
+        return timeB.toString().compareTo(timeA.toString());
+      });
+
+      // Find the active in-transit trip first, or the first upcoming non-completed trip
+      Map<String, dynamic>? selectedBooking;
+      for (final b in allBookings) {
+        final schedId = b['scheduleId'] as String?;
+        if (schedId != null) {
+          try {
+            final sDoc = await FirebaseFirestore.instance
+                .collection('schedules')
+                .doc(schedId)
+                .get();
+            if (sDoc.exists) {
+              final sStatus = sDoc.data()?['status'] as String?;
+              if (sStatus == 'in-transit' || sStatus == 'started') {
+                selectedBooking = b;
+                break; // Found active in-transit trip!
+              } else if (sStatus != 'completed' && sStatus != 'cancelled') {
+                selectedBooking ??= b; // Found valid upcoming trip
+              }
+            }
+          } catch (_) {}
+        } else if (b['busId'] != null) {
+          selectedBooking ??= b;
+        }
+      }
+
+      if (selectedBooking == null) {
+        _hasActiveBooking = false;
+        _hasJourneyStarted = false;
+        _activeBooking = null;
+        _activeSchedule = null;
+        _isLoading = false;
+        _scheduleSub?.cancel();
+        notifyListeners();
+        return;
+      }
+
+      _activeBooking = selectedBooking;
+      final scheduleId = selectedBooking['scheduleId'] as String?;
+      final busId = selectedBooking['busId'] as String?;
 
       if (scheduleId == null) {
-        // Direct busId booking (like in Firestore bookings collection) — allow live tracking immediately
-        _hasJourneyStarted = busId != null && busId.isNotEmpty;
+        _hasActiveBooking = busId != null && busId.isNotEmpty;
+        _hasJourneyStarted = false;
         _isLoading = false;
         notifyListeners();
         return;
       }
 
-      // Listen to the associated schedule to check if journey started
+      // Listen to the associated schedule real-time stream to detect operator Start / End Journey
       _scheduleSub?.cancel();
       _scheduleSub = FirebaseFirestore.instance
           .collection('schedules')
@@ -92,19 +148,33 @@ class LiveJourneyProvider extends ChangeNotifier {
           .snapshots()
           .listen((scheduleSnap) {
         if (!scheduleSnap.exists) {
-          // If schedule doc is missing but busId exists on booking, still allow tracking
-          _hasJourneyStarted = busId != null && busId.isNotEmpty;
+          _hasActiveBooking = false;
+          _hasJourneyStarted = false;
+          _activeSchedule = null;
           _isLoading = false;
           notifyListeners();
           return;
         }
 
         final scheduleData = scheduleSnap.data()!;
-        _activeSchedule = scheduleData;
         final status = scheduleData['status'] as String?;
 
-        // "journey started" happens when operator/admin updates status to in-transit, or if bus is broadcasting
-        _hasJourneyStarted = (status == 'in-transit' || status == 'started' || status == 'active' || status == 'scheduled');
+        if (status == 'completed' || status == 'cancelled') {
+          // Journey finished or cancelled by operator — remove card from home screen
+          _hasActiveBooking = false;
+          _hasJourneyStarted = false;
+          _activeSchedule = null;
+        } else if (status == 'in-transit' || status == 'started') {
+          // Operator tapped "Start Journey" — show LIVE TRACKING / IN TRANSIT
+          _hasActiveBooking = true;
+          _hasJourneyStarted = true;
+          _activeSchedule = scheduleData;
+        } else {
+          // Scheduled / Confirmed trip — show UPCOMING
+          _hasActiveBooking = true;
+          _hasJourneyStarted = false;
+          _activeSchedule = scheduleData;
+        }
 
         _isLoading = false;
         notifyListeners();
