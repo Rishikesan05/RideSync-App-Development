@@ -163,6 +163,7 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
                 zoom: 16,
                 tilt: 40,
               ),
+              style: _darkMapStyle,
               onMapCreated: (controller) {
                 _mapController = controller;
               },
@@ -374,7 +375,6 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
                               widget.trip['plateNumber'] as String? ??
                               widget.trip['id'] as String;
                           final scheduleId = widget.trip['id'] as String?;
-                          final routeId = widget.trip['routeId'] as String?;
                           final busPlateNumber = widget.trip['busPlateNumber'] as String? ??
                               widget.trip['plateNumber'] as String?;
                           final routeName = widget.trip['routeName'] as String?;
