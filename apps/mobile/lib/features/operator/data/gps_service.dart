@@ -90,13 +90,6 @@ class GpsService {
 
   /// Starts continuous GPS broadcasting via [Geolocator.getPositionStream].
   ///
-  /// [busId]      — Firestore document ID of the assigned bus.
-  /// [scheduleId] — Active schedule ID; written to RTDB for Cloud Functions.
-  /// [routeId]    — Route ID; written to RTDB for Cloud Functions.
-  ///
-  /// Calling this while already broadcasting stops the old stream first.
-  /// Starts continuous GPS broadcasting via [Geolocator.getPositionStream].
-  ///
   /// [busId]      — Firestore document ID or plate number of the assigned bus.
   /// [scheduleId] — Active schedule ID; written to RTDB for Cloud Functions.
   /// [routeId]    — Route ID; written to RTDB for Cloud Functions.

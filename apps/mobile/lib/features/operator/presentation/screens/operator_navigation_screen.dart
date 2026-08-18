@@ -157,6 +157,7 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
           children: [
             // ── 1. Full Screen Google Map (Dark Navigation Theme) ────────────
             GoogleMap(
+              style: _darkMapStyle,
               initialCameraPosition: CameraPosition(
                 target: _currentLocation,
                 zoom: 16,
@@ -370,6 +371,7 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
                           );
                         } else {
                           final busId = widget.trip['busId'] as String? ??
+                              widget.trip['busPlateNumber'] as String? ??
                               widget.trip['plateNumber'] as String? ??
                               widget.trip['id'] as String;
                           final scheduleId = widget.trip['id'] as String?;

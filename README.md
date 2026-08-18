@@ -1,112 +1,129 @@
-# 🚀 RideSync: Integrated Bus Management Ecosystem
+# 🚀 RideSync: Integrated Smart Bus Management & Telemetry Ecosystem
 
 [![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
 [![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-RideSync is a state-of-the-art, multi-platform solution designed to revolutionize public transportation. By integrating real-time tracking, automated scheduling, and seamless passenger interaction, RideSync provides a unified experience for passengers, operators, and administrators.
+**RideSync** is an end-to-end, multi-platform transit operating ecosystem designed to revolutionize public transportation. By integrating continuous real-time telemetry, automated dispatching, multi-stop fare computation, and role-based access control, RideSync delivers a seamless experience for passengers, bus operators, and transit administrators.
 
 ---
 
 ## 🏗️ Architecture Overview
 
-RideSync is structured as a **Monorepo**, ensuring consistency across all platforms and simplifying the sharing of business logic and models.
+RideSync is structured as a scalable **Monorepo**, separating concerns across mobile clients, administrative web portals, and serverless backend cloud functions:
 
 ```text
 RideSync/
 ├── apps/
-│   ├── mobile/         # Flutter application for Passengers and Drivers
-│   └── web/            # React-based Admin Dashboard for fleet management
+│   ├── mobile/         # Flutter application for Passengers and Bus Operators (iOS & Android)
+│   └── web/            # React 19 + MUI Administrative Portal for fleet & transit management
 ├── backend/
-│   └── functions/      # Firebase Cloud Functions (Typescript)
+│   └── functions/      # Firebase Cloud Functions (Node.js + Express API & Gemini AI services)
 ├── packages/
-│   └── shared/         # Shared data models and business logic
-├── config/             # Centralized project configurations
-└── docs/               # Detailed architecture and design specifications
+│   └── shared/         # Shared data models, validation schemas, and constants
+├── firestore.rules     # Granular Role-Based Access Control (RBAC) security rules
+└── database.rules.json # Realtime Database rules for ultra-low latency GPS streaming
 ```
 
 ---
 
-## ✨ Key Features
+## ✨ Key Capabilities
 
-### 📱 Mobile Application (Passenger & Driver)
-- **Real-time Tracking**: Live GPS monitoring of buses on interactive maps.
-- **Dynamic Booking**: Instant seat reservation and digital ticketing.
-- **Smart Notifications**: Push alerts for delays, arrivals, and schedule changes.
-- **Driver Portal**: Route management, occupancy tracking, and navigation.
+### 📱 Mobile Application (Passenger & Operator)
+* **Live GPS Tracking**: Real-time bus movement with stop-by-stop polylines and smooth marker animations.
+* **Dynamic Seat Booking**: Interactive seat layout matrix with real-time seat locking and confirmation.
+* **Stop-to-Stop Fare Engine**: Automated stage-based fare computation per route stop.
+* **Operator In-Transit Hub**: Turn-by-turn navigation overlay, continuous GPS broadcasting, walk-in counter, and delay reporting.
+* **AI Transit Assistant**: Integrated conversational assistant powered by Google Gemini SDK for schedule queries.
 
-### 💻 Web Dashboard (Admin)
-- **Fleet Management**: Real-time overview of all active vehicles.
-- **Route Optimization**: Tools for planning and adjusting bus routes based on demand.
-- **Analytics & Reporting**: Data-driven insights into passenger volume and service efficiency.
-- **User Management**: Unified control over passenger and operator accounts.
+### 💻 Web Dashboard (Admin & Fleet Management)
+* **Live Fleet Telemetry**: Simultaneous multi-bus GPS map view with real-time speed, heading, and delay monitoring.
+* **Route & Schedule Dispatcher**: Visual route geometry planning, waypoint sequencing, and automated schedule generation.
+* **User & Operator Governance**: Role management with approval workflows for new bus operators and administrators.
+* **Seat & Revenue Analytics**: Seat occupancy rates, route profitability, and operational performance metrics.
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Technology Stack
 
-- **Frontend (Mobile)**: Flutter (Dart) with Provider/Riverpod for state management.
-- **Frontend (Web)**: React.js, Vite, TailwindCSS.
-- **Backend**: Firebase (Firestore, Authentication, Cloud Functions).
-- **Communication**: Real-time synchronization via Firebase SDK.
+| Layer | Technologies |
+| :--- | :--- |
+| **Mobile Client** | Flutter, Dart, Provider, Google Maps Flutter, Geolocator, Google Generative AI |
+| **Web Portal** | React 19, Vite, Material UI (MUI), TanStack React Query, Recharts, Framer Motion |
+| **Backend & APIs** | Node.js (Express), Firebase Cloud Functions, Google Generative AI SDK, Joi |
+| **Cloud & Database** | Cloud Firestore, Firebase Realtime Database (RTDB), Firebase Auth, Cloud Storage |
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) (Stable)
-- [Node.js](https://nodejs.org/) (v18+)
-- [Firebase CLI](https://firebase.google.com/docs/cli)
-
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Rishikesan05/RideSync-App-Development.git
-   cd RideSync-App-Development
-   ```
-
-2. **Setup Mobile App (Android):**
-   ```bash
-   cd apps/mobile
-   flutter pub get
-   ```
-
-3. **Setup Web Dashboard:**
-   ```bash
-   cd apps/web
-   npm install
-   ```
+* [Flutter SDK](https://docs.flutter.dev/get-started/install) (3.11+)
+* [Node.js](https://nodejs.org/) (v18 or v20)
+* [Firebase CLI](https://firebase.google.com/docs/cli) (`npm install -g firebase-tools`)
 
 ---
 
-## 🔐 Team Setup & Security
+### 1. Clone & Setup Repository
 
-Since API keys and Firebase secrets are **not** stored in Git, every group member must follow these steps to set up their local environment:
+```bash
+git clone https://github.com/Rishikesan05/RideSync-App-Development.git
+cd RideSync-App-Development
+```
 
-### 📱 For Android Development (`apps/mobile`)
-1.  **Firebase Config**: Place your `google-services.json` inside `apps/mobile/android/app/`.
-2.  **Environment**: Copy `.env.example` to `.env` and fill in your `GOOGLE_MAPS_API_KEY`.
+### 2. Run the Mobile App (`apps/mobile`)
 
-### 💻 For Web Development (`apps/web`)
-1.  **Environment**: Copy `.env.example` to `.env` and fill in all `VITE_FIREBASE_*` and `VITE_GOOGLE_MAPS_API_KEY` values.
+```bash
+cd apps/mobile
+flutter pub get
+flutter run
+```
+
+### 3. Run the Admin Web Portal (`apps/web`)
+
+```bash
+cd apps/web
+npm install
+npm run dev
+```
+*The administrative portal will launch at `http://localhost:5173`.*
+
+### 4. Run Backend Functions Locally (Optional)
+
+```bash
+cd backend/functions
+npm install
+npm run serve
+```
 
 ---
 
-## 🤝 Contribution Guidelines
+## 🔐 Environment Configuration
 
-We follow a strict, professional branching and commit convention to ensure code quality:
+Environment secrets and API credentials are kept out of source control:
 
-- **Branches**: `feature/`, `fix/`, `refactor/`, `docs/`.
-- **Commits**: `[RIDESYNC] YYYY-MM-DD | <Type>: <Description>`
+* **Mobile (`apps/mobile`)**:
+  * Place `google-services.json` in `apps/mobile/android/app/`.
+  * Create `.env` in `apps/mobile/` with `GOOGLE_MAPS_API_KEY` and `GEMINI_API_KEY`.
+* **Web (`apps/web`)**:
+  * Create `.env` in `apps/web/` containing your `VITE_FIREBASE_*` credentials and `VITE_GOOGLE_MAPS_API_KEY`.
 
-*Example: `[RIDESYNC] 2026-05-16 | Feat: Implement real-time tracking`*
+---
+
+## 🤝 Branching & Commit Guidelines
+
+To ensure academic and professional software development standards:
+
+* **Branch format**: `feature/<feature-name>`, `fix/<bug-name>`, `chore/<task-name>`
+* **Commit convention**: `[RIDESYNC] YYYY-MM-DD | <Type>: <Description>`
+
+*Example:* `[RIDESYNC] 2026-08-18 | Feat: Implement multi-bus live fleet telemetry`
 
 ---
 
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Developed with ❤️ by the RideSync Team.
+Developed with ❤️ by the **RideSync Team**.

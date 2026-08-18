@@ -256,7 +256,6 @@ export const LiveMapView = () => {
       const ageMs = Date.now() - (loc.timestamp ?? 0);
       const isStale = ageMs > 60_000;
 
-      const position = new window.google.maps.LatLng(loc.lat, loc.lng);
       const isSelected = selectedSchedule && (
         selectedSchedule.busId === busId ||
         selectedSchedule.plateNumber === busId ||

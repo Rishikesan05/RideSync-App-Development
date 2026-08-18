@@ -1040,8 +1040,8 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
       //    silently prevents the operator's location from being shared.
       if (!mounted) return;
       final scheduleId = trip['id'] as String;
-      final busId = (trip['busId'] as String?) ?? (trip['plateNumber'] as String?) ?? scheduleId;
-      final routeId = trip['routeId'] as String?;
+      final busId = (trip['busId'] as String?) ?? (trip['plateNumber'] as String?) ?? (_activeTrip?['busId'] as String?) ?? scheduleId;
+      final routeId = (trip['routeId'] as String?) ?? (_activeTrip?['routeId'] as String?);
       final gpsProvider = Provider.of<GpsBroadcastProvider>(context, listen: false);
       final started = await gpsProvider.startBroadcasting(
         busId,
@@ -1251,6 +1251,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
   }
 
 
+
   Widget _buildScheduleList(bool isDark) {
     if (_todaySchedules.isEmpty) {
       return Container(
@@ -1441,65 +1442,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
     }
   }
 
-  Widget _buildMiniManifest() {
-    final tripId = _activeTrip?['id'] as String?;
-    if (tripId == null) return const SizedBox.shrink();
 
-    return SizedBox(
-      height: 48,
-      child: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('bookings')
-            .where('scheduleId', isEqualTo: tripId)
-            .where('status', isEqualTo: 'confirmed')
-            .limit(10)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text(
-                'No confirmed passengers yet',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-            );
-          }
-
-          final docs = snapshot.data!.docs;
-          return ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: docs.length,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            separatorBuilder: (context, index) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final data = docs[index].data() as Map<String, dynamic>;
-              final seatNo = data['seatNo'] as String? ?? '?';
-              final isBoarded = data['boarded'] == true;
-
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 12,
-                      backgroundColor: isBoarded ? Colors.green.shade200 : Colors.orange.shade200,
-                      child: Icon(Icons.person, size: 16, color: isBoarded ? Colors.green.shade800 : Colors.orange.shade800),
-                    ),
-                    const SizedBox(width: 8),
-                    Text('Seat $seatNo', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
 }
 
 class _CurvedHeaderText extends StatelessWidget {
