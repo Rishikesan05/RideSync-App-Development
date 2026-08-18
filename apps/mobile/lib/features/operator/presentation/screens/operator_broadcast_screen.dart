@@ -92,6 +92,8 @@ class _OperatorBroadcastScreenState extends State<OperatorBroadcastScreen>
         _busId,
         scheduleId: _scheduleId,
         routeId: _routeId,
+        busPlateNumber: _plateNumber.isNotEmpty ? _plateNumber : null,
+        routeName: _routeName != 'Route' ? _routeName : null,
       );
       if (!ok && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

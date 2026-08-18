@@ -1079,11 +1079,18 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
       final scheduleId = trip['id'] as String;
       final busId = (trip['busId'] as String?) ?? (trip['plateNumber'] as String?) ?? (_activeTrip?['busId'] as String?) ?? scheduleId;
       final routeId = (trip['routeId'] as String?) ?? (_activeTrip?['routeId'] as String?);
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final operatorUid = auth.user?.id;
+      final busPlateNumber = (trip['busPlateNumber'] as String?) ?? (trip['plateNumber'] as String?);
+      final routeName = trip['routeName'] as String?;
       final gpsProvider = Provider.of<GpsBroadcastProvider>(context, listen: false);
       final started = await gpsProvider.startBroadcasting(
         busId,
         scheduleId: scheduleId,
         routeId: routeId,
+        operatorUid: operatorUid,
+        busPlateNumber: busPlateNumber,
+        routeName: routeName,
       );
       if (!started && mounted) {
         // Show a dialog instead of snackbar for GPS failures so the operator
@@ -1114,6 +1121,9 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                     busId,
                     scheduleId: scheduleId,
                     routeId: routeId,
+                    operatorUid: operatorUid,
+                    busPlateNumber: busPlateNumber,
+                    routeName: routeName,
                   );
                   if (retryOk && mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
