@@ -560,7 +560,7 @@ class _LiveScreenState extends State<LiveScreen>
           ),
           rotation: busLoc?.heading ?? 0,
           flat: true,
-          zIndex: 2, // Render bus on top of stop markers
+          zIndexInt: 2, // Render bus on top of stop markers
         ),
       );
     }

@@ -34,7 +34,6 @@ class GpsService {
 
   // ── Adaptive thresholds ──────────────────────────────────────────────────────
   static const int _fastIntervalMs = 2000;  // When bus is moving (≥ 5 km/h)
-  static const int _slowIntervalMs = 10000; // When bus is idle   (< 5 km/h)
   static const double _movingThresholdMps = 1.39; // 5 km/h in m/s
 
   StreamSubscription<Position>? _positionSub;

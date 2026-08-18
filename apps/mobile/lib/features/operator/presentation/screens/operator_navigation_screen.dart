@@ -119,6 +119,7 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
           children: [
             // ── 1. Full Screen Google Map (Dark Navigation Theme) ────────────
             GoogleMap(
+              style: _darkMapStyle,
               initialCameraPosition: CameraPosition(
                 target: _currentLocation,
                 zoom: 16,
@@ -126,7 +127,6 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
               ),
               onMapCreated: (controller) {
                 _mapController = controller;
-                controller.setMapStyle(_darkMapStyle);
               },
               myLocationEnabled: true,
               myLocationButtonEnabled: false,

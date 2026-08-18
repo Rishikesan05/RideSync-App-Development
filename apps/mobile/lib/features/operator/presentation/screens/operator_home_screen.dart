@@ -496,10 +496,10 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: isTransit ? const Color(0xFF052E16) : Colors.orange.withOpacity(0.2), // Dark green pill background
+                    color: isTransit ? const Color(0xFF052E16) : Colors.orange.withValues(alpha: 0.2), // Dark green pill background
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: isTransit ? const Color(0xFF15803D) : Colors.orange.withOpacity(0.4),
+                      color: isTransit ? const Color(0xFF15803D) : Colors.orange.withValues(alpha: 0.4),
                     ),
                   ),
                   child: Row(
@@ -655,7 +655,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                         borderRadius: BorderRadius.circular(10),
                         child: LinearProgressIndicator(
                           value: (24 + (trip['walkInCount'] ?? 0)) / capacity,
-                          backgroundColor: Colors.white.withOpacity(0.1),
+                          backgroundColor: Colors.white.withValues(alpha: 0.1),
                           valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF22C55E)), // Bright green
                           minHeight: 6,
                         ),
@@ -699,7 +699,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                 decoration: BoxDecoration(
                   color: const Color(0xFF172133), // Dark inner card matching Image 1
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.06)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
                 ),
                 child: Row(
                   children: [
@@ -779,7 +779,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        backgroundColor: const Color(0xFF451A03).withOpacity(0.5),
+                        backgroundColor: const Color(0xFF451A03).withValues(alpha: 0.5),
                         side: const BorderSide(color: Color(0xFFD97706), width: 1.5),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -1240,21 +1240,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
     );
   }
 
-  Widget _tripMetric(IconData icon, String value, String label) {
-    return Row(
-      children: [
-        Icon(icon, color: AppColors.primaryOrange, size: 20),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-            Text(label, style: const TextStyle(color: Colors.white60, fontSize: 10)),
-          ],
-        ),
-      ],
-    );
-  }
+
 
 
   Widget _buildScheduleList(bool isDark) {
@@ -1447,65 +1433,7 @@ class _OperatorHomeScreenState extends State<OperatorHomeScreen> with TickerProv
     }
   }
 
-  Widget _buildMiniManifest() {
-    final tripId = _activeTrip?['id'] as String?;
-    if (tripId == null) return const SizedBox.shrink();
 
-    return SizedBox(
-      height: 48,
-      child: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('bookings')
-            .where('scheduleId', isEqualTo: tripId)
-            .where('status', isEqualTo: 'confirmed')
-            .limit(10)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text(
-                'No confirmed passengers yet',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-            );
-          }
-
-          final docs = snapshot.data!.docs;
-          return ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: docs.length,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            separatorBuilder: (context, index) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final data = docs[index].data() as Map<String, dynamic>;
-              final seatNo = data['seatNo'] as String? ?? '?';
-              final isBoarded = data['boarded'] == true;
-
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 12,
-                      backgroundColor: isBoarded ? Colors.green.shade200 : Colors.orange.shade200,
-                      child: Icon(Icons.person, size: 16, color: isBoarded ? Colors.green.shade800 : Colors.orange.shade800),
-                    ),
-                    const SizedBox(width: 8),
-                    Text('Seat $seatNo', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
 }
 
 class _CurvedHeaderText extends StatelessWidget {
