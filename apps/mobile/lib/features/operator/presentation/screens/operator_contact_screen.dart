@@ -592,26 +592,50 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
 
   Future<void> _launchWhatsApp() async {
     final encoded = Uri.encodeComponent(_kWhatsAppMessage);
-    final Uri url = Uri.parse('https://wa.me/$_kAdminWhatsApp?text=$encoded');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open WhatsApp. Is it installed?')),
-        );
+    
+    // 1. Try native WhatsApp URI scheme first
+    final nativeUri = Uri.parse('whatsapp://send?phone=$_kAdminWhatsApp&text=$encoded');
+    try {
+      if (await canLaunchUrl(nativeUri)) {
+        await launchUrl(nativeUri, mode: LaunchMode.externalNonBrowserApplication);
+        return;
       }
+    } catch (_) {}
+
+    // 2. Try wa.me web link
+    final webUri = Uri.parse('https://wa.me/$_kAdminWhatsApp?text=$encoded');
+    try {
+      final launched = await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      if (launched) return;
+    } catch (_) {}
+
+    // 3. Fallback to api.whatsapp.com
+    final fallbackUri = Uri.parse('https://api.whatsapp.com/send?phone=$_kAdminWhatsApp&text=$encoded');
+    try {
+      final launched = await launchUrl(fallbackUri, mode: LaunchMode.platformDefault);
+      if (launched) return;
+    } catch (_) {}
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open WhatsApp. Please check if WhatsApp is installed or browse to web.')),
+      );
     }
   }
 
   Future<void> _launchPhoneCall(String phone) async {
     final Uri url = Uri.parse('tel:$phone');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url);
+      } else {
+        // Direct launch fallback
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open phone dialer.')),
+          SnackBar(content: Text('Could not open phone dialer: $e')),
         );
       }
     }

@@ -34,13 +34,13 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
     _fetchEarnings();
   }
 
-  String get _operatorId {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    return auth.user?.id ?? '';
-  }
 
   Future<void> _fetchEarnings() async {
-    if (_operatorId.isEmpty) {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final uid = auth.user?.id ?? '';
+    final customOpId = auth.user?.operatorId ?? '';
+
+    if (uid.isEmpty) {
       setState(() {
         _isLoading = false;
         _error = 'User not authenticated.';
@@ -54,38 +54,72 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
     });
 
     try {
-      // 1. Fetch all completed schedules for this operator
-      final schedulesSnap = await FirebaseFirestore.instance
-          .collection('schedules')
-          .where('operatorId', isEqualTo: _operatorId)
-          .where('status', isEqualTo: 'completed')
-          .get();
+      final Set<String> targetIds = {
+        uid,
+        if (customOpId.isNotEmpty) customOpId,
+      };
+
+      // Also try fetching custom operatorId from operators doc if not yet in auth
+      if (customOpId.isEmpty) {
+        try {
+          final opDoc = await FirebaseFirestore.instance.collection('operators').doc(uid).get();
+          if (opDoc.exists) {
+            final opIdFromDoc = opDoc.data()?['operatorId'] as String?;
+            if (opIdFromDoc != null && opIdFromDoc.isNotEmpty) {
+              targetIds.add(opIdFromDoc);
+            }
+          }
+        } catch (_) {}
+      }
 
       double totalRevenue = 0;
       int tripsCompleted = 0;
       final List<Map<String, dynamic>> allTrips = [];
+      final Set<String> seenScheduleIds = {};
 
-      for (final doc in schedulesSnap.docs) {
-        final data = doc.data();
-        final revenue = (data['revenue'] ?? 0).toDouble();
-        totalRevenue += revenue;
-        tripsCompleted++;
+      for (final id in targetIds) {
+        try {
+          final schedulesSnap = await FirebaseFirestore.instance
+              .collection('schedules')
+              .where('operatorId', isEqualTo: id)
+              .get();
 
-        DateTime? completedAt;
-        if (data['actualEndTime'] is Timestamp) {
-          completedAt = (data['actualEndTime'] as Timestamp).toDate();
-        } else if (data['updatedAt'] is Timestamp) {
-          completedAt = (data['updatedAt'] as Timestamp).toDate();
+          for (final doc in schedulesSnap.docs) {
+            if (seenScheduleIds.contains(doc.id)) continue;
+            seenScheduleIds.add(doc.id);
+
+            final data = doc.data();
+            final status = data['status'] as String? ?? '';
+            final revenue = (data['revenue'] ?? 0).toDouble();
+
+            // Count completed or revenue-bearing trips
+            if (status == 'completed' || revenue > 0) {
+              totalRevenue += revenue;
+              tripsCompleted++;
+            }
+
+            DateTime? completedAt;
+            if (data['actualEndTime'] is Timestamp) {
+              completedAt = (data['actualEndTime'] as Timestamp).toDate();
+            } else if (data['updatedAt'] is Timestamp) {
+              completedAt = (data['updatedAt'] as Timestamp).toDate();
+            } else if (data['departureTime'] is Timestamp) {
+              completedAt = (data['departureTime'] as Timestamp).toDate();
+            }
+
+            allTrips.add({
+              'id': doc.id,
+              'routeName': data['routeName'] ?? data['route'] ?? 'Regular Route',
+              'plateNumber': data['plateNumber'] ?? data['busNumber'] ?? 'N/A',
+              'revenue': revenue,
+              'bookedSeatsCount': data['bookedSeatsCount'] ?? data['passengersCount'] ?? 0,
+              'completedAt': completedAt,
+              'status': status,
+            });
+          }
+        } catch (e) {
+          debugPrint('Error fetching schedules for $id: $e');
         }
-
-        allTrips.add({
-          'id': doc.id,
-          'routeName': data['routeName'] ?? 'Unknown Route',
-          'plateNumber': data['plateNumber'] ?? 'N/A',
-          'revenue': revenue,
-          'bookedSeatsCount': data['bookedSeatsCount'] ?? 0,
-          'completedAt': completedAt,
-        });
       }
 
       // Sort trips newest first
@@ -101,24 +135,32 @@ class _OperatorEarningsScreenState extends State<OperatorEarningsScreen> {
       // 2. Build weekly breakdown (last 7 days)
       final weeklyData = _buildWeeklyBreakdown(allTrips);
 
-      // 3. Fetch cash handovers for this operator
-      final handoverSnap = await FirebaseFirestore.instance
-          .collection('cash_handovers')
-          .where('operatorId', isEqualTo: _operatorId)
-          .get();
-
+      // 3. Fetch cash handovers for this operator across all target IDs
       double awaitingApproval = 0;
       double deposited = 0;
+      final Set<String> seenHandoverIds = {};
 
-      for (final doc in handoverSnap.docs) {
-        final data = doc.data();
-        final amount = (data['amount'] ?? 0).toDouble();
-        final status = data['status'] as String? ?? '';
-        if (status == 'pending_approval') {
-          awaitingApproval += amount;
-        } else if (status == 'approved') {
-          deposited += amount;
-        }
+      for (final id in targetIds) {
+        try {
+          final handoverSnap = await FirebaseFirestore.instance
+              .collection('cash_handovers')
+              .where('operatorId', isEqualTo: id)
+              .get();
+
+          for (final doc in handoverSnap.docs) {
+            if (seenHandoverIds.contains(doc.id)) continue;
+            seenHandoverIds.add(doc.id);
+
+            final data = doc.data();
+            final amount = (data['amount'] ?? 0).toDouble();
+            final status = data['status'] as String? ?? '';
+            if (status == 'pending_approval' || status == 'pending') {
+              awaitingApproval += amount;
+            } else if (status == 'approved' || status == 'deposited') {
+              deposited += amount;
+            }
+          }
+        } catch (_) {}
       }
 
       // Pending handover = what hasn't been logged yet

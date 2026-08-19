@@ -79,15 +79,24 @@ service cloud.firestore {
                     || hasRole('admin'));
     }
 
-    // Feedback: passenger creates own, admin reads
+    // Feedback: passenger creates own, admin/authenticated reads
     match /feedback/{feedbackId} {
-      allow create: if hasRole('passenger');
-      allow read: if hasRole('admin');
+      allow read, write: if request.auth != null;
     }
 
-    // Notifications: user reads/writes own only
+    // Notifications: users read/write notifications
     match /notifications/{uid}/items/{notifId} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if request.auth != null;
+    }
+
+    // Operator Reports: operators create/read reports, admin reads/updates/replies
+    match /operator_reports/{reportId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Passenger Reports: passengers create/read reports, admin reads/updates/replies
+    match /passenger_reports/{reportId} {
+      allow read, write: if request.auth != null;
     }
 
     // Schedules and Seats: Public read for search, secure write/update

@@ -75,15 +75,38 @@ class AuthProvider with ChangeNotifier {
             _status = profileData['status'];
           }
 
-          // Fetch real total rides count from bookings collection if not set on doc
+          // Fetch real total rides/trips count from the appropriate collection.
+          // – Passengers: count their bookings in 'bookings'
+          // – Operators:  count completed schedules in 'schedules'
           int userRides = data['totalRides'] ?? 0;
           if (userRides == 0) {
             try {
-              final countSnap = await _firestore
-                  .collection('bookings')
-                  .where('passengerId', isEqualTo: firebaseUser.uid)
-                  .get();
-              userRides = countSnap.docs.length;
+              if (roleStr == 'operator') {
+                final operatorIdStr = profileData['operatorId'] ?? data['operatorId'] ?? '';
+                if (operatorIdStr.isNotEmpty) {
+                  // Use operatorId string (e.g. RSOP26-007) to match schedules
+                  final countSnap = await _firestore
+                      .collection('schedules')
+                      .where('operatorId', isEqualTo: operatorIdStr)
+                      .where('status', isEqualTo: 'completed')
+                      .get();
+                  userRides = countSnap.docs.length;
+                } else {
+                  // Fallback: try matching by uid directly
+                  final countSnap = await _firestore
+                      .collection('schedules')
+                      .where('operatorUid', isEqualTo: firebaseUser.uid)
+                      .where('status', isEqualTo: 'completed')
+                      .get();
+                  userRides = countSnap.docs.length;
+                }
+              } else {
+                final countSnap = await _firestore
+                    .collection('bookings')
+                    .where('passengerId', isEqualTo: firebaseUser.uid)
+                    .get();
+                userRides = countSnap.docs.length;
+              }
             } catch (_) {}
           }
 

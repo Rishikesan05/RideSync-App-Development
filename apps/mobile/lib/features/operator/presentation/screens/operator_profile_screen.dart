@@ -16,6 +16,7 @@ class OperatorProfileScreen extends StatefulWidget {
 
 class _OperatorProfileScreenState extends State<OperatorProfileScreen> {
   Map<String, dynamic>? _operatorProfile;
+  int _completedTripsCount = 0;
   bool _isLoading = true;
 
   @override
@@ -34,15 +35,49 @@ class _OperatorProfileScreenState extends State<OperatorProfileScreen> {
 
     try {
       final doc = await FirebaseFirestore.instance.collection('operators').doc(uid).get();
+      final profileData = doc.exists ? doc.data() : <String, dynamic>{};
+      final customOpId = profileData?['operatorId'] as String? ?? auth.user?.operatorId ?? '';
+
+      // Count completed schedules for this operator matching either custom operatorId or UID
+      final Set<String> targetIds = {
+        uid,
+        if (customOpId.isNotEmpty) customOpId,
+      };
+
+      int tripsCount = 0;
+      final Set<String> seenScheduleIds = {};
+
+      for (final targetId in targetIds) {
+        try {
+          final snap = await FirebaseFirestore.instance
+              .collection('schedules')
+              .where('operatorId', isEqualTo: targetId)
+              .get();
+          for (final sDoc in snap.docs) {
+            if (!seenScheduleIds.contains(sDoc.id)) {
+              seenScheduleIds.add(sDoc.id);
+              final status = sDoc.data()['status'] as String? ?? '';
+              if (status == 'completed' || status == 'in_transit' || status == 'active') {
+                tripsCount++;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
       if (mounted) {
         setState(() {
-          _operatorProfile = doc.exists ? doc.data() : {};
+          _operatorProfile = profileData;
+          _completedTripsCount = tripsCount > 0 ? tripsCount : (auth.user?.totalRides ?? 0);
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
-        setState(() { _isLoading = false; });
+        setState(() {
+          _completedTripsCount = auth.user?.totalRides ?? 0;
+          _isLoading = false;
+        });
       }
     }
   }
@@ -170,7 +205,7 @@ class _OperatorProfileScreenState extends State<OperatorProfileScreen> {
         children: [
           _statItem('Rating', auth.user?.rating.toStringAsFixed(1) ?? '5.0', Icons.star, Colors.amber, isDark),
           const SizedBox(width: 12),
-          _statItem('Trips', auth.user?.totalRides.toString() ?? '0', Icons.route, AppColors.primaryOrange, isDark),
+          _statItem('Trips', _completedTripsCount.toString(), Icons.route, AppColors.primaryOrange, isDark),
           const SizedBox(width: 12),
           _statItem('Status', 'Active', Icons.verified, Colors.green, isDark),
         ],
