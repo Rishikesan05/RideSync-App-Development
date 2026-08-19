@@ -39,15 +39,21 @@ class GpsBroadcastProvider extends ChangeNotifier {
 
   /// Call this when the user taps "Start Journey" after the co-operator check.
   ///
-  /// [busId]      — Firestore document ID of the assigned bus (required).
-  /// [scheduleId] — Active schedule document ID (forwarded to GpsService/RTDB).
-  /// [routeId]    — Route document ID (forwarded to GpsService/RTDB).
+  /// [busId]          — Firestore document ID of the assigned bus (required).
+  /// [scheduleId]     — Active schedule document ID (forwarded to GpsService/RTDB).
+  /// [routeId]        — Route document ID (forwarded to GpsService/RTDB).
+  /// [operatorUid]    — Firebase Auth UID of the operator (for role-based filtering).
+  /// [busPlateNumber] — Human-readable plate number (for admin/passenger display).
+  /// [routeName]      — Route name e.g. "Jaffna - Colombo" (for admin display).
   ///
   /// Returns true if broadcasting was started successfully.
   Future<bool> startBroadcasting(
     String busId, {
     String? scheduleId,
     String? routeId,
+    String? operatorUid,
+    String? busPlateNumber,
+    String? routeName,
   }) async {
     _errorMessage = null;
 
@@ -81,10 +87,13 @@ class GpsBroadcastProvider extends ChangeNotifier {
     }
 
     try {
-      _service.startBroadcasting(
+      await _service.startBroadcasting(
         busId,
         scheduleId: scheduleId,
         routeId: routeId,
+        operatorUid: operatorUid,
+        busPlateNumber: busPlateNumber,
+        routeName: routeName,
         onSpeedUpdate: (double speedKmh) {
           _currentSpeed = speedKmh;
           notifyListeners();

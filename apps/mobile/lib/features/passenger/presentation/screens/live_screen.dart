@@ -132,17 +132,79 @@ class _LiveScreenState extends State<LiveScreen>
       if (bookingSnap.docs.isEmpty) {
         setState(() {
           _isFetchingSchedule = false;
-          _fetchError = 'No booking found.';
+          _fetchError = 'No bookings found. Book a bus to access live tracking.';
         });
         return;
       }
 
-      final allBookings = bookingSnap.docs.map((d) => d.data()).toList();
-      final bookingData = allBookings.firstWhere(
-        (b) => b['status'] != 'cancelled' && (b['busId'] != null || b['scheduleId'] != null),
-        orElse: () => allBookings.first,
-      );
+      final allBookings = bookingSnap.docs
+          .map((d) {
+            final data = d.data();
+            data['id'] = d.id;
+            return data;
+          })
+          .where((b) =>
+              b['status'] != 'cancelled' &&
+              b['status'] != 'completed' &&
+              (b['busId'] != null || b['scheduleId'] != null))
+          .toList();
 
+      if (allBookings.isEmpty) {
+        setState(() {
+          _isFetchingSchedule = false;
+          _fetchError = 'No active trip in progress. Your next booked journey will appear here once the operator begins the trip.';
+        });
+        return;
+      }
+
+      // Sort newest first
+      allBookings.sort((a, b) {
+        final timeA = a['departureTime'] ?? a['timestamp'];
+        final timeB = b['departureTime'] ?? b['timestamp'];
+        if (timeA == null || timeB == null) return 0;
+        return timeB.toString().compareTo(timeA.toString());
+      });
+
+      // Find active in-transit trip first, or latest upcoming non-completed trip
+      Map<String, dynamic>? selectedBooking;
+      DocumentSnapshot<Map<String, dynamic>>? selectedScheduleDoc;
+
+      for (final b in allBookings) {
+        final schedId = b['scheduleId'] as String?;
+        if (schedId != null) {
+          try {
+            final sDoc = await FirebaseFirestore.instance
+                .collection('schedules')
+                .doc(schedId)
+                .get();
+            if (sDoc.exists) {
+              final sStatus = sDoc.data()?['status'] as String?;
+              if (sStatus == 'in-transit' || sStatus == 'started') {
+                selectedBooking = b;
+                selectedScheduleDoc = sDoc;
+                break;
+              } else if (sStatus != 'completed' && sStatus != 'cancelled') {
+                if (selectedBooking == null) {
+                  selectedBooking = b;
+                  selectedScheduleDoc = sDoc;
+                }
+              }
+            }
+          } catch (_) {}
+        } else if (b['busId'] != null) {
+          selectedBooking ??= b;
+        }
+      }
+
+      if (selectedBooking == null) {
+        setState(() {
+          _isFetchingSchedule = false;
+          _fetchError = 'No active trip in progress. Your next booked journey will appear here once the operator begins the trip.';
+        });
+        return;
+      }
+
+      final bookingData = selectedBooking;
       final scheduleId = bookingData['scheduleId'] as String?;
       final directBusId = bookingData['busId'] as String?;
       _passengerStop = (bookingData['pickup'] as String?) ?? (bookingData['origin'] as String?);
@@ -172,20 +234,21 @@ class _LiveScreenState extends State<LiveScreen>
         return;
       }
 
-      // Fetch the schedule to get busId and route info
-      final scheduleDoc = await FirebaseFirestore.instance
-          .collection('schedules')
-          .doc(scheduleId!)
-          .get();
+      // Read the fetched schedule to get busId and route info
+      final scheduleDoc = selectedScheduleDoc ??
+          await FirebaseFirestore.instance
+              .collection('schedules')
+              .doc(scheduleId!)
+              .get();
 
-      String busId = directBusId ?? scheduleId;
+      String busId = directBusId ?? scheduleId!;
       if (scheduleDoc.exists) {
         final sd = scheduleDoc.data()!;
         busId = (sd['busId'] as String?) ??
             (sd['busPlateNumber'] as String?) ??
             (sd['plateNumber'] as String?) ??
             directBusId ??
-            scheduleId;
+            scheduleId!;
         setState(() {
           _routeName = (sd['routeName'] as String?) ?? (origin != null && destination != null ? '$origin - $destination' : 'Live Bus');
           _fromStop = (sd['fromStop'] as String?) ?? (sd['startingPoint'] as String?) ?? origin ?? '—';
@@ -214,13 +277,8 @@ class _LiveScreenState extends State<LiveScreen>
 
       // Start RTDB subscriptions
       if (busId.isNotEmpty) {
-        tracking.startTracking(busId, scheduleId);
+        tracking.startTracking(busId, scheduleId ?? busId);
         _startStaleCheckTimer();
-        // Fetch and draw the route polyline + stop markers
-        final routeId = sd['routeId'] as String?;
-        if (routeId != null) {
-          _fetchRoutePolyline(routeId);
-        }
       }
     } catch (e) {
       debugPrint('[LiveScreen] Init error: $e');

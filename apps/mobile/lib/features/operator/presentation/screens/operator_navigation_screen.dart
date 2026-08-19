@@ -157,7 +157,6 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
           children: [
             // ── 1. Full Screen Google Map (Dark Navigation Theme) ────────────
             GoogleMap(
-              style: _darkMapStyle,
               initialCameraPosition: CameraPosition(
                 target: _currentLocation,
                 zoom: 16,
@@ -376,10 +375,15 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
                               widget.trip['id'] as String;
                           final scheduleId = widget.trip['id'] as String?;
                           final routeId = widget.trip['routeId'] as String?;
+                          final busPlateNumber = widget.trip['busPlateNumber'] as String? ??
+                              widget.trip['plateNumber'] as String?;
+                          final routeName = widget.trip['routeName'] as String?;
                           final ok = await gps.startBroadcasting(
                             busId,
                             scheduleId: scheduleId,
                             routeId: routeId,
+                            busPlateNumber: busPlateNumber,
+                            routeName: routeName,
                           );
                           if (ok && context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(

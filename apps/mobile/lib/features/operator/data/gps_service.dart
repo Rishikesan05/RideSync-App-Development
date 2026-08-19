@@ -42,6 +42,9 @@ class GpsService {
   String? _activeBusId;
   String? _activeScheduleId;
   String? _activeRouteId;
+  String? _operatorUid;
+  String? _busPlateNumber;
+  String? _routeName;
   bool _isBroadcasting = false;
   void Function(double speedKmh)? _onSpeedUpdate;
 
@@ -94,19 +97,36 @@ class GpsService {
   /// [scheduleId] — Active schedule ID; written to RTDB for Cloud Functions.
   /// [routeId]    — Route ID; written to RTDB for Cloud Functions.
   ///
-  /// Calling this while already broadcasting stops the old stream first.
-  void startBroadcasting(
+  /// Starts continuous GPS broadcasting via [Geolocator.getPositionStream].
+  ///
+  /// [busId]      — Firestore document ID or plate number of the assigned bus.
+  /// [scheduleId] — Active schedule ID; written to RTDB for Cloud Functions.
+  /// [routeId]    — Route ID; written to RTDB for Cloud Functions.
+  ///
+  /// Calling this while already broadcasting stops any previous stream first.
+  Future<void> startBroadcasting(
     String busId, {
     String? scheduleId,
     String? routeId,
+    String? operatorUid,
+    String? busPlateNumber,
+    String? routeName,
     void Function(double speedKmh)? onSpeedUpdate,
-  }) {
-    // Cancel any existing stream before opening a new one
-    stopBroadcasting();
+  }) async {
+    // 1. Cancel previous stream safely without setting the new bus to OFFLINE
+    if (_activeBusId != null && _activeBusId != busId) {
+      await stopBroadcasting();
+    } else {
+      await _positionSub?.cancel();
+      _positionSub = null;
+    }
 
     _activeBusId = busId;
     _activeScheduleId = scheduleId;
     _activeRouteId = routeId;
+    _operatorUid = operatorUid;
+    _busPlateNumber = busPlateNumber;
+    _routeName = routeName;
     _isBroadcasting = true;
     _onSpeedUpdate = onSpeedUpdate;
     debugPrint('[GpsService] Broadcasting started for bus: $busId | schedule: $scheduleId');
@@ -153,6 +173,16 @@ class GpsService {
       );
     }
 
+    // Immediately push initial position to RTDB so the bus goes LIVE with 0 latency
+    try {
+      final initialPos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      ).timeout(const Duration(seconds: 3));
+      _onPosition(initialPos);
+    } catch (e) {
+      debugPrint('[GpsService] Initial position check non-fatal: $e');
+    }
+
     _positionSub = Geolocator.getPositionStream(locationSettings: locationSettings)
         .listen(
           _onPosition,
@@ -175,25 +205,34 @@ class GpsService {
     _onSpeedUpdate = null;
 
     if (_activeBusId != null) {
-      final busIdToRemove = _activeBusId!;
+      final busIdToStop = _activeBusId!;
       _activeBusId = null;
       _activeScheduleId = null;
       _activeRouteId = null;
+      _operatorUid = null;
+      _busPlateNumber = null;
+      _routeName = null;
 
       try {
         final db = FirebaseDatabase.instanceFor(
           app: Firebase.app(),
           databaseURL: AppConstants.rtdbUrl,
         );
-        final busRef = db.ref('busLocations/$busIdToRemove');
+        final busRef = db.ref('busLocations/$busIdToStop');
         // Cancel the onDisconnect hook since this is a clean shutdown
         await busRef.onDisconnect().cancel().catchError((_) {});
-        // Mark as not broadcasting BEFORE removing
-        await busRef.update({'isBroadcasting': false, 'status': 'STOPPED'});
-        await busRef.remove();
-        debugPrint('[GpsService] RTDB node cleanly removed for bus: $busIdToRemove');
+        // Mark as OFFLINE instead of deleting — preserves last-known location
+        // so admin/passenger can see "Last seen: X min ago"
+        await busRef.update({
+          'isBroadcasting': false,
+          'isMoving': false,
+          'speed': 0,
+          'status': 'OFFLINE',
+          'stoppedAt': ServerValue.timestamp,
+        });
+        debugPrint('[GpsService] RTDB node marked OFFLINE for bus: $busIdToStop');
       } catch (e) {
-        debugPrint('[GpsService] Failed to remove RTDB node cleanly: $e');
+        debugPrint('[GpsService] Failed to update RTDB node: $e');
       }
     }
   }
@@ -226,11 +265,15 @@ class GpsService {
       'heading': pos.heading,
       'isMoving': isMoving,
       'isBroadcasting': true,
+      'status': 'LIVE',
       'timestamp': ServerValue.timestamp,
     };
 
     if (_activeScheduleId != null) payload['scheduleId'] = _activeScheduleId!;
     if (_activeRouteId != null) payload['routeId'] = _activeRouteId!;
+    if (_operatorUid != null) payload['operatorUid'] = _operatorUid!;
+    if (_busPlateNumber != null) payload['busPlateNumber'] = _busPlateNumber!;
+    if (_routeName != null) payload['routeName'] = _routeName!;
 
     // Write to RTDB — fire-and-forget; errors are logged but never rethrown
     FirebaseDatabase.instanceFor(
