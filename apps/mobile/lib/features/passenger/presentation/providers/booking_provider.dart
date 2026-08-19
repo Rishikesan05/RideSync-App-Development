@@ -573,6 +573,36 @@ class BookingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Completely resets the booking and search state for a fresh search experience.
+  void resetBookingFlow({bool notify = true}) {
+    origin = null;
+    destination = null;
+    selectedDate = DateTime.now();
+    availableSchedules = [];
+    selectedSchedule = null;
+    currentSeats = [];
+    selectedSeatNumbers.clear();
+    currentRouteStops.clear();
+    _routeStopEntries.clear();
+    _endPrice = 0.0;
+    _resolvedStopPrice = 0.0;
+    selectedBoardingPoint = null;
+    selectedDropoffPoint = null;
+    errorMessage = null;
+    isLoading = false;
+    isBooking = false;
+    lastGeneratedTicketCode = null;
+    if (notify) notifyListeners();
+  }
+
+  /// Clears only the search schedules and error message.
+  void resetSearch({bool notify = true}) {
+    availableSchedules = [];
+    errorMessage = null;
+    isLoading = false;
+    if (notify) notifyListeners();
+  }
+
   // Pre-fill search data from RouteFinder
   void prefillFromFinder(Place? finderOrigin, Place? finderDest) {
     origin = finderOrigin;

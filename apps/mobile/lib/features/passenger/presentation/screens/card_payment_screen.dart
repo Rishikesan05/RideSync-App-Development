@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/core/widgets/custom_button.dart';
+import 'package:ridesync/core/widgets/confirm_exit_dialog.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
 import 'package:ridesync/features/passenger/presentation/screens/booking_confirmation_screen.dart';
@@ -276,31 +277,58 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
     );
   }
 
+  Future<void> _handlePop(bool didPop, dynamic result) async {
+    if (didPop) return;
+
+    final hasInput = _cardNumberController.text.isNotEmpty || _nameController.text.isNotEmpty;
+    if (!hasInput) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    final shouldLeave = await showConfirmExitDialog(
+      context,
+      title: 'Discard Card Details?',
+      message: 'You have entered card details. Are you sure you want to cancel payment and go back?',
+      confirmLabel: 'Discard',
+      cancelLabel: 'Keep Entering',
+      isDestructive: true,
+      icon: Icons.credit_card_off_rounded,
+    );
+
+    if (shouldLeave && mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final booking = Provider.of<BookingProvider>(context);
     final auth = Provider.of<AuthProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white : AppColors.textDark, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Card Details',
-          style: TextStyle(
-            color: isDark ? Colors.white : AppColors.textDark,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: _handlePop,
+      child: Scaffold(
+        backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white : AppColors.textDark, size: 20),
+            onPressed: () => _handlePop(false, null),
           ),
+          title: Text(
+            'Card Details',
+            style: TextStyle(
+              color: isDark ? Colors.white : AppColors.textDark,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 80.0),
         child: Column(
@@ -480,8 +508,9 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _PaymentTextField extends StatelessWidget {

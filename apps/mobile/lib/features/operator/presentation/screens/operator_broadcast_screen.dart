@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:ridesync/core/constants.dart';
+import 'package:ridesync/core/widgets/confirm_exit_dialog.dart';
 import 'package:ridesync/features/operator/presentation/providers/gps_broadcast_provider.dart';
 
 /// Dedicated GPS Broadcast Screen for the Operator.
@@ -115,51 +116,79 @@ class _OperatorBroadcastScreenState extends State<OperatorBroadcastScreen>
 
   // ── Build ────────────────────────────────────────────────────────────────────
 
+  Future<void> _handlePop(GpsBroadcastProvider gps, bool didPop, dynamic result) async {
+    if (didPop) return;
+
+    if (!gps.isBroadcasting) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    final shouldLeave = await showConfirmExitDialog(
+      context,
+      title: 'Active GPS Broadcast',
+      message: 'You are currently broadcasting live location to passengers. Do you want to stop sharing and exit?',
+      confirmLabel: 'Stop & Exit',
+      cancelLabel: 'Keep Broadcasting',
+      isDestructive: true,
+      icon: Icons.cell_tower_rounded,
+    );
+
+    if (shouldLeave && mounted) {
+      await gps.stopBroadcasting();
+      if (mounted) Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final gps = context.watch<GpsBroadcastProvider>();
     final isBroadcasting = gps.isBroadcasting;
     final speed = gps.currentSpeed;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ── Top App Bar ──────────────────────────────────────────────────
-            _buildAppBar(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) => _handlePop(gps, didPop, result),
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // ── Top App Bar ──────────────────────────────────────────────────
+              _buildAppBar(gps),
 
-            // ── Route Header ─────────────────────────────────────────────────
-            _buildRouteHeader(isBroadcasting, speed),
+              // ── Route Header ─────────────────────────────────────────────────
+              _buildRouteHeader(isBroadcasting, speed),
 
-            // ── Vehicle Mode Selector ────────────────────────────────────────
-            _buildVehicleModeSelector(),
+              // ── Vehicle Mode Selector ────────────────────────────────────────
+              _buildVehicleModeSelector(),
 
-            // ── Select Bus label ─────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Select Bus',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+              // ── Select Bus label ─────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Select Bus',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            // ── Bus info chip ────────────────────────────────────────────────
-            _buildBusChip(),
+              // ── Bus info chip ────────────────────────────────────────────────
+              _buildBusChip(),
 
-            // ── Map ──────────────────────────────────────────────────────────
-            Expanded(child: _buildMap(isBroadcasting)),
+              // ── Map ──────────────────────────────────────────────────────────
+              Expanded(child: _buildMap(isBroadcasting)),
 
-            // ── Bottom CTA button ─────────────────────────────────────────────
-            _buildBroadcastButton(gps, isBroadcasting),
-          ],
+              // ── Bottom CTA button ─────────────────────────────────────────────
+              _buildBroadcastButton(gps, isBroadcasting),
+            ],
+          ),
         ),
       ),
     );
@@ -167,13 +196,13 @@ class _OperatorBroadcastScreenState extends State<OperatorBroadcastScreen>
 
   // ── Sub-widgets ───────────────────────────────────────────────────────────────
 
-  Widget _buildAppBar() {
+  Widget _buildAppBar(GpsBroadcastProvider gps) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.pop(context),
+            onTap: () => _handlePop(gps, false, null),
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(

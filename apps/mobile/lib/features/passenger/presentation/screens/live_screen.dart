@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:ridesync/core/constants.dart';
+import 'package:ridesync/core/widgets/marker_icon_helper.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/live_journey_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/bus_tracking_provider.dart';
@@ -46,6 +47,9 @@ class _LiveScreenState extends State<LiveScreen>
   double _fromHeading = 0.0;
   double _toHeading = 0.0;
 
+  // ── Custom Marker Icons ─────────────────────────────────────────────────────
+  BitmapDescriptor? _busMarkerIcon;
+
   // ── Schedule/route details (fetched once from Firestore) ────────────────────
   String? _busId;
   String? _routeName;
@@ -55,9 +59,10 @@ class _LiveScreenState extends State<LiveScreen>
   bool _isFetchingSchedule = false;
   String? _fetchError;
 
-  // ── Route polyline + stop markers (Gap 6 fix) ────────────────────────────────
+  // ── Route polyline + stop markers ───────────────────────────────────────────
   Set<Polyline> _routePolylines = {};
   Set<Marker> _stopMarkers = {};
+  List<LatLng> _routePoints = [];
 
   // ── Stale-signal warning timer ──────────────────────────────────────────────
   Timer? _staleCheckTimer;
@@ -65,6 +70,8 @@ class _LiveScreenState extends State<LiveScreen>
   @override
   void initState() {
     super.initState();
+
+    _loadCustomIcons();
 
     _pulseController = AnimationController(
       vsync: this,
@@ -102,6 +109,19 @@ class _LiveScreenState extends State<LiveScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initTracking();
     });
+  }
+
+  Future<void> _loadCustomIcons() async {
+    try {
+      final busIcon = await MarkerIconHelper.createBusMarker();
+      if (mounted) {
+        setState(() {
+          _busMarkerIcon = busIcon;
+        });
+      }
+    } catch (e) {
+      debugPrint('[LiveScreen] Error generating bus icon: $e');
+    }
   }
 
   // ── Initialise tracking ─────────────────────────────────────────────────────
@@ -299,12 +319,11 @@ class _LiveScreenState extends State<LiveScreen>
     });
   }
 
-  // ── Route polyline + stop markers (Gap 6 fix) ────────────────────────────────
+  // ── Route polyline + stop markers ───────────────────────────────────────────
 
   /// Fetches route stops from Firestore and geocodes each stop name to
-  /// lat/lng using the [geocoding] package (free — no billing required).
-  /// Draws a straight-line polyline connecting all stops and places a
-  /// distinct pin marker at each stop.
+  /// lat/lng. Draws high-visibility dual polylines connecting all stops and places
+  /// custom-designed stop markers (Origin, Your Stop, Intermediate, Destination).
   Future<void> _fetchRoutePolyline(String routeId) async {
     try {
       final routeDoc = await FirebaseFirestore.instance
@@ -320,57 +339,95 @@ class _LiveScreenState extends State<LiveScreen>
       final Set<Marker> stopMarkers = {};
 
       for (int i = 0; i < stops.length; i++) {
-        final stopName = stops[i]['name'] as String? ?? '';
+        final stopName = (stops[i]['name'] as String? ?? '').split(',')[0].trim();
         if (stopName.isEmpty) continue;
 
         try {
-          // Geocode stop name within Sri Lanka for accuracy
-          final locations =
-              await locationFromAddress('$stopName, Sri Lanka');
-          if (locations.isEmpty) continue;
+          LatLng? latLng;
+          if (stops[i]['lat'] != null && stops[i]['lng'] != null) {
+            latLng = LatLng(
+              (stops[i]['lat'] as num).toDouble(),
+              (stops[i]['lng'] as num).toDouble(),
+            );
+          } else {
+            final locations = await locationFromAddress('$stopName, Sri Lanka');
+            if (locations.isNotEmpty) {
+              latLng = LatLng(locations.first.latitude, locations.first.longitude);
+            }
+          }
+          if (latLng == null) continue;
 
-          final latLng =
-              LatLng(locations.first.latitude, locations.first.longitude);
           polylinePoints.add(latLng);
 
-          // Add stop marker: use orange for first/last, white for intermediate
-          final isTerminal = i == 0 || i == stops.length - 1;
+          // Determine marker type
+          final isPassengerStop = _passengerStop != null &&
+              _passengerStop!.isNotEmpty &&
+              (stopName.toLowerCase().contains(_passengerStop!.toLowerCase()) ||
+               _passengerStop!.toLowerCase().contains(stopName.toLowerCase()));
+
+          final StopMarkerType markerType;
+          if (isPassengerStop) {
+            markerType = StopMarkerType.passengerStop;
+          } else if (i == 0) {
+            markerType = StopMarkerType.origin;
+          } else if (i == stops.length - 1) {
+            markerType = StopMarkerType.destination;
+          } else {
+            markerType = StopMarkerType.intermediate;
+          }
+
+          final stopIcon = await MarkerIconHelper.createStopMarker(
+            type: markerType,
+            stopNumber: '${i + 1}',
+            size: isPassengerStop ? 96 : 82,
+          );
+
           stopMarkers.add(
             Marker(
               markerId: MarkerId('stop_$i'),
               position: latLng,
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                isTerminal
-                    ? BitmapDescriptor.hueOrange
-                    : BitmapDescriptor.hueAzure,
-              ),
+              icon: stopIcon,
+              anchor: const Offset(0.5, 0.95),
               infoWindow: InfoWindow(
-                title: stopName,
+                title: isPassengerStop ? 'Your Boarding Stop: $stopName' : stopName,
                 snippet: i == 0
-                    ? 'Origin'
+                    ? 'Route Origin'
                     : i == stops.length - 1
-                        ? 'Destination'
-                        : 'Stop ${i + 1}',
+                        ? 'Final Destination'
+                        : isPassengerStop ? 'Your designated boarding hub' : 'Stop ${i + 1}',
               ),
-              flat: false,
+              zIndexInt: isPassengerStop ? 5 : 1,
             ),
           );
         } catch (geocodeErr) {
-          // Non-fatal: skip stops that can't be geocoded
           debugPrint('[LiveScreen] Geocode failed for "$stopName": $geocodeErr');
         }
       }
 
       if (!mounted) return;
       setState(() {
+        _routePoints = polylinePoints;
         _routePolylines = polylinePoints.length >= 2
             ? {
+                // 1. Dark casing for sharp contrast over maps
                 Polyline(
-                  polylineId: const PolylineId('route'),
+                  polylineId: const PolylineId('route_casing'),
+                  points: polylinePoints,
+                  color: const Color(0xFF9A3412),
+                  width: 7,
+                  jointType: JointType.round,
+                  startCap: Cap.roundCap,
+                  endCap: Cap.roundCap,
+                ),
+                // 2. Core vibrant active route line
+                Polyline(
+                  polylineId: const PolylineId('route_core'),
                   points: polylinePoints,
                   color: AppColors.primaryOrange,
                   width: 4,
-                  patterns: [PatternItem.dash(20), PatternItem.gap(8)],
+                  jointType: JointType.round,
+                  startCap: Cap.roundCap,
+                  endCap: Cap.roundCap,
                 ),
               }
             : {};
@@ -379,6 +436,52 @@ class _LiveScreenState extends State<LiveScreen>
     } catch (e) {
       debugPrint('[LiveScreen] _fetchRoutePolyline error: $e');
     }
+  }
+
+  // ── Camera Helpers ──────────────────────────────────────────────────────────
+
+  void _recenterOnBus() {
+    if (_displayPosition != null) {
+      _mapController?.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: _displayPosition!,
+            zoom: 16,
+            bearing: _displayHeading,
+            tilt: 25,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _fitRouteBounds() {
+    final points = <LatLng>[
+      ?_displayPosition,
+      ..._routePoints,
+    ];
+    if (points.isEmpty) return;
+
+    double minLat = points.first.latitude;
+    double maxLat = points.first.latitude;
+    double minLng = points.first.longitude;
+    double maxLng = points.first.longitude;
+
+    for (final p in points) {
+      if (p.latitude < minLat) minLat = p.latitude;
+      if (p.latitude > maxLat) maxLat = p.latitude;
+      if (p.longitude < minLng) minLng = p.longitude;
+      if (p.longitude > maxLng) maxLng = p.longitude;
+    }
+
+    final bounds = LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
+    );
+
+    _mapController?.animateCamera(
+      CameraUpdate.newLatLngBounds(bounds, 64),
+    );
   }
 
   // ── Marker animation ─────────────────────────────────────────────────────────
@@ -646,36 +749,132 @@ class _LiveScreenState extends State<LiveScreen>
   Widget _buildMap(bool isDark, BusLocation? busLoc) {
     final center = _displayPosition ?? const LatLng(7.8731, 80.7718);
 
-    // Merge the bus marker with the geocoded stop markers
+    // Merge the bus marker with the custom stop markers
     final Set<Marker> allMarkers = {..._stopMarkers};
     if (_displayPosition != null) {
       allMarkers.add(
         Marker(
           markerId: const MarkerId('bus'),
           position: _displayPosition!,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+          icon: _busMarkerIcon ??
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+          anchor: const Offset(0.5, 0.5),
           infoWindow: InfoWindow(
-            title: _routeName ?? 'Bus',
+            title: _routeName ?? 'Live Bus',
             snippet: busLoc != null
-                ? '${busLoc.speed.toStringAsFixed(0)} km/h'
-                : 'In Transit',
+                ? '${busLoc.speed.toStringAsFixed(0)} km/h • In Transit'
+                : 'Live Tracking',
           ),
           rotation: _displayHeading,
           flat: true,
-          zIndexInt: 2, // Render bus on top of stop markers
+          zIndexInt: 10, // Render bus on top of stop markers
         ),
       );
     }
 
-    return GoogleMap(
-      initialCameraPosition: CameraPosition(target: center, zoom: 14),
-      onMapCreated: (controller) => _mapController = controller,
-      markers: allMarkers,
-      polylines: _routePolylines,
-      mapToolbarEnabled: false,
-      zoomControlsEnabled: false,
-      myLocationButtonEnabled: true,
-      myLocationEnabled: true,
+    return Stack(
+      children: [
+        GoogleMap(
+          initialCameraPosition: CameraPosition(target: center, zoom: 14),
+          onMapCreated: (controller) {
+            _mapController = controller;
+            // Auto fit route if stops are ready
+            if (_routePoints.isNotEmpty) {
+              Future.delayed(const Duration(milliseconds: 600), _fitRouteBounds);
+            }
+          },
+          markers: allMarkers,
+          polylines: _routePolylines,
+          mapToolbarEnabled: false,
+          zoomControlsEnabled: false,
+          myLocationButtonEnabled: false,
+          myLocationEnabled: true,
+        ),
+
+        // Floating Map Controls (Recenter on Bus + Fit Route Bounds + Zoom)
+        Positioned(
+          right: 16,
+          bottom: 120,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Recenter on Live Bus
+              _mapActionButton(
+                icon: Icons.directions_bus_rounded,
+                tooltip: 'Focus Bus',
+                isDark: isDark,
+                onTap: _recenterOnBus,
+                color: AppColors.primaryOrange,
+              ),
+              const SizedBox(height: 10),
+              // Fit Full Route Bounds
+              _mapActionButton(
+                icon: Icons.route_rounded,
+                tooltip: 'Fit Route',
+                isDark: isDark,
+                onTap: _fitRouteBounds,
+              ),
+              const SizedBox(height: 10),
+              // Zoom In
+              _mapActionButton(
+                icon: Icons.add,
+                tooltip: 'Zoom In',
+                isDark: isDark,
+                onTap: () => _mapController?.animateCamera(CameraUpdate.zoomIn()),
+              ),
+              const SizedBox(height: 6),
+              // Zoom Out
+              _mapActionButton(
+                icon: Icons.remove,
+                tooltip: 'Zoom Out',
+                isDark: isDark,
+                onTap: () => _mapController?.animateCamera(CameraUpdate.zoomOut()),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _mapActionButton({
+    required IconData icon,
+    required String tooltip,
+    required bool isDark,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.08),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Center(
+            child: Icon(
+              icon,
+              size: 22,
+              color: color ?? (isDark ? Colors.white : AppColors.textDark),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:ridesync/core/constants.dart';
@@ -53,6 +54,21 @@ class _BookingScreenState extends State<BookingScreen> {
     super.dispose();
   }
 
+  void _syncControllersWithProvider(BookingProvider booking) {
+    if (!_originFocus.hasFocus) {
+      final expectedOrigin = booking.origin?.name ?? '';
+      if (_originController.text != expectedOrigin) {
+        _originController.text = expectedOrigin;
+      }
+    }
+    if (!_destFocus.hasFocus) {
+      final expectedDest = booking.destination?.name ?? '';
+      if (_destController.text != expectedDest) {
+        _destController.text = expectedDest;
+      }
+    }
+  }
+
   void _handleSuggestionTap(Place place) async {
     final finder = context.read<FinderProvider>();
     final booking = context.read<BookingProvider>();
@@ -69,6 +85,23 @@ class _BookingScreenState extends State<BookingScreen> {
       _destFocus.unfocus();
     }
     finder.fetchSuggestions('', ''); // Clear suggestions
+  }
+
+  void _handleSwap() {
+    final booking = context.read<BookingProvider>();
+    final tempOrigin = booking.origin;
+    final tempDest = booking.destination;
+
+    booking.setOrigin(tempDest ?? Place(name: _destController.text, address: '', position: const LatLng(0, 0)));
+    booking.setDestination(tempOrigin ?? Place(name: _originController.text, address: '', position: const LatLng(0, 0)));
+
+    final tempText = _originController.text;
+    _originController.text = _destController.text;
+    _destController.text = tempText;
+
+    if (booking.origin != null && booking.destination != null) {
+      booking.searchSchedules();
+    }
   }
 
   Future<void> _selectDate(BuildContext context, BookingProvider booking) async {
@@ -103,6 +136,8 @@ class _BookingScreenState extends State<BookingScreen> {
     final booking = Provider.of<BookingProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    _syncControllersWithProvider(booking);
+
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
       appBar: AppBar(
@@ -113,6 +148,18 @@ class _BookingScreenState extends State<BookingScreen> {
         leading: widget.onBack != null 
           ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: widget.onBack)
           : null,
+        actions: [
+          if (booking.origin != null || booking.destination != null || booking.availableSchedules.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+              tooltip: 'Reset Search',
+              onPressed: () {
+                _originController.clear();
+                _destController.clear();
+                booking.resetBookingFlow();
+              },
+            ),
+        ],
       ),
       body: CustomScrollView(
         slivers: [
@@ -170,27 +217,72 @@ class _BookingScreenState extends State<BookingScreen> {
       ),
       child: Column(
         children: [
-          _LocationField(
-            label: 'FROM',
-            hint: 'your current location',
-            icon: Icons.gps_fixed_rounded,
-            iconColor: AppColors.accentBlue,
-            isDark: isDark,
-            controller: _originController,
-            focusNode: _originFocus,
+          Stack(
+            alignment: Alignment.centerRight,
+            children: [
+              Column(
+                children: [
+                  _LocationField(
+                    label: 'FROM',
+                    hint: 'your current location',
+                    icon: Icons.gps_fixed_rounded,
+                    iconColor: AppColors.accentBlue,
+                    isDark: isDark,
+                    controller: _originController,
+                    focusNode: _originFocus,
+                    onClear: () {
+                      _originController.clear();
+                      booking.origin = null;
+                      booking.resetSearch();
+                    },
+                  ),
+                  if (showOriginSuggestions) buildSuggestions(),
+                  const SizedBox(height: 14),
+                  _LocationField(
+                    label: 'TO',
+                    hint: 'Where to go today?',
+                    icon: Icons.location_on_outlined,
+                    iconColor: AppColors.primaryOrange,
+                    isDark: isDark,
+                    controller: _destController,
+                    focusNode: _destFocus,
+                    onClear: () {
+                      _destController.clear();
+                      booking.destination = null;
+                      booking.resetSearch();
+                    },
+                  ),
+                  if (showDestSuggestions) buildSuggestions(),
+                ],
+              ),
+              // Swap Button
+              Positioned(
+                right: 12,
+                top: 48,
+                child: GestureDetector(
+                  onTap: _handleSwap,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: const Icon(Icons.swap_vert_rounded, size: 20, color: AppColors.primaryOrange),
+                  ),
+                ),
+              ),
+            ],
           ),
-          if (showOriginSuggestions) buildSuggestions(),
-          const SizedBox(height: 14),
-          _LocationField(
-            label: 'TO',
-            hint: 'Where to go today?',
-            icon: Icons.location_on_outlined,
-            iconColor: AppColors.primaryOrange,
-            isDark: isDark,
-            controller: _destController,
-            focusNode: _destFocus,
-          ),
-          if (showDestSuggestions) buildSuggestions(),
           const SizedBox(height: 14),
           Row(
             children: [
@@ -439,6 +531,7 @@ class _LocationField extends StatelessWidget {
     required this.isDark,
     required this.controller,
     required this.focusNode,
+    this.onClear,
   });
 
   final String label;
@@ -448,6 +541,7 @@ class _LocationField extends StatelessWidget {
   final bool isDark;
   final TextEditingController controller;
   final FocusNode focusNode;
+  final VoidCallback? onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -495,6 +589,18 @@ class _LocationField extends StatelessWidget {
               ],
             ),
           ),
+          if (controller.text.isNotEmpty && onClear != null)
+            GestureDetector(
+              onTap: onClear,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Icon(
+                  Icons.cancel,
+                  size: 18,
+                  color: isDark ? Colors.white38 : Colors.grey.shade400,
+                ),
+              ),
+            ),
         ],
       ),
     );

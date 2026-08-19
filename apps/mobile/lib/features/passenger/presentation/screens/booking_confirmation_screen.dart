@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:ridesync/core/constants.dart';
+import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
 
 /// Booking Confirmed "Boarding Pass" screen matching the Figma design.
 /// Shows route, seat, boarding hub, destination, and fare breakdown.
@@ -351,8 +353,10 @@ class BookingConfirmationScreen extends StatelessWidget {
                 height: 52,
                 child: ElevatedButton.icon(
                   onPressed: () {
+                    // Reset booking flow so next visit is fresh
+                    context.read<BookingProvider>().resetBookingFlow();
                     Navigator.of(context).popUntil((route) => route.isFirst);
-                    // The user can tap Live tab from bottom nav
+                    Navigator.pushReplacementNamed(context, '/main', arguments: {'index': 2});
                   },
                   icon: const Icon(Icons.near_me, size: 18),
                   label: const Text('LAUNCH LIVE MAP', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.5)),
@@ -369,6 +373,7 @@ class BookingConfirmationScreen extends StatelessWidget {
               // Done button
               TextButton(
                 onPressed: () {
+                  context.read<BookingProvider>().resetBookingFlow();
                   Navigator.of(context).popUntil((route) => route.isFirst);
                 },
                 child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w600)),
