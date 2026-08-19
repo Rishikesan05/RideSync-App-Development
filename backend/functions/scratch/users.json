@@ -1,0 +1,12 @@
+{"users": [
+{
+  "localId": "Q6LV7OJra0h1FjU5cwx1uFcZtmn1",
+  "email": "admin@ridesync.lk",
+  "emailVerified": false,
+  "passwordHash": "TDGSrdZboqPDiFxEU1Y97Lt+X2HCs9ZJxIbY/du0Gy7kqfSZzmJo2Qsy5AtM759Y6dzN6x8d9JOWz6pza81VHg==",
+  "salt": "IlHrkcRXqn027w==",
+  "lastSignedInAt": "1778651700414",
+  "createdAt": "1778608703457",
+  "disabled": false,
+  "providerUserInfo": []
+}]}

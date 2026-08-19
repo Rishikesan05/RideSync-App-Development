@@ -1,0 +1,29 @@
+{
+  "rules": {
+    "busLocations": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$busId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "lat": {
+          ".validate": "newData.isNumber()"
+        },
+        "lng": {
+          ".validate": "newData.isNumber()"
+        },
+        "timestamp": {
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+    "tripStatus": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$scheduleId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    }
+  }
+}

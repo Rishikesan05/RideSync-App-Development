@@ -1,0 +1,926 @@
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  Box,
+  Typography,
+  IconButton,
+  Divider,
+  useTheme,
+  InputAdornment,
+  CircularProgress,
+  Paper,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Chip
+} from '@mui/material';
+import { useBusesFirestore } from '../fleet/useBusesFirestore';
+import { 
+  Add, 
+  Delete, 
+  LocationOn, 
+  Route as RouteIcon, 
+  Straighten, 
+  ArrowUpward, 
+  ArrowDownward,
+  Timer,
+  Navigation,
+  DirectionsBus
+} from '@mui/icons-material';
+
+// Zod schema for route validation
+const routeSchema = z.object({
+  routeNumber: z.string().min(1, 'Route number is required'),
+  name: z.string().min(3, 'Name must be at least 3 characters'),
+  startPoint: z.string().min(1, 'Start point is required'),
+  endPoint: z.string().min(1, 'End point is required'),
+  endPrice: z.preprocess((val) => (val === '' || val === undefined || isNaN(Number(val)) ? 0 : Number(val)), z.number().min(0)),
+  totalDistanceKm: z.number().min(0),
+  totalDurationMin: z.number().optional(),
+  stops: z.array(z.object({
+    name: z.string().min(1, 'Stop name is required'),
+    distFromStartKm: z.number().min(0, 'Distance must be 0 or greater'),
+    price: z.preprocess((val) => (val === '' || val === undefined || isNaN(Number(val)) ? 0 : Number(val)), z.number().min(0))
+  })),
+  busId: z.string().optional().nullable(),
+});
+
+/**
+ * A custom component that wraps a TextField with Google Places Autocomplete
+ */
+const LocationAutocomplete = ({ label, placeholder, onSelect, error, helperText, defaultValue, ...props }) => {
+  const inputRef = useRef(null);
+  const [inputValue, setInputValue] = useState(defaultValue || '');
+
+  useEffect(() => {
+    if (!window.google || !inputRef.current) return;
+
+    const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+      componentRestrictions: { country: "lk" }, // Restricted to Sri Lanka
+      fields: ["formatted_address", "geometry", "name"],
+      types: ["geocode", "establishment"]
+    });
+
+    autocomplete.addListener("place_changed", () => {
+      const place = autocomplete.getPlace();
+      if (place.name || place.formatted_address) {
+        const value = place.name || place.formatted_address;
+        setInputValue(value);
+        onSelect(value, place);
+      }
+    });
+  }, [onSelect]);
+
+  useEffect(() => {
+    if (defaultValue !== undefined) setInputValue(defaultValue);
+  }, [defaultValue]);
+
+  return (
+    <TextField
+      {...props}
+      inputRef={inputRef}
+      label={label}
+      placeholder={placeholder}
+      value={inputValue}
+      onChange={(e) => setInputValue(e.target.value)}
+      error={error}
+      helperText={helperText}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <LocationOn fontSize="small" color="primary" />
+          </InputAdornment>
+        ),
+        ...props.InputProps
+      }}
+    />
+  );
+};
+
+export const RouteFormDialog = ({ open, onClose, onSubmit, initialData, isSaving = false, routes = [] }) => {
+  const theme = useTheme();
+  const [calculating, setCalculating] = useState(false);
+  const [durationText, setDurationText] = useState('');
+  const [apiError, setApiError] = useState(null);
+  // Track whether Google Maps loaded successfully for manual-fallback UX
+  const [mapsAvailable, setMapsAvailable] = useState(true);
+  
+  const { buses = [] } = useBusesFirestore();
+  
+  // Map-related refs
+  const mapRef = useRef(null);
+  const mapInstance = useRef(null);
+  const directionsRenderer = useRef(null);
+  const directionsService = useRef(null);
+  
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting }
+  } = useForm({
+    resolver: zodResolver(routeSchema),
+    defaultValues: {
+      routeNumber: '',
+      name: '',
+      startPoint: '',
+      endPoint: '',
+      endPrice: 0,
+      totalDistanceKm: 0,
+      totalDurationMin: 0,
+      stops: [],
+      busId: ''
+    }
+  });
+
+  const { fields, append, remove, move } = useFieldArray({
+    control,
+    name: "stops"
+  });
+
+  const startPoint = watch('startPoint');
+  const endPoint = watch('endPoint');
+  const stops = watch('stops');
+  const totalDistanceKm = watch('totalDistanceKm');
+
+  // Initialize Map — handles async Google Maps loading
+  useEffect(() => {
+    if (!open) return;
+
+    // Poll until window.google is ready (handles async script loading)
+    const waitForGoogle = (attempt = 0) => {
+      if (window.google && window.google.maps) {
+        if (mapRef.current && !mapInstance.current) {
+          try {
+            mapInstance.current = new window.google.maps.Map(mapRef.current, {
+              center: { lat: 7.8731, lng: 80.7718 }, // Center of Sri Lanka
+              zoom: 7,
+              disableDefaultUI: true,
+              zoomControl: true
+            });
+
+            directionsService.current = new window.google.maps.DirectionsService();
+            directionsRenderer.current = new window.google.maps.DirectionsRenderer({
+              map: mapInstance.current,
+              suppressMarkers: false,
+              polylineOptions: {
+                strokeColor: theme.palette.primary.main,
+                strokeWeight: 5,
+                strokeOpacity: 0.8
+              }
+            });
+
+            // Trigger resize after Dialog animation completes
+            const resizeTimer = setTimeout(() => {
+              if (mapInstance.current) {
+                window.google.maps.event.trigger(mapInstance.current, 'resize');
+                mapInstance.current.setCenter({ lat: 7.8731, lng: 80.7718 });
+              }
+            }, 500);
+
+            // Also use ResizeObserver to keep map sized correctly
+            const ro = new ResizeObserver(() => {
+              if (mapInstance.current) {
+                window.google.maps.event.trigger(mapInstance.current, 'resize');
+              }
+            });
+            if (mapRef.current) ro.observe(mapRef.current);
+
+            setApiError(null);
+            setMapsAvailable(true);
+          } catch (e) {
+            console.error('Map init error:', e);
+            setMapsAvailable(false);
+            setApiError("Failed to initialize map. Ensure 'Maps JavaScript API' is enabled in Google Cloud Console.");
+          }
+        }
+      } else if (attempt < 40) {
+        // Retry up to 40 times (4 seconds total)
+        setTimeout(() => waitForGoogle(attempt + 1), 100);
+      } else {
+        setMapsAvailable(false);
+        setApiError(
+          'Google Maps failed to load. Ensure VITE_GOOGLE_MAPS_API_KEY is set in .env and the ' +
+          'following APIs are enabled in Google Cloud Console: Maps JavaScript API, Places API, Directions API.'
+        );
+      }
+    };
+
+    waitForGoogle();
+  }, [open, theme.palette.primary.main]);
+
+  // Auto-generate name from start and end points
+  useEffect(() => {
+    if (startPoint && endPoint) {
+      const start = startPoint.split(',')[0];
+      const end = endPoint.split(',')[0];
+      setValue('name', `${start} - ${end}`);
+    }
+  }, [startPoint, endPoint, setValue]);
+
+  // Reset form when dialog opens/closes or initialData changes
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        reset({
+          routeNumber: initialData.routeNumber || '',
+          name: initialData.name || '',
+          startPoint: initialData.startPoint || '',
+          endPoint: initialData.endPoint || '',
+          endPrice: initialData.endPrice || 0,
+          totalDistanceKm: initialData.totalDistanceKm || 0,
+          totalDurationMin: initialData.totalDurationMin || 0,
+          stops: (initialData.stops || []).map(s => ({
+            name: s.name || '',
+            distFromStartKm: s.distFromStartKm || 0,
+            price: s.price || 0
+          })),
+          busId: initialData.busId || ''
+        });
+      } else {
+        reset({
+          routeNumber: '',
+          name: '',
+          startPoint: '',
+          endPoint: '',
+          endPrice: 0,
+          totalDistanceKm: 0,
+          totalDurationMin: 0,
+          stops: [],
+          busId: ''
+        });
+      }
+    }
+  }, [open, initialData, reset]);
+
+  const lastCalculationRef = useRef("");
+
+  /**
+   * Sequential route calculation and map preview update
+   */
+  const recalculateRoute = useCallback(async () => {
+    if (!startPoint || !endPoint || !window.google || !directionsService.current) return;
+
+    // Create a signature of the current inputs to prevent redundant calls
+    const waypointsNames = stops.map(s => s.name).filter(n => !!n);
+    const currentSignature = JSON.stringify({ startPoint, endPoint, waypointsNames });
+    
+    if (currentSignature === lastCalculationRef.current) return;
+
+    setCalculating(true);
+    setApiError(null);
+
+    const waypoints = waypointsNames.map(name => ({
+      location: name,
+      stopover: true
+    }));
+
+    try {
+      const result = await directionsService.current.route({
+        origin: startPoint,
+        destination: endPoint,
+        waypoints: waypoints,
+        travelMode: window.google.maps.TravelMode.DRIVING,
+        optimizeWaypoints: false
+      });
+
+      if (result && result.routes && result.routes[0]) {
+        const route = result.routes[0];
+        lastCalculationRef.current = currentSignature; // Mark this signature as calculated
+        
+        directionsRenderer.current.setDirections(result);
+        if (mapInstance.current) {
+          mapInstance.current.fitBounds(route.bounds);
+        }
+
+        let cumulativeDistance = 0;
+        let totalTimeSec = 0;
+        const updatedStops = [...stops];
+        let hasChanges = false;
+
+        route.legs.forEach((leg, index) => {
+          totalTimeSec += leg.duration.value;
+          if (index < route.legs.length - 1) {
+            cumulativeDistance += leg.distance.value;
+            const newDist = Math.round(cumulativeDistance / 1000);
+            if (updatedStops[index] && updatedStops[index].distFromStartKm !== newDist) {
+              updatedStops[index].distFromStartKm = newDist;
+              hasChanges = true;
+            }
+          } else {
+            cumulativeDistance += leg.distance.value;
+          }
+        });
+
+        const totalDistance = Math.round(cumulativeDistance / 1000);
+        const totalMinutes = Math.round(totalTimeSec / 60);
+
+        if (totalDistance !== watch('totalDistanceKm')) hasChanges = true;
+
+        if (hasChanges) {
+          setValue('stops', updatedStops, { shouldValidate: true });
+          setValue('totalDistanceKm', totalDistance, { shouldValidate: true });
+          setValue('totalDurationMin', totalMinutes, { shouldValidate: true });
+        }
+
+        setDurationText(totalTimeSec >= 3600 
+          ? `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m` 
+          : `${totalMinutes}m`);
+
+        // Clear any previous API error on success
+        setApiError(null);
+        setMapsAvailable(true);
+      } else {
+        setApiError("No route found between these locations. Verify the place names are correct.");
+      }
+    } catch (error) {
+      console.error("Directions API error:", error);
+      // Provide specific guidance for the most common failure modes
+      let errorMsg;
+      if (error?.code === 'REQUEST_DENIED' || String(error).includes('REQUEST_DENIED')) {
+        errorMsg =
+          'REQUEST_DENIED — The Directions API call was rejected. ' +
+          'Go to Google Cloud Console → APIs & Services and enable: ' +
+          '(1) Maps JavaScript API  (2) Places API  (3) Directions API. ' +
+          'Also check that your API key has no HTTP referrer restrictions blocking localhost.';
+        setMapsAvailable(false);
+      } else if (error?.code === 'ZERO_RESULTS') {
+        errorMsg = 'No driving route found between these two locations. Try different start/end points.';
+      } else if (error?.code === 'OVER_QUERY_LIMIT') {
+        errorMsg = 'Directions API quota exceeded. Please wait a moment and try again.';
+      } else {
+        errorMsg = `Route calculation failed (${error?.code || error?.message || 'unknown error'}). Check your API key and internet connection.`;
+      }
+      setApiError(errorMsg);
+    } finally {
+      setCalculating(false);
+    }
+  }, [startPoint, endPoint, stops, setValue, watch]);
+
+  // Trigger recalculation when points change (Debounced)
+  const stopsNames = JSON.stringify(stops.map(s => s.name));
+  useEffect(() => {
+    if (!startPoint || !endPoint) return;
+    
+    const timer = setTimeout(() => {
+      recalculateRoute();
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [startPoint, endPoint, stopsNames, recalculateRoute]);
+
+  // Look up if there is an existing route with a fare between p1 and p2
+  const findFareForPlaces = useCallback((p1, p2) => {
+    if (!p1 || !p2 || !routes || routes.length === 0) return null;
+    const name1 = p1.split(',')[0].trim().toLowerCase();
+    const name2 = p2.split(',')[0].trim().toLowerCase();
+
+    for (const r of routes) {
+      if (initialData && r.id === initialData.id) continue;
+
+      const rStart = (r.startPoint || '').split(',')[0].trim().toLowerCase();
+      const rEnd = (r.endPoint || '').split(',')[0].trim().toLowerCase();
+
+      // Case 1: Start and End match
+      if ((rStart === name1 && rEnd === name2) || (rStart === name2 && rEnd === name1)) {
+        if (r.endPrice) return r.endPrice;
+      }
+
+      // Case 2: Start matches name1, and stop name matches name2
+      if (rStart === name1) {
+        const stop = (r.stops || []).find(s => (s.name || '').split(',')[0].trim().toLowerCase() === name2);
+        if (stop && stop.price) return stop.price;
+      }
+
+      // Case 3: Start matches name2, and stop name matches name1
+      if (rStart === name2) {
+        const stop = (r.stops || []).find(s => (s.name || '').split(',')[0].trim().toLowerCase() === name1);
+        if (stop && stop.price) return stop.price;
+      }
+    }
+    return null;
+  }, [routes, initialData]);
+
+  // Auto-fill prices from existing matching fares
+  const stopsNamesStr = JSON.stringify(stops?.map(s => s.name));
+  useEffect(() => {
+    if (!routes || routes.length === 0) return;
+
+    // Check endPoint price
+    if (startPoint && endPoint) {
+      const currentEndPrice = watch('endPrice');
+      if (!currentEndPrice || currentEndPrice === 0) {
+        const suggestedEndPrice = findFareForPlaces(startPoint, endPoint);
+        if (suggestedEndPrice) {
+          setValue('endPrice', suggestedEndPrice, { shouldValidate: true });
+        }
+      }
+    }
+
+    // Check stops prices
+    if (startPoint && stops && stops.length > 0) {
+      stops.forEach((stop, index) => {
+        if (stop.name) {
+          const currentStopPrice = stop.price;
+          if (!currentStopPrice || currentStopPrice === 0) {
+            const suggestedStopPrice = findFareForPlaces(startPoint, stop.name);
+            if (suggestedStopPrice) {
+              setValue(`stops.${index}.price`, suggestedStopPrice, { shouldValidate: true });
+            }
+          }
+        }
+      });
+    }
+  }, [startPoint, endPoint, stopsNamesStr, routes, findFareForPlaces, setValue, watch]);
+
+  const handleFormSubmit = async (data) => {
+    await onSubmit(data);
+    onClose();
+  };
+
+  return (
+    <Dialog 
+      open={open} 
+      onClose={onClose}
+      fullWidth
+      maxWidth="lg"
+      keepMounted
+      PaperProps={{
+        sx: {
+          backgroundColor: theme.palette.background.paper,
+          backgroundImage: 'none',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 3,
+          overflow: 'hidden'
+        }
+      }}
+    >
+      <DialogTitle sx={{ 
+        fontWeight: 700, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        p: 3,
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        borderBottom: '1px solid rgba(255,255,255,0.05)'
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box sx={{ 
+            p: 1, 
+            borderRadius: 1.5, 
+            backgroundColor: 'primary.main', 
+            display: 'flex',
+            boxShadow: `0 0 20px ${theme.palette.primary.main}44`
+          }}>
+            <RouteIcon sx={{ color: '#fff' }} />
+          </Box>
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 800 }}>
+              {initialData ? 'Edit Route' : 'Route Builder'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Plan and optimize bus routes with real-time mapping
+            </Typography>
+          </Box>
+        </Box>
+      </DialogTitle>
+      
+      <form onSubmit={handleSubmit(handleFormSubmit)}>
+        <DialogContent sx={{ 
+          p: 0, 
+          height: '75vh', 
+          minHeight: '600px',
+          overflow: 'hidden' 
+        }}>
+          {/* Two-column layout using flexbox — MUI Grid has a known bug with width:0 in Dialogs */}
+          <Box sx={{ display: 'flex', height: '100%', width: '100%' }}>
+            {/* Left Column: Form Controls */}
+            <Box sx={{ 
+              width: '41.67%',  /* 5/12 columns */
+              minWidth: '320px',
+              flexShrink: 0,
+              p: 3, 
+              overflowY: 'auto', 
+              borderRight: '1px solid rgba(255,255,255,0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 3
+            }}>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  size="small"
+                  sx={{ width: '100px' }}
+                  label="Number"
+                  placeholder="e.g., 48"
+                  {...register('routeNumber')}
+                  error={!!errors.routeNumber}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  size="small"
+                  sx={{ flex: 1 }}
+                  label="Route Name"
+                  placeholder="Automatically generated..."
+                  {...register('name')}
+                  error={!!errors.name}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Box>
+
+              <FormControl fullWidth size="small" error={!!errors.busId}>
+                <InputLabel id="route-bus-select-label">Assigned Bus</InputLabel>
+                <Controller
+                  name="busId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      labelId="route-bus-select-label"
+                      label="Assigned Bus"
+                      {...field}
+                      value={field.value || ''}
+                      displayEmpty
+                      renderValue={(val) => {
+                        if (!val) return <Typography color="text.secondary" sx={{ fontSize: '0.85rem' }}>No bus assigned</Typography>;
+                        const b = buses.find((b) => b.id === val);
+                        if (!b) return val;
+                        return (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{b.plateNumber}</Typography>
+                            <Chip 
+                              label={b.class === 'AC' ? 'A/C' : 'Non-A/C'} 
+                              size="small" 
+                              color={b.class === 'AC' ? 'info' : 'default'}
+                              sx={{ height: 18, fontSize: '0.65rem' }} 
+                            />
+                          </Box>
+                        );
+                      }}
+                    >
+                      <MenuItem value="">
+                        <Typography color="text.secondary" sx={{ fontSize: '0.85rem' }}>None</Typography>
+                      </MenuItem>
+                      {buses.map((b) => (
+                        <MenuItem key={b.id} value={b.id}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 0.3 }}>
+                            <DirectionsBus fontSize="small" sx={{ color: 'primary.light' }} />
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>{b.plateNumber}</Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                {b.class === 'AC' ? 'Express A/C' : 'Normal'} · Capacity: {b.capacity || '—'}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  )}
+                />
+              </FormControl>
+
+              <Box>
+                <Typography variant="subtitle2" color="primary" sx={{ mb: 2, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.7rem' }}>
+                  Main Journey Points
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Controller
+                    name="startPoint"
+                    control={control}
+                    render={({ field }) => (
+                      <LocationAutocomplete
+                        fullWidth
+                        size="small"
+                        label="Start Location (Origin)"
+                        placeholder="e.g., Colombo Fort"
+                        defaultValue={field.value}
+                        onSelect={(val) => field.onChange(val)}
+                        error={!!errors.startPoint}
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    )}
+                  />
+
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Box sx={{ flex: 3.2 }}>
+                      <Controller
+                        name="endPoint"
+                        control={control}
+                        render={({ field }) => (
+                          <LocationAutocomplete
+                            fullWidth
+                            size="small"
+                            label="End Location (Destination)"
+                            placeholder="e.g., Kalmunai Station"
+                            defaultValue={field.value}
+                            onSelect={(val) => field.onChange(val)}
+                            error={!!errors.endPoint}
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        )}
+                      />
+                    </Box>
+                    <Box sx={{ flex: 1.2 }}>
+                      <TextField
+                        {...register('endPrice', { valueAsNumber: true })}
+                        fullWidth
+                        size="small"
+                        type="number"
+                        label="Price"
+                        placeholder="0"
+                        InputLabelProps={{ shrink: true }}
+                        InputProps={{
+                          sx: { fontSize: '0.8rem' },
+                          startAdornment: <Typography sx={{ fontSize: 12, mr: 0.5, opacity: 0.5 }}>LKR</Typography>
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                </Box>
+              </Box>
+
+              <Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, fontSize: '0.7rem' }}>
+                    Stops & Waypoints
+                  </Typography>
+                  <Button 
+                    variant="text"
+                    startIcon={<Add />} 
+                    size="small" 
+                    onClick={() => append({ name: '', distFromStartKm: 0, price: 0 })}
+                  >
+                    Add Stop
+                  </Button>
+                </Box>
+                
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  {fields.map((field, index) => (
+                    <Box key={field.id} sx={{ 
+                      display: 'flex', 
+                      gap: 1.2, 
+                      alignItems: 'flex-start',
+                      p: 1.5,
+                      borderRadius: 2,
+                      backgroundColor: 'rgba(255,255,255,0.02)',
+                      border: '1px solid rgba(255,255,255,0.05)',
+                      transition: '0.2s',
+                      '&:hover': { backgroundColor: 'rgba(255,255,255,0.04)' }
+                    }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', mt: 0.5 }}>
+                        <IconButton size="small" onClick={() => move(index, index - 1)} disabled={index === 0} sx={{ p: 0 }}>
+                          <ArrowUpward sx={{ fontSize: 16 }} />
+                        </IconButton>
+                        <IconButton size="small" onClick={() => move(index, index + 1)} disabled={index === fields.length - 1} sx={{ p: 0 }}>
+                          <ArrowDownward sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Box>
+
+                      <Box sx={{ flex: 2.2 }}>
+                        <Controller
+                          name={`stops.${index}.name`}
+                          control={control}
+                          render={({ field: stopField }) => (
+                            <LocationAutocomplete
+                              fullWidth
+                              size="small"
+                              label={`Stop ${index + 1}`}
+                              defaultValue={stopField.value}
+                              onSelect={(val) => stopField.onChange(val)}
+                              error={!!errors.stops?.[index]?.name}
+                              InputLabelProps={{ shrink: true }}
+                            />
+                          )}
+                        />
+                      </Box>
+                      
+                      <Box sx={{ flex: 1 }}>
+                        <TextField
+                          {...register(`stops.${index}.distFromStartKm`, { valueAsNumber: true })}
+                          fullWidth
+                          size="small"
+                          label="Km"
+                          type={mapsAvailable ? 'text' : 'number'}
+                          InputLabelProps={{ shrink: true }}
+                          InputProps={{
+                            readOnly: mapsAvailable, // auto-filled by Maps; editable when Maps is unavailable
+                            sx: { fontSize: '0.8rem', opacity: mapsAvailable ? 1 : 0.85 },
+                            startAdornment: <Straighten sx={{ fontSize: 14, mr: 0.5, opacity: 0.5 }} />
+                          }}
+                        />
+                      </Box>
+
+                      <Box sx={{ flex: 1.2 }}>
+                        <TextField
+                          {...register(`stops.${index}.price`, { valueAsNumber: true })}
+                          fullWidth
+                          size="small"
+                          type="number"
+                          label="Price"
+                          placeholder="0"
+                          InputLabelProps={{ shrink: true }}
+                          InputProps={{
+                            sx: { fontSize: '0.8rem' },
+                            startAdornment: <Typography sx={{ fontSize: 12, mr: 0.5, opacity: 0.5 }}>LKR</Typography>
+                          }}
+                        />
+                      </Box>
+
+                      <IconButton color="error" size="small" onClick={() => remove(index)} sx={{ mt: 0.5 }}>
+                        <Delete sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </Box>
+                  ))}
+                  {fields.length === 0 && (
+                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2, fontStyle: 'italic' }}>
+                      No intermediate stops added
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+            </Box>
+
+            {/* Right Column: Map Preview */}
+            <Box sx={{ 
+              flex: 1,          /* takes all remaining width */
+              backgroundColor: '#111', 
+              position: 'relative', 
+              overflow: 'hidden',
+              minHeight: '500px',
+              height: '100%'
+            }}
+            >
+              <Box 
+                ref={mapRef} 
+                sx={{ 
+                  width: '100%', 
+                  height: '100%',
+                  minHeight: '500px',
+                  backgroundColor: '#222'
+                }} 
+              />
+              
+              {!window.google && (
+                <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a1a1a', p: 4, textAlign: 'center' }}>
+                  <Typography color="error" variant="body2">Google Maps Script failed to load. Check your internet or API key.</Typography>
+                </Box>
+              )}
+
+              {calculating && (
+                <Box sx={{ 
+                  position: 'absolute', 
+                  top: '50%', 
+                  left: '50%', 
+                  transform: 'translate(-50%, -50%)',
+                  backgroundColor: 'rgba(0,0,0,0.85)',
+                  px: 3,
+                  py: 2,
+                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2,
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255,152,0,0.3)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                  zIndex: 10
+                }}>
+                  <CircularProgress size={20} thickness={5} sx={{ color: '#ff9800' }} />
+                  <Typography variant="button" sx={{ color: '#ff9800', fontWeight: 800, letterSpacing: 1.5 }}>Recalculating...</Typography>
+                </Box>
+              )}
+
+              {apiError && (
+                <Paper sx={{ 
+                  position: 'absolute', 
+                  top: 24, 
+                  left: 24, 
+                  right: 24, 
+                  p: 2.5, 
+                  backgroundColor: 'rgba(211, 47, 47, 0.95)', 
+                  color: '#fff',
+                  borderRadius: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 1,
+                  boxShadow: '0 12px 48px rgba(0,0,0,0.6)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  zIndex: 20
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <LocationOn sx={{ color: '#fff' }} />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, textTransform: 'uppercase' }}>API Connection Warning</Typography>
+                  </Box>
+                  <Typography variant="caption" sx={{ opacity: 0.9, lineHeight: 1.4 }}>
+                    {apiError}
+                    <br />
+                    <span style={{ fontWeight: 700, marginTop: '8px', display: 'block' }}>
+                      Required APIs: Maps JavaScript API · Places API · Directions API
+                    </span>
+                    <span style={{ display: 'block', marginTop: '4px', opacity: 0.8 }}>
+                      Set VITE_GOOGLE_MAPS_API_KEY in apps/web/.env then restart the dev server.
+                    </span>
+                  </Typography>
+                </Paper>
+              )}
+            </Box>
+          </Box>
+        </DialogContent>
+        
+        <DialogActions sx={{ 
+          p: 2, 
+          px: 3,
+          backgroundColor: '#000',
+          borderTop: '1px solid rgba(255,255,255,0.05)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          {/* Stats Bar in Bottom Left */}
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <Box sx={{ 
+              height: 44, 
+              backgroundColor: '#111', 
+              border: '1px solid rgba(255,255,255,0.1)', 
+              borderRadius: 1.5, 
+              px: 2, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1 
+            }}>
+              <Navigation sx={{ color: '#ff9800', fontSize: 18 }} />
+              {mapsAvailable ? (
+                <Typography sx={{ color: '#ff9800', fontWeight: 800, fontSize: '0.9rem' }}>
+                  {totalDistanceKm || 0} <span style={{ opacity: 0.6, fontSize: '0.7rem' }}>KM</span>
+                </Typography>
+              ) : (
+                /* Manual fallback: editable when Maps API is unavailable */
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <TextField
+                    {...register('totalDistanceKm', { valueAsNumber: true })}
+                    type="number"
+                    size="small"
+                    variant="standard"
+                    placeholder="0"
+                    inputProps={{ min: 0, style: { color: '#ff9800', fontWeight: 800, fontSize: '0.9rem', width: 60, textAlign: 'center' } }}
+                    sx={{ '& .MuiInput-underline:before': { borderBottomColor: 'rgba(255,152,0,0.3)' } }}
+                  />
+                  <Typography sx={{ color: '#ff9800', opacity: 0.6, fontSize: '0.7rem' }}>KM</Typography>
+                </Box>
+              )}
+            </Box>
+
+            <Box sx={{ 
+              height: 44, 
+              backgroundColor: '#111', 
+              border: '1px solid rgba(255,255,255,0.1)', 
+              borderRadius: 1.5, 
+              px: 2, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1 
+            }}>
+              <Timer sx={{ color: '#ff9800', fontSize: 18 }} />
+              <Typography sx={{ color: '#ff9800', fontWeight: 800, fontSize: '0.9rem' }}>
+                {durationText || '--'}
+              </Typography>
+            </Box>
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <Button onClick={onClose} color="inherit" sx={{ fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>Cancel</Button>
+            <Button 
+              type="submit" 
+              variant="contained" 
+              disabled={isSubmitting || calculating || isSaving}
+              size="large"
+              startIcon={<RouteIcon />}
+              sx={{ 
+                height: 44,
+                px: 5, 
+                borderRadius: 1.5,
+                fontWeight: 800,
+                backgroundColor: '#ff9800',
+                color: '#000',
+                '&:hover': { backgroundColor: '#e68a00' },
+                boxShadow: '0 8px 24px rgba(255, 152, 0, 0.2)'
+              }}
+            >
+              {isSaving ? 'Saving to Firestore...' : isSubmitting ? 'Validating...' : 'Save Bus Route'}
+            </Button>
+          </Box>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
+};

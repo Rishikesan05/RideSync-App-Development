@@ -1,0 +1,121 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users: any authenticated user can read (dashboard is already guarded by ProtectedRoute).
+    // Admin can write and delete. Own profile can update itself.
+    match /users/{uid} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && request.auth.uid == uid;
+      allow write, delete: if isAdminUser();
+    }
+
+    // Passengers profiles
+    match /passengers/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+      allow write, delete: if isAdminUser();
+    }
+
+    // Operators profiles — public read so schedule form can validate operatorId.
+    // Admins can update/delete for Users Management.
+    match /operators/{uid} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+      allow write, delete: if isAdminUser();
+    }
+
+    // LEGACY: 'operator' (singular) — kept for backward compatibility only.
+    match /operator/{uid} {
+      allow read: if true;
+      allow write: if isAdminUser();
+    }
+
+    // Admin collection
+    match /admin/{uid} {
+      allow read: if request.auth != null;
+      allow write: if isAdminUser();
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────────────
+    // isAdminUser: checks the /users/{uid} doc for role === 'admin'.
+    function isAdminUser() {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin';
+    }
+
+    // Legacy hasRole helper kept for backwards-compat with other rules below.
+    function hasRole(role) {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == role;
+    }
+
+    // Routes: public read, admin write
+    match /routes/{routeId} {
+      allow read: if true;
+      allow write: if hasRole('admin');
+    }
+
+    // Buses: public read, admin write
+    match /buses/{busId} {
+      allow read: if true;
+      allow write: if hasRole('admin');
+    }
+
+    // Fares: public read, admin write
+    match /fares/{fareId} {
+      allow read: if true;
+      allow write: if hasRole('admin');
+    }
+
+    // Bookings: passenger reads/writes own, operator reads own schedule, admin reads all
+    match /bookings/{bookingId} {
+      allow read: if request.auth != null && (request.auth.uid == resource.data.passengerId
+                  || hasRole('operator') || hasRole('admin'));
+      allow create: if request.auth != null && (hasRole('passenger') || request.auth.token.role == 'passenger');
+      allow update: if request.auth != null && (request.auth.uid == resource.data.passengerId
+                    || hasRole('admin'));
+    }
+
+    // Feedback: passenger creates own, admin/authenticated reads
+    match /feedback/{feedbackId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Notifications: users read/write own notifications; admin/authenticated can dispatch notifications
+    match /notifications/{uid}/items/{notifId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Operator Reports: operators create/read reports, admin reads/updates/replies
+    match /operator_reports/{reportId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Passenger Reports: passengers create/read reports, admin reads/updates/replies
+    match /passenger_reports/{reportId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Cash Handovers: operators create/view handovers, admin updates/approves
+    match /cash_handovers/{handoverId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Schedules and Seats: Public read for search, secure write/update
+    match /schedules/{scheduleId} {
+      allow read: if true;
+      allow create, delete: if hasRole('admin');
+      allow update: if hasRole('admin')
+                    || (hasRole('operator') &&
+                        get(/databases/$(database)/documents/operators/$(request.auth.uid))
+                          .data.get('operatorId', '') == resource.data.operatorId);
+
+      match /seats/{seatId} {
+        allow read: if true;
+        allow write, update: if request.auth != null;
+      }
+    }
+  }
+}

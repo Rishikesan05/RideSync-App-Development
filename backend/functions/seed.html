@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>RideSync - Seed Database</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; padding: 40px; background: #0f172a; color: #e2e8f0; }
+    h1 { color: #f97316; }
+    button { background: #f97316; color: white; border: none; padding: 16px 32px; font-size: 16px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    pre { background: #1e293b; padding: 16px; border-radius: 8px; max-height: 500px; overflow-y: auto; font-size: 13px; }
+    .warning { color: #f59e0b; margin: 20px 0; padding: 12px; background: rgba(245,158,11,0.1); border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>🚌 RideSync Database Seeder</h1>
+  <p>Seeds 8 Sri Lankan bus routes, 10 buses, and daily schedules for 14 days + weekly for 6 months.</p>
+  <div class="warning">⚠️ You must be logged in as an admin user in the web app first, or temporarily set Firestore rules to allow public writes.</div>
+  <button id="seedBtn" onclick="startSeed()">🌱 Start Seeding</button>
+  <pre id="log">Ready to seed...\n</pre>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getFirestore, collection, addDoc, doc, setDoc, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+    const app = initializeApp({
+      apiKey: "AIzaSyCv3DoRfFRvayKVqWH_Iuinf-5trnHyusg",
+      authDomain: "ridesync-lk.firebaseapp.com",
+      projectId: "ridesync-lk",
+      storageBucket: "ridesync-lk.firebasestorage.app",
+      messagingSenderId: "209636561505",
+    });
+    const db = getFirestore(app);
+
+    const ROUTES = [
+      { routeNumber: '1', name: 'Colombo - Kandy Express', startPoint: 'Colombo', endPoint: 'Kandy', totalDistanceKm: 116, isActive: true, stops: [{name:'Colombo Fort',distFromStartKm:0},{name:'Kadawatha',distFromStartKm:15},{name:'Kegalle',distFromStartKm:72},{name:'Mawanella',distFromStartKm:88},{name:'Kandy',distFromStartKm:116}] },
+      { routeNumber: '2', name: 'Colombo - Galle Coastal', startPoint: 'Colombo', endPoint: 'Galle', totalDistanceKm: 126, isActive: true, stops: [{name:'Colombo Fort',distFromStartKm:0},{name:'Moratuwa',distFromStartKm:18},{name:'Panadura',distFromStartKm:27},{name:'Ambalangoda',distFromStartKm:87},{name:'Hikkaduwa',distFromStartKm:98},{name:'Galle',distFromStartKm:126}] },
+      { routeNumber: '4', name: 'Colombo - Jaffna Intercity', startPoint: 'Colombo', endPoint: 'Jaffna', totalDistanceKm: 398, isActive: true, stops: [{name:'Colombo Fort',distFromStartKm:0},{name:'Kurunegala',distFromStartKm:94},{name:'Dambulla',distFromStartKm:148},{name:'Anuradhapura',distFromStartKm:206},{name:'Vavuniya',distFromStartKm:260},{name:'Kilinochchi',distFromStartKm:326},{name:'Jaffna',distFromStartKm:398}] },
+      { routeNumber: '15', name: 'Colombo - Ratnapura', startPoint: 'Colombo', endPoint: 'Ratnapura', totalDistanceKm: 101, isActive: true, stops: [{name:'Colombo Fort',distFromStartKm:0},{name:'Horana',distFromStartKm:36},{name:'Eheliyagoda',distFromStartKm:68},{name:'Ratnapura',distFromStartKm:101}] },
+      { routeNumber: '48', name: 'Kandy - Nuwara Eliya', startPoint: 'Kandy', endPoint: 'Nuwara Eliya', totalDistanceKm: 80, isActive: true, stops: [{name:'Kandy',distFromStartKm:0},{name:'Peradeniya',distFromStartKm:7},{name:'Gampola',distFromStartKm:24},{name:'Nawalapitiya',distFromStartKm:37},{name:'Nuwara Eliya',distFromStartKm:80}] },
+      { routeNumber: '99', name: 'Colombo - Negombo', startPoint: 'Colombo', endPoint: 'Negombo', totalDistanceKm: 37, isActive: true, stops: [{name:'Colombo Fort',distFromStartKm:0},{name:'Wattala',distFromStartKm:12},{name:'Ja-Ela',distFromStartKm:20},{name:'Negombo',distFromStartKm:37}] },
+      { routeNumber: '138', name: 'Colombo - Kaduwela Express', startPoint: 'Colombo', endPoint: 'Kaduwela', totalDistanceKm: 18, isActive: true, stops: [{name:'Pettah',distFromStartKm:0},{name:'Borella',distFromStartKm:4},{name:'Nugegoda',distFromStartKm:9},{name:'Maharagama',distFromStartKm:14},{name:'Kaduwela',distFromStartKm:18}] },
+      { routeNumber: '177', name: 'Colombo - Matara Express', startPoint: 'Colombo', endPoint: 'Matara', totalDistanceKm: 160, isActive: true, stops: [{name:'Colombo Fort',distFromStartKm:0},{name:'Panadura',distFromStartKm:27},{name:'Galle',distFromStartKm:126},{name:'Matara',distFromStartKm:160}] },
+    ];
+
+    const BUSES = [
+      { plateNumber: 'WP-KA-1234', class: 'AC', capacity: 42 },
+      { plateNumber: 'WP-KA-5678', class: 'AC', capacity: 42 },
+      { plateNumber: 'WP-NB-9012', class: 'Non-AC', capacity: 54 },
+      { plateNumber: 'WP-NB-3456', class: 'Non-AC', capacity: 54 },
+      { plateNumber: 'CP-LA-7890', class: 'AC', capacity: 42 },
+      { plateNumber: 'SP-JA-1122', class: 'Non-AC', capacity: 54 },
+      { plateNumber: 'NW-KB-3344', class: 'AC', capacity: 42 },
+      { plateNumber: 'NW-KB-5566', class: 'Non-AC', capacity: 54 },
+      { plateNumber: 'SG-MA-7788', class: 'Non-AC', capacity: 54 },
+      { plateNumber: 'WP-RS-1380', class: 'AC', capacity: 42 },
+    ];
+
+    const HOURS = [6, 8, 10, 14, 17];
+
+    function log(msg) {
+      const el = document.getElementById('log');
+      el.textContent += msg + '\n';
+      el.scrollTop = el.scrollHeight;
+    }
+
+    window.startSeed = async function() {
+      document.getElementById('seedBtn').disabled = true;
+      log('🚌 Starting seed...');
+
+      try {
+        // 1. Buses
+        log('\n📦 Seeding 10 buses...');
+        const busIds = [];
+        for (const bus of BUSES) {
+          const ref = await addDoc(collection(db, 'buses'), { ...bus, isActive: true, operatorId: 'system_operator', createdAt: new Date().toISOString() });
+          busIds.push(ref.id);
+          log('   ✅ ' + bus.plateNumber);
+        }
+
+        // 2. Routes
+        log('\n🗺️ Seeding 8 routes...');
+        const routeIds = [];
+        for (const route of ROUTES) {
+          const ref = await addDoc(collection(db, 'routes'), { ...route, createdAt: new Date().toISOString() });
+          routeIds.push(ref.id);
+          log('   ✅ ' + route.name);
+        }
+
+        // 3. Schedules
+        log('\n📅 Seeding schedules...');
+        const today = new Date(); today.setHours(0,0,0,0);
+        let count = 0;
+
+        // 14 days of daily schedules
+        for (let d = 0; d < 14; d++) {
+          const day = new Date(today); day.setDate(day.getDate() + d);
+          for (let ri = 0; ri < routeIds.length; ri++) {
+            const deps = HOURS.filter((_,idx) => (idx+ri)%2===0).slice(0,3);
+            for (const h of deps) {
+              const dt = new Date(day); dt.setHours(h, (ri*10)%60, 0, 0);
+              const bi = (ri+h) % busIds.length;
+              const schedRef = await addDoc(collection(db, 'schedules'), {
+                routeId: routeIds[ri], routeName: ROUTES[ri].name,
+                busId: busIds[bi], plateNumber: BUSES[bi].plateNumber,
+                operatorId: 'system_operator',
+                departureTime: Timestamp.fromDate(dt),
+                status: 'scheduled', capacity: BUSES[bi].capacity,
+                createdAt: new Date().toISOString(),
+              });
+              count++;
+
+              // Seats for today+tomorrow only
+              if (d < 2) {
+                const cap = BUSES[bi].capacity;
+                for (let s = 1; s <= cap; s++) {
+                  await setDoc(doc(db, 'schedules', schedRef.id, 'seats', 'S'+s), {
+                    seatNumber: 'S'+s, status: 'available', passengerId: null, updatedAt: new Date().toISOString(),
+                  });
+                }
+                log('   ✅ Day ' + d + ': ' + ROUTES[ri].name + ' @ ' + h + ':' + String((ri*10)%60).padStart(2,'0') + ' + ' + cap + ' seats');
+              }
+            }
+          }
+          if (d >= 2) log('   📅 Day ' + d + ': ' + (count) + ' total schedules');
+        }
+
+        // Weekly for remaining months
+        for (let w = 2; w < 26; w++) {
+          const monday = new Date(today);
+          monday.setDate(monday.getDate() + (w * 7) + ((1 - today.getDay() + 7) % 7));
+          for (let ri = 0; ri < routeIds.length; ri++) {
+            const dt = new Date(monday); dt.setHours(8, 0, 0, 0);
+            const bi = ri % busIds.length;
+            await addDoc(collection(db, 'schedules'), {
+              routeId: routeIds[ri], routeName: ROUTES[ri].name,
+              busId: busIds[bi], plateNumber: BUSES[bi].plateNumber,
+              operatorId: 'system_operator',
+              departureTime: Timestamp.fromDate(dt),
+              status: 'scheduled', capacity: BUSES[bi].capacity,
+              createdAt: new Date().toISOString(),
+            });
+            count++;
+          }
+          log('   📅 Week ' + w + ': +8 schedules');
+        }
+
+        log('\n🎉 DONE! Routes: ' + ROUTES.length + ', Buses: ' + BUSES.length + ', Schedules: ' + count);
+      } catch (err) {
+        log('\n❌ Error: ' + err.message);
+        log('If "permission denied": Go to Firebase Console → Firestore → Rules → temporarily add: allow write: if true; under match /{document=**}');
+      }
+      document.getElementById('seedBtn').disabled = false;
+    };
+  </script>
+</body>
+</html>
