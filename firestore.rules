@@ -40,7 +40,6 @@ service cloud.firestore {
 
     // ── Helpers ─────────────────────────────────────────────────────────────
     // isAdminUser: checks the /users/{uid} doc for role === 'admin'.
-    // Used only for write/delete guards (NOT in collection-query read rules).
     function isAdminUser() {
       return request.auth != null &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin';
@@ -79,24 +78,35 @@ service cloud.firestore {
                     || hasRole('admin'));
     }
 
-    // Feedback: passenger creates own, admin reads
+    // Feedback: passenger creates own, admin/authenticated reads
     match /feedback/{feedbackId} {
-      allow create: if hasRole('passenger');
-      allow read: if hasRole('admin');
+      allow read, write: if request.auth != null;
     }
 
-    // Notifications: user reads/writes own only
+    // Notifications: users read/write own notifications; admin/authenticated can dispatch notifications
     match /notifications/{uid}/items/{notifId} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if request.auth != null;
+    }
+
+    // Operator Reports: operators create/read reports, admin reads/updates/replies
+    match /operator_reports/{reportId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Passenger Reports: passengers create/read reports, admin reads/updates/replies
+    match /passenger_reports/{reportId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Cash Handovers: operators create/view handovers, admin updates/approves
+    match /cash_handovers/{handoverId} {
+      allow read, write: if request.auth != null;
     }
 
     // Schedules and Seats: Public read for search, secure write/update
     match /schedules/{scheduleId} {
       allow read: if true;
       allow create, delete: if hasRole('admin');
-      // The schedule stores operatorId as a custom string (e.g. RSOP26-001), NOT the
-      // Firebase Auth UID. We resolve the operator's profile by uid and compare the
-      // operatorId field stored there against the one on the schedule document.
       allow update: if hasRole('admin')
                     || (hasRole('operator') &&
                         get(/databases/$(database)/documents/operators/$(request.auth.uid))

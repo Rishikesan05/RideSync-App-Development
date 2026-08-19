@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ridesync/core/constants.dart';
 import 'package:ridesync/core/widgets/custom_button.dart';
+import 'package:ridesync/core/widgets/confirm_exit_dialog.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
 import 'package:ridesync/features/passenger/presentation/screens/booking_confirmation_screen.dart';
@@ -115,6 +116,29 @@ class _ExpressPaymentScreenState extends State<ExpressPaymentScreen> {
     );
   }
 
+  Future<void> _handlePop(bool didPop, dynamic result) async {
+    if (didPop) return;
+
+    if (_isProcessing) {
+      // Don't interrupt while transaction is actively communicating with server
+      return;
+    }
+
+    final shouldLeave = await showConfirmExitDialog(
+      context,
+      title: 'Cancel Express Payment?',
+      message: 'Are you sure you want to cancel the ${widget.methodName} checkout?',
+      confirmLabel: 'Cancel Payment',
+      cancelLabel: 'Keep Paying',
+      isDestructive: true,
+      icon: Icons.payment_rounded,
+    );
+
+    if (shouldLeave && mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final booking = Provider.of<BookingProvider>(context);
@@ -123,16 +147,19 @@ class _ExpressPaymentScreenState extends State<ExpressPaymentScreen> {
     
     final isApple = widget.methodName == 'Apple Pay';
 
-    return Scaffold(
-      backgroundColor: isDark ? Colors.black : Colors.black87,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: _handlePop,
+      child: Scaffold(
+        backgroundColor: isDark ? Colors.black : Colors.black87,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: Colors.white),
+            onPressed: () => _handlePop(false, null),
+          ),
         ),
-      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(32.0, 32.0, 32.0, 80.0),
@@ -236,6 +263,7 @@ class _ExpressPaymentScreenState extends State<ExpressPaymentScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
-import { auth } from '../../api/firebase';
+import { auth, db } from '../../api/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../../providers/AuthProvider';
 import { useColorMode } from '../../providers/AppProviders';
 import {
@@ -22,6 +23,7 @@ import {
   Menu,
   MenuItem,
   Tooltip,
+  Badge,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -63,8 +65,27 @@ export const AdminLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [scrolled, setScrolled] = useState(false);
+  const [pendingReports, setPendingReports] = useState(0);
 
   const roleLabel = isAdmin ? 'Admin' : isOperator ? 'Operator' : '';
+
+  // Live badge: count pending operator + passenger reports
+  useEffect(() => {
+    const qOp = query(collection(db, 'operator_reports'), where('status', '==', 'pending'));
+    const qPax = query(collection(db, 'passenger_reports'), where('status', '==', 'pending'));
+    let opCount = 0;
+    let paxCount = 0;
+    const unsubOp = onSnapshot(qOp, (snap) => {
+      opCount = snap.size;
+      setPendingReports(opCount + paxCount);
+    }, () => {});
+    const unsubPax = onSnapshot(qPax, (snap) => {
+      paxCount = snap.size;
+      setPendingReports(opCount + paxCount);
+    }, () => {});
+    return () => { unsubOp(); unsubPax(); };
+  }, []);
+
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -222,9 +243,11 @@ export const AdminLayout = () => {
                 {theme.palette.mode === 'dark' ? <LightMode /> : <DarkMode />}
               </IconButton>
             </Tooltip>
-            <Tooltip title="Notifications">
+            <Tooltip title={`Notifications${pendingReports > 0 ? ` (${pendingReports} pending)` : ''}`}>
               <IconButton color="inherit" onClick={() => handleNavigate('/notifications')}>
-                <Notifications />
+                <Badge badgeContent={pendingReports} color="error" max={99}>
+                  <Notifications />
+                </Badge>
               </IconButton>
             </Tooltip>
             <Tooltip title={`${currentUser?.email || 'Profile'} (${roleLabel})`}>

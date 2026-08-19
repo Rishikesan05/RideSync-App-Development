@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ridesync/core/constants.dart';
+import 'package:ridesync/core/widgets/confirm_exit_dialog.dart';
 import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
 import 'package:ridesync/features/passenger/presentation/screens/card_payment_screen.dart';
 import 'package:ridesync/features/passenger/presentation/screens/express_payment_screen.dart';
@@ -8,30 +9,51 @@ import 'package:ridesync/features/passenger/presentation/screens/express_payment
 class PaymentScreen extends StatelessWidget {
   const PaymentScreen({super.key});
 
+  Future<void> _handlePop(BuildContext context, bool didPop, dynamic result) async {
+    if (didPop) return;
+
+    final shouldLeave = await showConfirmExitDialog(
+      context,
+      title: 'Leave Checkout?',
+      message: 'Are you sure you want to go back to seat selection?',
+      confirmLabel: 'Go Back',
+      cancelLabel: 'Stay Here',
+      isDestructive: false,
+      icon: Icons.shopping_cart_checkout_rounded,
+    );
+
+    if (shouldLeave && context.mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final booking = Provider.of<BookingProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white : AppColors.textDark, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Payment Methods',
-          style: TextStyle(
-            color: isDark ? Colors.white : AppColors.textDark,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) => _handlePop(context, didPop, result),
+      child: Scaffold(
+        backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white : AppColors.textDark, size: 20),
+            onPressed: () => _handlePop(context, false, null),
           ),
+          title: Text(
+            'Payment Methods',
+            style: TextStyle(
+              color: isDark ? Colors.white : AppColors.textDark,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 80.0),
         child: Column(
@@ -129,8 +151,9 @@ class PaymentScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _PaymentMethodCard extends StatelessWidget {

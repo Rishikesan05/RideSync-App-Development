@@ -8,26 +8,40 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/intl.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Admin contact constants
+// Admin Contact Constants
 // ─────────────────────────────────────────────────────────────────────────────
-const String _kAdminPhone = '+94703753501';     // Call Depot number
-const String _kAdminWhatsApp = '94754918424';   // WhatsApp number (no +)
-const String _kWhatsAppMessage = 'Hi I am operator I need your help';
+const String _kAdminPhone = '+94703753501';     // Admin Depot Hotline
+const String _kAdminWhatsApp = '94754918424';   // WhatsApp Number
+const String _kWhatsAppMessage = 'Hi I am passenger I need your help';
 
-class OperatorContactScreen extends StatefulWidget {
-  const OperatorContactScreen({super.key});
+class HelpCenterScreen extends StatefulWidget {
+  const HelpCenterScreen({super.key});
 
   @override
-  State<OperatorContactScreen> createState() => _OperatorContactScreenState();
+  State<HelpCenterScreen> createState() => _HelpCenterScreenState();
 }
 
-class _OperatorContactScreenState extends State<OperatorContactScreen> {
-  String get _operatorId {
+class _HelpCenterScreenState extends State<HelpCenterScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  String get _passengerId {
     return Provider.of<AuthProvider>(context, listen: false).user?.id ?? '';
   }
 
-  String get _operatorName {
-    return Provider.of<AuthProvider>(context, listen: false).user?.name ?? 'Operator';
+  String get _passengerName {
+    return Provider.of<AuthProvider>(context, listen: false).user?.name ?? 'Passenger';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
@@ -39,119 +53,320 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
       appBar: AppBar(
         backgroundColor: isDark ? const Color(0xFFD84315) : AppColors.primaryOrange,
         elevation: 0,
-        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text(
-          'Contact Admin',
+          'Help Center & Support',
           style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          tabs: const [
+            Tab(icon: Icon(Icons.quiz_outlined, size: 20), text: 'FAQs'),
+            Tab(icon: Icon(Icons.support_agent_rounded, size: 20), text: 'Contact Admin'),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showNewTicketBottomSheet(context, isDark),
         backgroundColor: AppColors.primaryOrange,
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.edit_document),
-        label: const Text('New Report', style: TextStyle(fontWeight: FontWeight.bold)),
+        icon: const Icon(Icons.rate_review_outlined),
+        label: const Text('New Inquiry / Report', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 120),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildContactSection(isDark),
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Text(
-                'Recent Reports',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : AppColors.textDark,
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Text(
-                'Tap a report to see admin replies',
-                style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : Colors.grey.shade500),
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildTicketList(isDark),
-          ],
-        ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildFaqTab(isDark),
+          _buildContactAndReportsTab(isDark),
+        ],
       ),
     );
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // Quick Contact Section
+  // Tab 1: FAQs
   // ──────────────────────────────────────────────────────────────────────────
 
-  Widget _buildContactSection(bool isDark) {
+  Widget _buildFaqTab(bool isDark) {
+    final List<Map<String, dynamic>> faqCategories = [
+      {
+        'category': 'Booking & Tickets',
+        'icon': Icons.confirmation_number_outlined,
+        'color': Colors.blue,
+        'items': [
+          {
+            'q': 'How do I search and book a bus seat?',
+            'a': 'Go to the Home screen, select your starting origin and destination, pick a schedule, and tap on available seats. You can then confirm your passenger details and proceed to secure digital payment.'
+          },
+          {
+            'q': 'Where do I find my booked ticket?',
+            'a': 'Navigate to your Profile -> "Ride History" or the Bookings tab. Tap any confirmed booking to view the interactive ticket with QR code for boarding.'
+          },
+          {
+            'q': 'Can I book multiple seats at once?',
+            'a': 'Yes! On the interactive seat selection layout, you can tap up to 6 available seats simultaneously before proceeding to checkout.'
+          },
+          {
+            'q': 'What happens if I miss my bus?',
+            'a': 'Please contact the depot admin immediately using the "Call Depot" or "WhatsApp Admin" button. Depending on route policy, you may be rescheduled to the next available bus.'
+          },
+        ]
+      },
+      {
+        'category': 'Live Bus Tracking & ETA',
+        'icon': Icons.map_outlined,
+        'color': Colors.green,
+        'items': [
+          {
+            'q': 'How does real-time bus tracking work?',
+            'a': 'When the operator starts their route, their device broadcasts live GPS coordinates directly to our cloud database. The Live map displays the moving bus marker with accurate heading and next-stop indicators.'
+          },
+          {
+            'q': 'What do the pin colors on the map mean?',
+            'a': 'Green Pin: Journey Origin.\nRed Pin: Final Destination.\nBlue "YOU" Pin: Your designated boarding stop.\nOrange Numbered Pins: Intermediate boarding and drop-off stations.'
+          },
+          {
+            'q': 'What if the bus location stops moving?',
+            'a': 'Temporary GPS signal loss or heavy tunnel traffic may cause delays. If the bus remains stationary for a prolonged time, tap the "Contact Admin" button to report a schedule delay.'
+          },
+        ]
+      },
+      {
+        'category': 'Payments & Refunds',
+        'icon': Icons.payment_outlined,
+        'color': Colors.purple,
+        'items': [
+          {
+            'q': 'What payment options are supported?',
+            'a': 'RideSync supports Credit / Debit Cards (Visa, Mastercard), Express Digital Checkout, and cash boarding where permitted by the route operator.'
+          },
+          {
+            'q': 'How do I request a cancellation and refund?',
+            'a': 'You can submit a refund inquiry through the "New Inquiry / Report" button under the "Contact Admin" tab. Refunds are typically processed within 2–5 business days.'
+          },
+          {
+            'q': 'Is my credit card information secure?',
+            'a': 'Yes! RideSync utilizes end-to-end encrypted and tokenized payment channels complying with industry PCI-DSS security standards. We never store your full card CVV.'
+          },
+        ]
+      },
+      {
+        'category': 'Account & Loyalty Rewards',
+        'icon': Icons.card_giftcard_outlined,
+        'color': Colors.orange,
+        'items': [
+          {
+            'q': 'How do I earn loyalty points?',
+            'a': 'You earn 10 RideSync loyalty points for every completed ride booking. Accumulated points can be redeemed for future ride discounts.'
+          },
+          {
+            'q': 'How do I update my name or phone number?',
+            'a': 'Go to My Profile -> Tap your avatar or "Personal Information" under Preferences. Update your full name and phone number and tap Save Changes.'
+          },
+        ]
+      },
+    ];
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+      children: [
+        // Search & Greeting banner
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+            boxShadow: [
+              if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 6)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.live_help_rounded, color: AppColors.primaryOrange, size: 28),
+                  const SizedBox(width: 12),
+                  Text(
+                    'How can we help you?',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : AppColors.textDark,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Browse through our most frequently asked questions or submit an inquiry directly to the RideSync administration team.',
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.grey.shade600, height: 1.4),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        ...faqCategories.map((cat) {
+          final color = cat['color'] as MaterialColor;
+          final items = cat['items'] as List<Map<String, String>>;
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(cat['icon'] as IconData, color: color.shade600, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        cat['category'] as String,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : AppColors.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                ...items.map((item) {
+                  return Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 2),
+                      childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
+                      title: Text(
+                        item['q']!,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white.withValues(alpha: 0.9) : AppColors.textDark,
+                        ),
+                      ),
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            item['a']!,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark ? Colors.white70 : Colors.grey.shade700,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Tab 2: Contact Admin & My Inquiries
+  // ──────────────────────────────────────────────────────────────────────────
+
+  Widget _buildContactAndReportsTab(bool isDark) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildQuickContactSection(isDark),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'My Support Inquiries',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark),
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh, size: 20),
+                tooltip: 'Refresh',
+                onPressed: () => setState(() {}),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Tap any inquiry to view admin response and status updates',
+            style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : Colors.grey.shade500),
+          ),
+          const SizedBox(height: 16),
+          _buildPassengerInquiriesList(isDark),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickContactSection(bool isDark) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.all(24),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
         boxShadow: [
-          if (!isDark)
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
+          if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 6)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
               Icon(Icons.headset_mic_rounded, color: AppColors.primaryOrange, size: 24),
               const SizedBox(width: 12),
               Text(
-                'Quick Contact',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : AppColors.textDark,
-                ),
+                'Direct Hotline Support',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textDark),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
-            'Reach the RideSync admin team instantly',
+            'Need urgent assistance? Reach out to the depot office directly.',
             style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : Colors.grey.shade500),
           ),
-          const SizedBox(height: 20),
-
-          // Contact info tiles
-          _buildContactInfoTile(
-            icon: Icons.phone_in_talk_rounded,
-            label: 'Admin Depot Number',
-            value: _kAdminPhone,
-            color: Colors.blue,
-            isDark: isDark,
-          ),
-          const SizedBox(height: 12),
-          _buildContactInfoTile(
-            icon: Icons.chat_bubble_rounded,
-            label: 'Admin WhatsApp',
-            value: '+$_kAdminWhatsApp',
-            color: Colors.green,
-            isDark: isDark,
-          ),
-          const SizedBox(height: 20),
-
-          // Action buttons
+          const SizedBox(height: 18),
           Row(
             children: [
               Expanded(
@@ -164,7 +379,7 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
                   isDark: isDark,
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: _buildActionButton(
                   icon: Icons.chat_bubble_rounded,
@@ -175,47 +390,6 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
                   isDark: isDark,
                 ),
               ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContactInfoTile({
-    required IconData icon,
-    required String label,
-    required String value,
-    required MaterialColor color,
-    required bool isDark,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? color.withValues(alpha: 0.08) : color.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? color.withValues(alpha: 0.2) : color.shade100),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: isDark ? color.shade300 : color.shade600, size: 18),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: isDark ? color.shade300 : color.shade700,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
-                )),
-              Text(value,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isDark ? Colors.white : AppColors.textDark,
-                  fontWeight: FontWeight.bold,
-                )),
             ],
           ),
         ],
@@ -235,11 +409,11 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
-          color: isDark ? color.withValues(alpha: 0.15) : color.shade50,
+          color: isDark ? color.withValues(alpha: 0.12) : color.shade50,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isDark ? color.withValues(alpha: 0.3) : color.shade100),
+          border: Border.all(color: isDark ? color.withValues(alpha: 0.25) : color.shade100),
         ),
         child: Column(
           children: [
@@ -249,9 +423,9 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
                 color: isDark ? color.withValues(alpha: 0.2) : color.shade100,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: isDark ? color.shade300 : color.shade700, size: 24),
+              child: Icon(icon, color: isDark ? color.shade300 : color.shade700, size: 22),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               label,
               style: TextStyle(
@@ -274,37 +448,50 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
     );
   }
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Report List
-  // ──────────────────────────────────────────────────────────────────────────
-
-  Widget _buildTicketList(bool isDark) {
-    if (_operatorId.isEmpty) {
-      return const Center(child: Text('Not authenticated.'));
+  Widget _buildPassengerInquiriesList(bool isDark) {
+    if (_passengerId.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+        ),
+        child: Center(
+          child: Text(
+            'Please log in to view your support history.',
+            style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600),
+          ),
+        ),
+      );
     }
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('operator_reports')
-          .where('operatorId', isEqualTo: _operatorId)
+          .collection('passenger_reports')
+          .where('passengerId', isEqualTo: _passengerId)
           .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: Padding(
-              padding: EdgeInsets.all(24),
+              padding: EdgeInsets.all(32),
               child: CircularProgressIndicator(color: AppColors.primaryOrange),
             ),
           );
         }
 
         if (snapshot.hasError) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Text(
-              'Error loading reports: ${snapshot.error}',
-              style: const TextStyle(color: Colors.red),
+              'Error loading inquiries: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red, fontSize: 13),
             ),
           );
         }
@@ -312,47 +499,43 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
         final docs = snapshot.data?.docs ?? [];
 
         if (docs.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
-              ),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(Icons.inbox_outlined, size: 48, color: isDark ? Colors.white24 : Colors.grey.shade300),
-                    const SizedBox(height: 12),
-                    Text(
-                      'No reports submitted yet.',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white54 : Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Tap "New Report" to contact admin.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade500, fontSize: 13),
-                    ),
-                  ],
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.mark_chat_unread_outlined, size: 48, color: isDark ? Colors.white24 : Colors.grey.shade300),
+                const SizedBox(height: 12),
+                Text(
+                  'No inquiries submitted yet',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: isDark ? Colors.white70 : Colors.grey.shade700,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 4),
+                Text(
+                  'Tap "New Inquiry / Report" below to send a message to admin.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade500, fontSize: 12),
+                ),
+              ],
             ),
           );
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          physics: const NeverScrollableScrollPhysics(),
           shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: docs.length,
           itemBuilder: (context, index) {
-            return _ReportCard(doc: docs[index], isDark: isDark);
+            return _PassengerInquiryCard(doc: docs[index], isDark: isDark);
           },
         );
       },
@@ -360,17 +543,18 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // New Report Bottom Sheet
+  // New Report / Inquiry Bottom Sheet
   // ──────────────────────────────────────────────────────────────────────────
 
   void _showNewTicketBottomSheet(BuildContext context, bool isDark) {
-    String selectedIssue = '🚍 Bus Breakdown';
-    final List<String> issues = [
-      '🚍 Bus Breakdown',
-      '⏱️ Heavy Traffic / Schedule Delay',
-      '👥 Passenger Dispute',
-      '📱 App / Tech Issue',
-      '➕ Other',
+    String selectedCategory = '🎫 Booking & Ticket Issue';
+    final List<String> categories = [
+      '🎫 Booking & Ticket Issue',
+      '⏱️ Bus Delay / Schedule Issue',
+      '💳 Payment & Refund Issue',
+      '🧳 Lost & Found',
+      '📱 App & Technical Problem',
+      '➕ Other Inquiry',
     ];
     final descController = TextEditingController();
     final otherController = TextEditingController();
@@ -394,7 +578,6 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Drag handle
                   Center(
                     child: Container(
                       width: 40,
@@ -405,27 +588,28 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   Text(
-                    'Report an Issue',
+                    'Contact Admin / Submit Inquiry',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 19,
                       fontWeight: FontWeight.bold,
                       color: isDark ? Colors.white : AppColors.textDark,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Your report will be sent directly to the admin.',
-                    style: TextStyle(fontSize: 13, color: isDark ? Colors.white38 : Colors.grey.shade500),
+                    'Our administration team will review and reply to your inquiry shortly.',
+                    style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : Colors.grey.shade500),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
 
-                  // Issue type dropdown
+                  // Category Dropdown
                   DropdownButtonFormField<String>(
-                    initialValue: selectedIssue,
+                    initialValue: selectedCategory,
                     dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                     decoration: InputDecoration(
+                      labelText: 'Inquiry Category',
                       filled: true,
                       fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
                       border: OutlineInputBorder(
@@ -433,11 +617,11 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    items: issues
-                        .map((String issue) => DropdownMenuItem<String>(
-                              value: issue,
+                    items: categories
+                        .map((String cat) => DropdownMenuItem<String>(
+                              value: cat,
                               child: Text(
-                                issue,
+                                cat,
                                 style: TextStyle(
                                   color: isDark ? Colors.white : AppColors.textDark,
                                   fontSize: 14,
@@ -446,18 +630,18 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
                               ),
                             ))
                         .toList(),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) setModal(() => selectedIssue = newValue);
+                    onChanged: (String? val) {
+                      if (val != null) setModal(() => selectedCategory = val);
                     },
                   ),
 
-                  if (selectedIssue == '➕ Other') ...[
-                    const SizedBox(height: 16),
+                  if (selectedCategory == '➕ Other Inquiry') ...[
+                    const SizedBox(height: 14),
                     TextField(
                       controller: otherController,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.textDark),
                       decoration: InputDecoration(
-                        hintText: 'Specify reason...',
+                        hintText: 'Specify subject/topic...',
                         hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400),
                         filled: true,
                         fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
@@ -469,13 +653,13 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
                     ),
                   ],
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   TextField(
                     controller: descController,
                     maxLines: 4,
                     style: TextStyle(color: isDark ? Colors.white : AppColors.textDark),
                     decoration: InputDecoration(
-                      hintText: 'Describe the issue in detail...',
+                      hintText: 'Describe your issue or question in detail...',
                       hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400),
                       filled: true,
                       fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
@@ -504,10 +688,10 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
                                 return;
                               }
 
-                              final operatorId = _operatorId;
-                              if (operatorId.isEmpty) {
+                              final pId = _passengerId;
+                              if (pId.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Authentication error. Please re-login.')),
+                                  const SnackBar(content: Text('Please log in to submit inquiries.')),
                                 );
                                 return;
                               }
@@ -515,23 +699,20 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
                               setModal(() => isSubmitting = true);
 
                               try {
-                                final type = selectedIssue == '➕ Other'
-                                    ? (otherController.text.trim().isEmpty
-                                        ? 'Other'
-                                        : otherController.text.trim())
-                                    : selectedIssue;
+                                final title = selectedCategory == '➕ Other Inquiry'
+                                    ? (otherController.text.trim().isEmpty ? 'General Inquiry' : otherController.text.trim())
+                                    : selectedCategory;
 
-                                // Grab the device FCM token so admin can reply to THIS device.
                                 String? fcmToken;
                                 try {
                                   fcmToken = await FirebaseMessaging.instance.getToken();
                                 } catch (_) {}
 
-                                await FirebaseFirestore.instance.collection('operator_reports').add({
-                                  'operatorId': operatorId,
-                                  'operatorName': _operatorName,
-                                  'type': type,
-                                  'title': type,
+                                await FirebaseFirestore.instance.collection('passenger_reports').add({
+                                  'passengerId': pId,
+                                  'passengerName': _passengerName,
+                                  'type': selectedCategory,
+                                  'title': title,
                                   'description': desc,
                                   'status': 'pending',
                                   'createdAt': FieldValue.serverTimestamp(),
@@ -542,7 +723,7 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
                                   Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Report submitted! Admin will review shortly.'),
+                                      content: Text('Inquiry submitted! Admin will reply shortly.'),
                                       backgroundColor: Colors.green,
                                     ),
                                   );
@@ -551,10 +732,7 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
                                 setModal(() => isSubmitting = false);
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Failed to submit report: $e'),
-                                      backgroundColor: Colors.red,
-                                    ),
+                                    SnackBar(content: Text('Failed to submit: $e'), backgroundColor: Colors.red),
                                   );
                                 }
                               }
@@ -572,7 +750,7 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
                               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                             )
                           : const Text(
-                              'Submit Report',
+                              'Submit Inquiry to Admin',
                               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                     ),
@@ -587,13 +765,11 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // URL launchers
+  // Launchers
   // ──────────────────────────────────────────────────────────────────────────
 
   Future<void> _launchWhatsApp() async {
     final encoded = Uri.encodeComponent(_kWhatsAppMessage);
-    
-    // 1. Try native WhatsApp URI scheme first
     final nativeUri = Uri.parse('whatsapp://send?phone=$_kAdminWhatsApp&text=$encoded');
     try {
       if (await canLaunchUrl(nativeUri)) {
@@ -602,14 +778,12 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
       }
     } catch (_) {}
 
-    // 2. Try wa.me web link
     final webUri = Uri.parse('https://wa.me/$_kAdminWhatsApp?text=$encoded');
     try {
       final launched = await launchUrl(webUri, mode: LaunchMode.externalApplication);
       if (launched) return;
     } catch (_) {}
 
-    // 3. Fallback to api.whatsapp.com
     final fallbackUri = Uri.parse('https://api.whatsapp.com/send?phone=$_kAdminWhatsApp&text=$encoded');
     try {
       final launched = await launchUrl(fallbackUri, mode: LaunchMode.platformDefault);
@@ -618,7 +792,7 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open WhatsApp. Please check if WhatsApp is installed or browse to web.')),
+        const SnackBar(content: Text('Could not open WhatsApp. Is it installed?')),
       );
     }
   }
@@ -629,7 +803,6 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
       if (await canLaunchUrl(url)) {
         await launchUrl(url);
       } else {
-        // Direct launch fallback
         await launchUrl(url, mode: LaunchMode.externalApplication);
       }
     } catch (e) {
@@ -643,36 +816,35 @@ class _OperatorContactScreenState extends State<OperatorContactScreen> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Report Card (shows report details + admin reply if present)
+// Passenger Inquiry Card Widget
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _ReportCard extends StatefulWidget {
-  const _ReportCard({required this.doc, required this.isDark});
+class _PassengerInquiryCard extends StatefulWidget {
+  const _PassengerInquiryCard({required this.doc, required this.isDark});
 
   final QueryDocumentSnapshot doc;
   final bool isDark;
 
   @override
-  State<_ReportCard> createState() => _ReportCardState();
+  State<_PassengerInquiryCard> createState() => _PassengerInquiryCardState();
 }
 
-class _ReportCardState extends State<_ReportCard> {
+class _PassengerInquiryCardState extends State<_PassengerInquiryCard> {
   bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
     final data = widget.doc.data() as Map<String, dynamic>;
     final isDark = widget.isDark;
-    final isResolved = data['status'] == 'resolved';
     final status = data['status'] as String? ?? 'pending';
+    final title = data['title'] as String? ?? 'Inquiry';
     final type = data['type'] as String? ?? 'General';
-    final title = data['title'] as String? ?? type;
     final description = data['description'] as String? ?? '';
     final adminReply = data['adminReply'] as String?;
     final hasReply = adminReply != null && adminReply.isNotEmpty;
 
     Color statusColor;
-    if (isResolved) {
+    if (status == 'resolved') {
       statusColor = Colors.green;
     } else if (status == 'in_progress') {
       statusColor = Colors.blue;
@@ -707,10 +879,12 @@ class _ReportCardState extends State<_ReportCard> {
                 : (isDark ? Colors.white10 : Colors.grey.shade200),
             width: hasReply ? 1.5 : 1,
           ),
+          boxShadow: [
+            if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
         ),
         child: Column(
           children: [
-            // Header row
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -723,7 +897,7 @@ class _ReportCardState extends State<_ReportCard> {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      _iconForType(type),
+                      _iconForCategory(type),
                       color: isDark ? Colors.white54 : Colors.grey.shade600,
                       size: 20,
                     ),
@@ -759,7 +933,7 @@ class _ReportCardState extends State<_ReportCard> {
                                     Icon(Icons.reply, size: 10, color: AppColors.primaryOrange),
                                     const SizedBox(width: 3),
                                     Text(
-                                      'Reply',
+                                      'Replied',
                                       style: TextStyle(
                                         color: AppColors.primaryOrange,
                                         fontSize: 9,
@@ -813,7 +987,6 @@ class _ReportCardState extends State<_ReportCard> {
               ),
             ),
 
-            // Expanded detail panel
             if (_expanded) ...[
               Divider(height: 1, color: isDark ? Colors.white10 : Colors.grey.shade200),
               Padding(
@@ -821,10 +994,9 @@ class _ReportCardState extends State<_ReportCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Description
                     if (description.isNotEmpty) ...[
                       Text(
-                        'Your Report',
+                        'Your Message',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -851,7 +1023,6 @@ class _ReportCardState extends State<_ReportCard> {
                       ),
                     ],
 
-                    // Admin reply
                     if (hasReply) ...[
                       const SizedBox(height: 16),
                       Text(
@@ -875,8 +1046,7 @@ class _ReportCardState extends State<_ReportCard> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.admin_panel_settings_rounded,
-                                size: 16, color: AppColors.primaryOrange),
+                            Icon(Icons.admin_panel_settings_rounded, size: 16, color: AppColors.primaryOrange),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -909,7 +1079,7 @@ class _ReportCardState extends State<_ReportCard> {
                           Icon(Icons.schedule, size: 14, color: isDark ? Colors.white30 : Colors.grey.shade400),
                           const SizedBox(width: 6),
                           Text(
-                            'Awaiting admin response...',
+                            'Awaiting admin review...',
                             style: TextStyle(
                               fontSize: 12,
                               color: isDark ? Colors.white30 : Colors.grey.shade500,
@@ -929,27 +1099,22 @@ class _ReportCardState extends State<_ReportCard> {
     );
   }
 
-  IconData _iconForType(String type) {
-    final lower = type.toLowerCase();
-    if (lower.contains('breakdown') || lower.contains('emergency')) return Icons.car_crash_rounded;
-    if (lower.contains('schedule') || lower.contains('delay') || lower.contains('traffic')) {
-      return Icons.calendar_month_rounded;
-    }
-    if (lower.contains('tech') || lower.contains('app')) return Icons.build_circle_rounded;
-    if (lower.contains('passenger') || lower.contains('dispute')) return Icons.people_alt_rounded;
-    return Icons.report_problem_rounded;
+  IconData _iconForCategory(String cat) {
+    final lower = cat.toLowerCase();
+    if (lower.contains('book') || lower.contains('ticket')) return Icons.confirmation_number_outlined;
+    if (lower.contains('delay') || lower.contains('schedule')) return Icons.calendar_month_outlined;
+    if (lower.contains('pay') || lower.contains('refund')) return Icons.payment_outlined;
+    if (lower.contains('lost') || lower.contains('found')) return Icons.luggage_outlined;
+    if (lower.contains('app') || lower.contains('tech')) return Icons.build_circle_outlined;
+    return Icons.chat_bubble_outline_rounded;
   }
 
-  String _formatStatus(String status) {
-    switch (status) {
-      case 'pending':
-        return 'Pending';
-      case 'in_progress':
-        return 'In Progress';
-      case 'resolved':
-        return 'Resolved';
-      default:
-        return status.isNotEmpty ? status[0].toUpperCase() + status.substring(1) : status;
+  String _formatStatus(String s) {
+    switch (s) {
+      case 'pending': return 'Pending';
+      case 'in_progress': return 'In Progress';
+      case 'resolved': return 'Resolved';
+      default: return s.isNotEmpty ? s[0].toUpperCase() + s.substring(1) : s;
     }
   }
 }

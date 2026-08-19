@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:ridesync/core/widgets/confirm_exit_dialog.dart';
 import 'package:ridesync/features/operator/presentation/providers/gps_broadcast_provider.dart';
 import 'package:ridesync/features/operator/presentation/screens/operator_broadcast_screen.dart';
 
@@ -139,6 +140,30 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
     });
   }
 
+  Future<void> _handlePop(GpsBroadcastProvider gps, bool didPop, dynamic result) async {
+    if (didPop) return;
+
+    if (!gps.isBroadcasting) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    final shouldLeave = await showConfirmExitDialog(
+      context,
+      title: 'Exit Navigation?',
+      message: 'You have an active GPS trip broadcast running. Exiting will stop GPS location sharing with passengers.',
+      confirmLabel: 'Stop & Exit',
+      cancelLabel: 'Keep Driving',
+      isDestructive: true,
+      icon: Icons.navigation_rounded,
+    );
+
+    if (shouldLeave && mounted) {
+      await gps.stopBroadcasting();
+      if (mounted) Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final routeName = widget.trip['routeName'] ?? 'Route';
@@ -149,19 +174,22 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
     // Calculate estimated arrival time (e.g. + 45 mins)
     final etaTime = DateFormat('HH:mm').format(DateTime.now().add(const Duration(minutes: 45)));
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF071822),
-      body: SafeArea(
-        top: false,
-        child: Stack(
-          children: [
-            // ── 1. Full Screen Google Map (Dark Navigation Theme) ────────────
-            GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: _currentLocation,
-                zoom: 16,
-                tilt: 40,
-              ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) => _handlePop(gpsProvider, didPop, result),
+      child: Scaffold(
+        backgroundColor: const Color(0xFF071822),
+        body: SafeArea(
+          top: false,
+          child: Stack(
+            children: [
+              // ── 1. Full Screen Google Map (Dark Navigation Theme) ────────────
+              GoogleMap(
+                initialCameraPosition: CameraPosition(
+                  target: _currentLocation,
+                  zoom: 16,
+                  tilt: 40,
+                ),
               style: _darkMapStyle,
               onMapCreated: (controller) {
                 _mapController = controller;
@@ -506,7 +534,7 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
                           child: SizedBox(
                             height: 48,
                             child: OutlinedButton.icon(
-                              onPressed: () => Navigator.pop(context),
+                              onPressed: () => _handlePop(gpsProvider, false, null),
                               icon: const Icon(Icons.close, color: Color(0xFFEF4444), size: 18),
                               label: const Text(
                                 'Exit',
@@ -570,8 +598,9 @@ class _OperatorNavigationScreenState extends State<OperatorNavigationScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _floatingCircleButton({required Widget child, required VoidCallback onTap}) {
     return Material(

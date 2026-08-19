@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ridesync/core/constants.dart';
+import 'package:ridesync/core/widgets/confirm_exit_dialog.dart';
 import 'package:ridesync/features/auth/presentation/screens/auth_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/booking_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/seat_layout_engine.dart';
@@ -16,19 +17,50 @@ class SeatSelectionScreen extends StatelessWidget {
     required this.layoutType
   });
 
+  Future<void> _handlePop(BuildContext context, BookingProvider booking, bool didPop, dynamic result) async {
+    if (didPop) return;
+
+    if (booking.selectedSeatNumbers.isEmpty) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    final shouldLeave = await showConfirmExitDialog(
+      context,
+      title: 'Discard Selected Seats?',
+      message: 'You have selected ${booking.selectedSeatNumbers.length} seat(s). Are you sure you want to go back? Your selection will be cleared.',
+      confirmLabel: 'Discard',
+      cancelLabel: 'Keep Selecting',
+      isDestructive: true,
+      icon: Icons.event_seat_rounded,
+    );
+
+    if (shouldLeave && context.mounted) {
+      booking.selectedSeatNumbers.clear();
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final booking = Provider.of<BookingProvider>(context);
     final auth = Provider.of<AuthProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
-      appBar: AppBar(
-        title: const Text('Select Your Seats', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) => _handlePop(context, booking, didPop, result),
+      child: Scaffold(
+        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+        appBar: AppBar(
+          title: const Text('Select Your Seats', style: TextStyle(fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => _handlePop(context, booking, false, null),
+          ),
+        ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: booking.streamSeats(scheduleId),
         builder: (context, snapshot) {
@@ -74,8 +106,9 @@ class SeatSelectionScreen extends StatelessWidget {
           );
         },
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildLegend() {
     return Padding(
