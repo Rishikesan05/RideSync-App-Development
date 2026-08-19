@@ -29,11 +29,14 @@ import 'package:ridesync/features/operator/presentation/providers/gps_broadcast_
 import 'package:ridesync/features/passenger/presentation/screens/chatbot_screen.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:ridesync/core/services/fcm_service.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
   await Firebase.initializeApp();
+  await FcmService.instance.init();
   
   runApp(
     MultiProvider(

@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ridesync/features/auth/presentation/screens/user_model.dart';
+import 'package:ridesync/core/services/fcm_service.dart';
+
 
 // Manages User Role and Session state
 class AuthProvider with ChangeNotifier {
@@ -125,6 +127,13 @@ class AuthProvider with ChangeNotifier {
       }
     }
     _isInitialized = true;
+
+    // Save FCM token so this device can receive push notifications.
+    if (_user != null && _user!.id.isNotEmpty) {
+      final role = _currentRole == UserRole.operator ? 'operator' : 'passenger';
+      FcmService.instance.saveTokenForUser(_user!.id, role: role);
+    }
+
     notifyListeners();
   }
 
