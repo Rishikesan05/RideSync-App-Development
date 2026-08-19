@@ -6,6 +6,7 @@ import 'package:ridesync/core/providers/settings_provider.dart';
 import 'package:ridesync/features/passenger/presentation/providers/home_provider.dart';
 import 'package:ridesync/core/widgets/custom_button.dart';
 import 'package:ridesync/features/passenger/presentation/screens/my_bookings_screen.dart';
+import 'package:ridesync/features/passenger/presentation/screens/help_center_screen.dart';
 import 'package:ridesync/core/localization/translations.dart';
 import 'dart:ui';
 
@@ -415,21 +416,27 @@ class AccountScreen extends StatelessWidget {
             Icons.help_outline,
             'Help Center',
             isDark,
-            subTitle: 'Get support and view FAQs',
+            subTitle: 'FAQs, Admin messaging & support tickets',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const HelpCenterScreen()),
+            ),
           ),
           _buildMenuItem(
             context,
             Icons.info_outline,
             'About RideSync',
             isDark,
-            subTitle: 'App version info and guidelines',
+            subTitle: 'App version, vision & feature guide',
+            onTap: () => _showAboutDialog(context, isDark),
           ),
           _buildMenuItem(
             context,
             Icons.privacy_tip_outlined,
             'Privacy Policy',
             isDark,
-            subTitle: 'Read terms of service & data policies',
+            subTitle: 'Data usage, location permissions & security',
+            onTap: () => _showPrivacyPolicyDialog(context, isDark),
           ),
         ],
       ),
@@ -701,6 +708,20 @@ class AccountScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => _FavouriteRoutesDialog(isDark: isDark),
+    );
+  }
+
+  void _showAboutDialog(BuildContext context, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) => _AboutRideSyncDialog(isDark: isDark),
+    );
+  }
+
+  void _showPrivacyPolicyDialog(BuildContext context, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) => _PrivacyPolicyDialog(isDark: isDark),
     );
   }
 }
@@ -1089,6 +1110,304 @@ class _FavouriteRoutesDialogState extends State<_FavouriteRoutesDialog> {
                   ),
                 ],
               ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// About RideSync Dialog
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AboutRideSyncDialog extends StatelessWidget {
+  final bool isDark;
+  const _AboutRideSyncDialog({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFE68D33), Color(0xFFD84315)],
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.directions_bus_rounded, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'RideSync',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : AppColors.textDark,
+                ),
+              ),
+              Text(
+                'Version 1.0.0 (Build 2026.08)',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white54 : Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isDark ? Colors.white10 : Colors.orange.shade100,
+                ),
+              ),
+              child: Text(
+                'RideSync is an advanced, real-time intercity transit management platform connecting passengers and bus operators for seamless travel across Sri Lanka.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.white70 : Colors.grey.shade800,
+                  height: 1.5,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'KEY CAPABILITIES',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.8,
+                color: isDark ? Colors.white38 : Colors.grey.shade500,
+              ),
+            ),
+            const SizedBox(height: 10),
+            _buildFeatureBullet('📍 Live GPS Bus Tracking with Heading & Route Stops', isDark),
+            _buildFeatureBullet('🎟️ Interactive Seat Selection & Instant Digital QR Ticketing', isDark),
+            _buildFeatureBullet('💳 Cashless Card & Express Payment Support', isDark),
+            _buildFeatureBullet('🔔 Real-time Admin Dispatch & Notification Center', isDark),
+            _buildFeatureBullet('🚍 Dedicated Operator Portal for Schedules & Earnings', isDark),
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Icon(Icons.support_agent_rounded, size: 16, color: AppColors.primaryOrange),
+                const SizedBox(width: 8),
+                Text(
+                  'Depot Hotline: +94 70 375 3501',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white70 : Colors.grey.shade800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(Icons.chat_bubble_outline_rounded, size: 16, color: Colors.green),
+                const SizedBox(width: 8),
+                Text(
+                  'WhatsApp Admin: +94 75 491 8424',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white70 : Colors.grey.shade800,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primaryOrange,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: const Text('Got it', style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFeatureBullet(String text, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 5),
+            width: 5,
+            height: 5,
+            decoration: const BoxDecoration(
+              color: AppColors.primaryOrange,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.white60 : Colors.grey.shade700,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Privacy Policy Dialog
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PrivacyPolicyDialog extends StatelessWidget {
+  final bool isDark;
+  const _PrivacyPolicyDialog({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white10 : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.privacy_tip_outlined, color: AppColors.primaryOrange, size: 24),
+          ),
+          const SizedBox(width: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Privacy Policy',
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : AppColors.textDark,
+                ),
+              ),
+              Text(
+                'Last Updated: August 2026',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white54 : Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildPolicySection(
+                '1. Information We Collect',
+                'We collect information you provide directly, such as your full name, mobile phone number, email address, selected boarding stops, and booking history to provide transit services.',
+                isDark,
+              ),
+              _buildPolicySection(
+                '2. Location & GPS Permissions',
+                'RideSync utilizes foreground and background location access to display your proximity to bus stops, calculate estimated arrival times (ETA), and provide live turn-by-turn navigation alerts. Location data is never sold to third parties.',
+                isDark,
+              ),
+              _buildPolicySection(
+                '3. Payment & Financial Security',
+                'Payments are securely processed via encrypted payment gateways complying with international PCI-DSS standards. RideSync does not store raw credit card CVV numbers or sensitive financial keys on device storage.',
+                isDark,
+              ),
+              _buildPolicySection(
+                '4. Data Protection & Cloud Storage',
+                'Your data is stored within Google Firebase Cloud data centers with strict role-based access control, security rules, and end-to-end transport layer encryption (TLS/SSL).',
+                isDark,
+              ),
+              _buildPolicySection(
+                '5. Your Rights & Inquiries',
+                'You may view, edit, or request deletion of your account data at any time from the Profile settings or by contacting the RideSync Data Protection officer via the Help Center.',
+                isDark,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primaryOrange,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: const Text('I Understand', style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPolicySection(String title, String body, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white.withValues(alpha: 0.9) : AppColors.textDark,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            body,
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? Colors.white60 : Colors.grey.shade700,
+              height: 1.45,
+            ),
+          ),
+        ],
       ),
     );
   }
